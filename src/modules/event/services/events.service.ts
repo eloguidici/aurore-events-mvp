@@ -5,21 +5,14 @@ import { CreateEventDto } from '../dtos/create-event.dto';
 import { QueryEventsDto } from '../dtos/query-events.dto';
 import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { EventBufferService } from './event-buffer.service';
-import {
-  BufferSaturatedException,
-  ServiceUnavailableException,
-} from '../exceptions';
+import { BufferSaturatedException } from '../exceptions';
 import { EventResponseDto, SearchEventsResponseDto } from '../dtos/search-events-response.dto';
 import { IngestEventResponseDto } from '../dtos/ingest-event-response.dto';
 import { IEventRepository } from '../repositories/event.repository.interface';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
-import {
-  DEFAULT_SORT_FIELD,
-  ALLOWED_SORT_FIELDS,
-} from '../constants/query.constants';
+import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
 import { ErrorLogger } from '../../common/utils/error-logger';
-import { isPositiveInteger, isNonEmptyString } from '../../common/utils/type-guards';
 
 @Injectable()
 export class EventsService {
@@ -32,27 +25,16 @@ export class EventsService {
   ) {}
 
   /**
-   * Ingest a new event
-   * Enriches event with metadata, checks buffer capacity, and enqueues to buffer
+   * Builds an enriched event from DTO by adding metadata
+   * Generates event ID and ingestion timestamp
    * 
-   * @param createEventDto - Event data to ingest
-   * @returns IngestEventResponseDto with event_id and queued_at timestamp
-   * @throws BufferSaturatedException if buffer is full (429)
-   * @throws ServiceUnavailableException if system is under pressure (503)
+   * @param createEventDto - Event data to enrich
+   * @returns EnrichedEvent with generated eventId and ingestedAt timestamp
    */
-  ingestEvent(createEventDto: CreateEventDto): IngestEventResponseDto {
-    // Validate input types (defense in depth)
-    if (!isNonEmptyString(createEventDto.service)) {
-      throw new Error('Service must be a non-empty string');
-    }
-    if (!isNonEmptyString(createEventDto.message)) {
-      throw new Error('Message must be a non-empty string');
-    }
-
-    // Enrich event with metadata
+  private buildEnrichedEvent(createEventDto: CreateEventDto): EnrichedEvent {
     // Generate efficient event ID: use crypto.randomBytes for better performance than UUID
     // 6 bytes = 12 hex characters = sufficient uniqueness for event IDs
-    const enrichedEvent: EnrichedEvent = {
+    return {
       eventId: `evt_${randomBytes(6).toString('hex')}`, // 12 hex chars, more efficient than UUID
       timestamp: createEventDto.timestamp,
       service: createEventDto.service,
@@ -60,6 +42,18 @@ export class EventsService {
       metadata: createEventDto.metadata,
       ingestedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Ingest a new event
+   * Enriches event with metadata, checks buffer capacity, and enqueues to buffer
+   * 
+   * @param createEventDto - Event data to ingest (validated by ValidationPipe)
+   * @returns IngestEventResponseDto with event_id and queued_at timestamp
+   * @throws BufferSaturatedException if buffer is full (429)
+   */
+  ingestEvent(createEventDto: CreateEventDto): IngestEventResponseDto {
+    const enrichedEvent = this.buildEnrichedEvent(createEventDto);
 
     // Atomic enqueue operation - eliminates race condition
     // Try to enqueue directly, if buffer is full, throw exception
@@ -107,23 +101,16 @@ export class EventsService {
       sortOrder = 'DESC',
     } = queryDto;
 
-    // Time range validation is now handled in QueryEventsDto via @IsValidTimeRange decorator
-
-    // sortField is already validated in DTO via @IsSortField decorator
-    // Trust DTO validation for performance (defense in depth removed for efficiency)
-    // If DTO validation somehow fails, TypeORM will handle it safely
+    // All validations are handled in QueryEventsDto via ValidationPipe:
+    // - Time range: @IsValidTimeRange decorator
+    // - sortField: @IsSortField decorator
+    // - sortOrder: @IsSortOrder decorator
+    // - page: @IsInt, @Min(1) decorators
+    // - pageSize: @IsInt, @Min(1) decorators
     const safeSortField = sortField || DEFAULT_SORT_FIELD;
     const safeSortOrder = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     try {
-      // Validate pagination parameters with type guards
-      if (!isPositiveInteger(page)) {
-        throw new Error(`Invalid page parameter: ${page}`);
-      }
-      if (!isPositiveInteger(pageSize)) {
-        throw new Error(`Invalid pageSize parameter: ${pageSize}`);
-      }
-
       // Calculate pagination
       const limit = Math.min(pageSize, envs.maxQueryLimit);
       const offset = (page - 1) * limit;

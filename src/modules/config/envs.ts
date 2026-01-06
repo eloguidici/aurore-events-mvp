@@ -17,8 +17,6 @@ interface EnvVars {
   BATCH_SIZE?: number;
   DRAIN_INTERVAL?: number;
   MAX_RETRIES?: number;
-  BACKOFF_INITIAL_MS?: number;
-  BACKOFF_MAX_MS?: number;
 
   // Buffer Configuration
   BUFFER_MAX_SIZE?: number;
@@ -94,8 +92,6 @@ const envsSchema = joi
     BATCH_SIZE: joi.number().min(1).max(10000).required(),
     DRAIN_INTERVAL: joi.number().min(100).max(60000).required(),
     MAX_RETRIES: joi.number().min(0).max(10).required(),
-    BACKOFF_INITIAL_MS: joi.number().min(10).max(10000).required(),
-    BACKOFF_MAX_MS: joi.number().min(100).max(60000).required(),
 
     // Buffer Configuration
     BUFFER_MAX_SIZE: joi.number().min(100).max(1000000).required(),
@@ -133,8 +129,6 @@ const { error, value } = envsSchema.validate({
   BATCH_SIZE: process.env.BATCH_SIZE,
   DRAIN_INTERVAL: process.env.DRAIN_INTERVAL,
   MAX_RETRIES: process.env.MAX_RETRIES,
-  BACKOFF_INITIAL_MS: process.env.BACKOFF_INITIAL_MS,
-  BACKOFF_MAX_MS: process.env.BACKOFF_MAX_MS,
   BUFFER_MAX_SIZE: process.env.BUFFER_MAX_SIZE,
   RETENTION_DAYS: process.env.RETENTION_DAYS,
   RETENTION_CRON_SCHEDULE: process.env.RETENTION_CRON_SCHEDULE,
@@ -181,8 +175,6 @@ export const envs = {
   batchSize: envVars.BATCH_SIZE,
   drainInterval: envVars.DRAIN_INTERVAL,
   maxRetries: envVars.MAX_RETRIES,
-  backoffInitialMs: envVars.BACKOFF_INITIAL_MS,
-  backoffMaxMs: envVars.BACKOFF_MAX_MS,
 
   // Buffer Configuration
   bufferMaxSize: envVars.BUFFER_MAX_SIZE,

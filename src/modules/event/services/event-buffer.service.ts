@@ -282,7 +282,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
           ErrorLogger.logWarning(
             this.logger,
             'Invalid event in checkpoint, skipping',
-            ErrorLogger.createErrorContext(eventId, undefined),
+            ErrorLogger.createContext(eventId, undefined),
           );
         }
       }

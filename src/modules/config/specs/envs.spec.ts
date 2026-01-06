@@ -33,8 +33,6 @@ describe('Environment Configuration', () => {
       expect(typeof envs.batchSize).toBe('number');
       expect(typeof envs.drainInterval).toBe('number');
       expect(typeof envs.maxRetries).toBe('number');
-      expect(typeof envs.backoffInitialMs).toBe('number');
-      expect(typeof envs.backoffMaxMs).toBe('number');
     });
 
     it('should have valid batch worker values', () => {
@@ -44,8 +42,6 @@ describe('Environment Configuration', () => {
       expect(envs.drainInterval).toBeLessThanOrEqual(60000);
       expect(envs.maxRetries).toBeGreaterThanOrEqual(0);
       expect(envs.maxRetries).toBeLessThanOrEqual(10);
-      expect(envs.backoffInitialMs).toBeGreaterThanOrEqual(10);
-      expect(envs.backoffMaxMs).toBeGreaterThanOrEqual(envs.backoffInitialMs);
     });
   });
 

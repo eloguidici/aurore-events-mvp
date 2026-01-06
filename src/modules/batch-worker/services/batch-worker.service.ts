@@ -4,7 +4,6 @@ import { EventsService } from '../../event/services/events.service';
 import { envs } from '../../config/envs';
 import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
 import { CreateEventDto } from '../../event/dtos/create-event.dto';
-import { BatchValidationResult } from '../interfaces/batch-validation-result.interface';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
@@ -16,14 +15,11 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly batchSize: number;
   private readonly drainInterval: number; // milliseconds
   private readonly maxRetries: number;
-  private readonly backoffInitialMs: number;
-  private readonly backoffMaxMs: number;
 
   // Performance metrics
   private readonly performanceMetrics = {
     totalBatchesProcessed: 0,
     totalEventsProcessed: 0,
-    totalValidationTimeMs: 0,
     totalInsertTimeMs: 0,
     averageBatchProcessingTimeMs: 0,
   };
@@ -35,8 +31,6 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     this.batchSize = envs.batchSize;
     this.drainInterval = envs.drainInterval;
     this.maxRetries = envs.maxRetries;
-    this.backoffInitialMs = envs.backoffInitialMs;
-    this.backoffMaxMs = envs.backoffMaxMs;
   }
 
   /**
@@ -158,41 +152,15 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.debug(`Processing batch of ${batch.length} events`);
 
-      // Validate events (non-blocking, processes in chunks)
-      const validationStartTime = Date.now();
-      const { validEvents, invalidEvents } = await this.validateBatch(batch);
-      const validationTimeMs = Date.now() - validationStartTime;
-      this.performanceMetrics.totalValidationTimeMs += validationTimeMs;
+      // All events are already validated:
+      // - New events: validated by ValidationPipe before entering buffer
+      // - Checkpoint events: validated when loaded from disk
+      // - Retry events: validated in previous batch before re-enqueue
+      // No need to validate again here
 
-      // Log invalid events with sampling to avoid excessive I/O
-      if (invalidEvents.length > 0) {
-        ErrorLogger.logWarning(
-          this.logger,
-          'Dropped invalid events from batch',
-          {
-            invalidCount: invalidEvents.length,
-            batchSize: batch.length,
-          },
-        );
-        
-        // Sample logging: log first 3 events and summary to avoid I/O overhead
-        const SAMPLE_SIZE = 3;
-        const eventsToLog = invalidEvents.slice(0, SAMPLE_SIZE);
-        
-        eventsToLog.forEach((event) => {
-          this.logger.debug(`Invalid event sample: ${JSON.stringify(event)}`);
-        });
-        
-        if (invalidEvents.length > SAMPLE_SIZE) {
-          this.logger.debug(
-            `... and ${invalidEvents.length - SAMPLE_SIZE} more invalid events (not logged to reduce I/O)`,
-          );
-        }
-      }
-
-      // Insert valid events to storage
-      if (validEvents.length > 0) {
-        const eventsToInsert: CreateEventDto[] = validEvents.map((event) => ({
+      // Insert events to storage
+      if (batch.length > 0) {
+        const eventsToInsert: CreateEventDto[] = batch.map((event) => ({
           timestamp: event.timestamp,
           service: event.service,
           message: event.message,
@@ -213,7 +181,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
             {
               failedCount: failed,
               successfulCount: successful,
-              totalAttempted: validEvents.length,
+              totalAttempted: batch.length,
             },
           );
 
@@ -221,7 +189,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
           // Note: batchInsert doesn't specify which events failed, so we retry
           // all events that were attempted. This is conservative but safe.
           // In a production system, batchInsert should return which specific events failed.
-          await this.retryFailedEvents(validEvents);
+          await this.retryFailedEvents(batch);
         }
 
         if (successful > 0) {
@@ -242,7 +210,6 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       if (this.performanceMetrics.totalBatchesProcessed % 100 === 0) {
         this.logger.log(
           `Performance metrics: avg batch time=${this.performanceMetrics.averageBatchProcessingTimeMs.toFixed(2)}ms, ` +
-          `avg validation=${(this.performanceMetrics.totalValidationTimeMs / this.performanceMetrics.totalBatchesProcessed).toFixed(2)}ms, ` +
           `avg insert=${(this.performanceMetrics.totalInsertTimeMs / this.performanceMetrics.totalBatchesProcessed).toFixed(2)}ms`,
         );
       }
@@ -258,109 +225,11 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Validate a batch of events, separating valid from invalid
-   * Uses efficient synchronous validation for small batches, chunked async for large batches
-   * 
-   * @param batch - Array of events to validate
-   * @returns Promise resolving to BatchValidationResult containing arrays of valid and invalid events
-   */
-  private async validateBatch(batch: EnrichedEvent[]): Promise<BatchValidationResult> {
-    // For small batches (< 1000 events), validation is fast enough to do synchronously
-    // For large batches, process in chunks to avoid blocking the event loop
-    const LARGE_BATCH_THRESHOLD = 1000;
-    const CHUNK_SIZE = 500;
-    
-    if (batch.length < LARGE_BATCH_THRESHOLD) {
-      // Small batch: validate synchronously (very fast, won't block)
-      // Use single pass to avoid validating events twice
-      const validEvents: EnrichedEvent[] = [];
-      const invalidEvents: EnrichedEvent[] = [];
-      
-      for (const event of batch) {
-        if (this.validateEvent(event)) {
-          validEvents.push(event);
-        } else {
-          invalidEvents.push(event);
-        }
-      }
-      
-      return { validEvents, invalidEvents };
-    }
-    
-    // Large batch: process in chunks with yield points
-    const validEvents: EnrichedEvent[] = [];
-    const invalidEvents: EnrichedEvent[] = [];
-    
-    for (let i = 0; i < batch.length; i += CHUNK_SIZE) {
-      const chunk = batch.slice(i, i + CHUNK_SIZE);
-      
-      // Process chunk synchronously
-      for (const event of chunk) {
-        if (this.validateEvent(event)) {
-          validEvents.push(event);
-        } else {
-          invalidEvents.push(event);
-        }
-      }
-      
-      // Yield control to event loop between chunks (except last)
-      if (i + CHUNK_SIZE < batch.length) {
-        await new Promise(resolve => setImmediate(resolve));
-      }
-    }
-
-    return { validEvents, invalidEvents };
-  }
 
   /**
-   * Validate a single event
-   * Checks required fields, timestamp format, and field types
-   * 
-   * @param event - Event to validate
-   * @returns true if event is valid, false otherwise
-   */
-  private validateEvent(event: EnrichedEvent): boolean {
-    try {
-      // Check required fields
-      if (!event.timestamp || !event.service || !event.message) {
-        return false;
-      }
-
-      // Validate timestamp format
-      const timestamp = new Date(event.timestamp);
-      if (isNaN(timestamp.getTime())) {
-        return false;
-      }
-
-      // Validate service name (prevent injection, limit length)
-      if (
-        typeof event.service !== 'string' ||
-        event.service.length === 0 ||
-        event.service.length > envs.serviceNameMaxLength
-      ) {
-        return false;
-      }
-
-      // Validate message
-      if (
-        typeof event.message !== 'string' ||
-        event.message.length === 0
-      ) {
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      this.logger.debug(`Validation error for event: ${error.message}`);
-      return false;
-    }
-  }
-
-  /**
-   * Retry failed events with exponential backoff
-   * Events are re-enqueued immediately to buffer (non-blocking)
-   * The buffer acts as the backoff mechanism - events will be processed in next batch
+   * Retry failed events by re-enqueuing them to the buffer
+   * Events are re-enqueued immediately (non-blocking)
+   * The buffer naturally spaces out retries through batch processing intervals
    * 
    * @param failedEvents - Array of events that failed to insert
    */
@@ -399,7 +268,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
               ErrorLogger.logWarning(
                 this.logger,
                 'Failed to re-enqueue event for retry: buffer full',
-                ErrorLogger.createErrorContext(event.eventId, event.service, {
+                ErrorLogger.createContext(event.eventId, event.service, {
                   retryCount: retryEvent.retryCount,
                 }),
               );
@@ -411,7 +280,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
               this.logger,
               `Event permanently failed after ${this.maxRetries} retries`,
               new Error('Max retries exceeded'),
-              ErrorLogger.createErrorContext(event.eventId, event.service, {
+              ErrorLogger.createContext(event.eventId, event.service, {
                 timestamp: event.timestamp,
                 maxRetries: this.maxRetries,
               }),
@@ -426,7 +295,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
             this.logger,
             'Error processing retry for event',
             error,
-            ErrorLogger.createErrorContext(event.eventId, event.service, {
+            ErrorLogger.createContext(event.eventId, event.service, {
               retryCount,
             }),
           );

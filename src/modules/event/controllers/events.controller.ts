@@ -70,7 +70,7 @@ export class EventsController {
         this.logger,
         'Unexpected error ingesting event',
         error,
-        ErrorLogger.createErrorContext(undefined, createEventDto.service),
+        ErrorLogger.createContext(undefined, createEventDto.service),
       );
       throw new HttpException(
         {
@@ -112,7 +112,7 @@ export class EventsController {
         this.logger,
         'Query error',
         error,
-        ErrorLogger.createErrorContext(undefined, queryDto.service, {
+        ErrorLogger.createContext(undefined, queryDto.service, {
           from: queryDto.from,
           to: queryDto.to,
         }),

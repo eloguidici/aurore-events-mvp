@@ -49,3 +49,6 @@ checkpoints/
 .env.*.local
 
 /doc
+/metrics
+/metrics
+metrics/metrics-history.jsonl
