@@ -1,8 +1,4 @@
-import {
-  registerDecorator,
-  ValidationArguments,
-  ValidationOptions,
-} from 'class-validator';
+import { registerDecorator, ValidationOptions } from 'class-validator';
 
 import { ALLOWED_SORT_FIELDS } from '../../event/constants/query.constants';
 
@@ -14,14 +10,14 @@ import { ALLOWED_SORT_FIELDS } from '../../event/constants/query.constants';
  * @returns Property decorator function
  */
 export function IsSortField(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isSortField',
       target: object.constructor,
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any) {
           if (value === undefined || value === null) {
             return true; // Optional field
           }
@@ -31,7 +27,7 @@ export function IsSortField(validationOptions?: ValidationOptions) {
           // Check if value is in allowed sort fields
           return (ALLOWED_SORT_FIELDS as readonly string[]).includes(value);
         },
-        defaultMessage(args: ValidationArguments) {
+        defaultMessage() {
           return `sortField must be one of: ${ALLOWED_SORT_FIELDS.join(', ')}`;
         },
       },

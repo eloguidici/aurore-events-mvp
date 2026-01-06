@@ -1,8 +1,4 @@
-import {
-  registerDecorator,
-  ValidationArguments,
-  ValidationOptions,
-} from 'class-validator';
+import { registerDecorator, ValidationOptions } from 'class-validator';
 
 /**
  * Decorator for validating sort order (ASC or DESC, case insensitive)
@@ -11,14 +7,14 @@ import {
  * @returns Property decorator function
  */
 export function IsSortOrder(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isSortOrder',
       target: object.constructor,
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any) {
           if (value === undefined || value === null) {
             return true; // Optional field
           }
@@ -28,7 +24,7 @@ export function IsSortOrder(validationOptions?: ValidationOptions) {
           const upperValue = value.toUpperCase();
           return upperValue === 'ASC' || upperValue === 'DESC';
         },
-        defaultMessage(args: ValidationArguments) {
+        defaultMessage() {
           return 'sortOrder must be either ASC or DESC (case insensitive)';
         },
       },

@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { envs } from '../../config/envs';
 import { CircuitBreakerService, CircuitState } from './circuit-breaker.service';
 
 // Mock envs

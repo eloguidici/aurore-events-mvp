@@ -44,7 +44,7 @@ export class IsValidTimeRangeConstraint implements ValidatorConstraintInterface 
   /**
    * Default error message for validation failure
    */
-  defaultMessage(args: ValidationArguments): string {
+  defaultMessage(): string {
     return "'from' timestamp must be before 'to' timestamp";
   }
 }
@@ -59,7 +59,7 @@ export class IsValidTimeRangeConstraint implements ValidatorConstraintInterface 
  * @returns Property decorator function
  */
 export function IsValidTimeRange(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isValidTimeRange',
       target: object.constructor,

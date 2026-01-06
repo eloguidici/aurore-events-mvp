@@ -6,7 +6,6 @@ import {
   IsString,
   MaxLength,
   registerDecorator,
-  ValidateIf,
   ValidationArguments,
   ValidationOptions,
   ValidatorConstraint,
@@ -25,10 +24,9 @@ export class IsParseableTimestampConstraint implements ValidatorConstraintInterf
    * Validates if timestamp is a parseable date string
    *
    * @param timestamp - Timestamp value to validate
-   * @param args - Validation arguments
    * @returns true if timestamp is parseable, false otherwise
    */
-  validate(timestamp: any, args: ValidationArguments) {
+  validate(timestamp: any) {
     if (typeof timestamp !== 'string') {
       return false;
     }
@@ -39,7 +37,7 @@ export class IsParseableTimestampConstraint implements ValidatorConstraintInterf
   /**
    * Default error message for validation failure
    */
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage() {
     return 'timestamp must be a parseable date (ISO 8601 or Unix epoch)';
   }
 }
@@ -89,7 +87,7 @@ export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterfa
  * @returns Property decorator function
  */
 export function IsParseableTimestamp(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -112,7 +110,7 @@ export function IsMetadataSizeValid(
   maxSizeKB?: number,
   validationOptions?: ValidationOptions,
 ) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     const maxSize = maxSizeKB || envs.metadataMaxSizeKB;
     registerDecorator({
       target: object.constructor,

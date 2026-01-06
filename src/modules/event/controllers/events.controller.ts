@@ -20,10 +20,7 @@ import { CreateEventDto } from '../dtos/create-event.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { MetricsDto } from '../dtos/metrics-response.dto';
 import { QueryDto } from '../dtos/query-events.dto';
-import {
-  EventDto,
-  SearchResponseDto,
-} from '../dtos/search-events-response.dto';
+import { SearchResponseDto } from '../dtos/search-events-response.dto';
 import { EventBufferService } from '../services/event-buffer.service';
 import { EventService } from '../services/events.service';
 import {
@@ -67,8 +64,6 @@ export class EventController {
     @Req() req: Request,
   ): Promise<IngestResponseDto> {
     try {
-      // Include correlation ID in error context if available
-      const correlationId = req.correlationId;
       return await this.eventService.ingest(createEventDto);
     } catch (error) {
       // If it's already an HttpException (including our custom exceptions), re-throw it

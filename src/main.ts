@@ -6,7 +6,6 @@ import {
   configureApplication,
   startApplication,
 } from './config/bootstrap.config';
-import { envs } from './modules/config/envs';
 
 /**
  * Bootstrap function - Application entry point
