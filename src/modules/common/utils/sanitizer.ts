@@ -36,7 +36,15 @@ export class Sanitizer {
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.sanitizeObject(item));
+      return obj.map((item) => {
+        if (typeof item === 'string') {
+          return this.sanitizeString(item);
+        } else if (typeof item === 'object' && item !== null) {
+          return this.sanitizeObject(item);
+        } else {
+          return item;
+        }
+      });
     }
 
     const sanitized: Record<string, any> = {};
