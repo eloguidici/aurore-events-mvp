@@ -5,7 +5,7 @@ import { Event } from '../entities/event.entity';
  * DTO for event response
  * Maps Event entity to response format with parsed metadata
  */
-export class EventResponseDto {
+export class EventDto {
   id: string;
   timestamp: string;
   service: string;
@@ -15,7 +15,7 @@ export class EventResponseDto {
   createdAt: Date;
 
   /**
-   * Creates EventResponseDto from Event entity
+   * Creates EventDto from Event entity
    * 
    * @param event - Event entity to convert
    */
@@ -34,16 +34,16 @@ export class EventResponseDto {
  * DTO for search events response
  * Contains paginated results with sorting information
  */
-export class SearchEventsResponseDto {
+export class SearchResponseDto {
   page: number;
   pageSize: number;
   sortField: string;
   sortOrder: 'ASC' | 'DESC';
   total: number;
-  items: EventResponseDto[];
+  items: EventDto[];
 
   /**
-   * Creates SearchEventsResponseDto with pagination and sorting info
+   * Creates SearchResponseDto with pagination and sorting info
    * 
    * @param data - Response data including page, pageSize, sortField, sortOrder, total, and items
    */
@@ -53,7 +53,7 @@ export class SearchEventsResponseDto {
     sortField: string;
     sortOrder: 'ASC' | 'DESC';
     total: number;
-    items: EventResponseDto[];
+    items: EventDto[];
   }) {
     this.page = data.page;
     this.pageSize = data.pageSize;

@@ -10,9 +10,9 @@ import {
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import { CreateEventDto } from '../../dtos/create-event.dto';
-import { IngestEventResponseDto } from '../../dtos/ingest-event-response.dto';
-import { SearchEventsResponseDto } from '../../dtos/search-events-response.dto';
-import { MetricsResponseDto } from '../../dtos/metrics-response.dto';
+import { IngestResponseDto } from '../../dtos/ingest-event-response.dto';
+import { SearchResponseDto } from '../../dtos/search-events-response.dto';
+import { MetricsDto } from '../../dtos/metrics-response.dto';
 
 /**
  * Swagger decorators for POST /events endpoint
@@ -45,7 +45,7 @@ export function ApiIngestEvent() {
     ApiResponse({
       status: HttpStatus.ACCEPTED,
       description: 'Event accepted and queued successfully',
-      type: IngestEventResponseDto,
+      type: IngestResponseDto,
     }),
     ApiBadRequestResponse({
       description: 'Invalid event schema or validation failed',
@@ -163,7 +163,7 @@ export function ApiQueryEvents() {
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Events retrieved successfully. Response includes pagination metadata and event list.',
-      type: SearchEventsResponseDto,
+      type: SearchResponseDto,
     }),
     ApiBadRequestResponse({
       description: 'Invalid query parameters. Common causes: invalid timestamp format, "from" >= "to", invalid sort field, or invalid pagination values.',
@@ -217,7 +217,7 @@ Use this endpoint for monitoring system health and capacity planning.`,
     ApiResponse({
       status: HttpStatus.OK,
       description: 'Buffer metrics retrieved successfully. Includes comprehensive statistics and health indicators.',
-      type: MetricsResponseDto,
+      type: MetricsDto,
     }),
   );
 }

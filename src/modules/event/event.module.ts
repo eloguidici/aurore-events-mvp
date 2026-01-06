@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EventsController } from './controllers/events.controller';
+import { EventController } from './controllers/events.controller';
 import { EventHealthController } from './controllers/event-health.controller';
-import { EventsService } from './services/events.service';
+import { EventService } from './services/events.service';
 import { EventBufferService } from './services/event-buffer.service';
 import { MetricsPersistenceService } from './services/metrics-persistence.service';
 import { Event } from './entities/event.entity';
@@ -15,9 +15,9 @@ import { CommonModule } from '../common/common.module';
     TypeOrmModule.forFeature([Event]),
     CommonModule, // No longer needs forwardRef - no circular dependency
   ],
-  controllers: [EventsController, EventHealthController],
+  controllers: [EventController, EventHealthController],
   providers: [
-    EventsService,
+    EventService,
     EventBufferService,
     MetricsPersistenceService,
     TypeOrmEventRepository,
@@ -26,7 +26,7 @@ import { CommonModule } from '../common/common.module';
       useClass: TypeOrmEventRepository,
     },
   ],
-  exports: [EventBufferService, EventsService],
+  exports: [EventBufferService, EventService],
 })
 export class EventModule {}
 

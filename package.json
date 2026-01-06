@@ -18,7 +18,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "load-test": "ts-node scripts/load-test.ts"
+    "load-test": "ts-node scripts/load-test.ts",
+    "load-test:parallel": "ts-node scripts/parallel-load-test.ts",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
+    "docker:ps": "docker-compose ps",
+    "setup": "npm install && docker-compose up -d",
+    "dev": "npm run docker:up && npm run start:dev"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -35,6 +42,7 @@
     "dotenv": "^16.4.5",
     "joi": "^17.13.3",
     "reflect-metadata": "^0.1.13",
+    "pg": "^8.11.3",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.6",
     "typeorm": "^0.3.17",
@@ -49,6 +57,7 @@
     "@types/jest": "^29.5.11",
     "@types/joi": "^17.2.2",
     "@types/node": "^20.10.6",
+    "@types/pg": "^8.10.9",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.17.0",

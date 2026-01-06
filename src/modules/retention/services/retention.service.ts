@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { envs } from '../../config/envs';
-import { EventsService } from '../../event/services/events.service';
+import { EventService } from '../../event/services/events.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class RetentionService implements OnModuleInit {
   private readonly cronSchedule: string;
 
   constructor(
-    private readonly eventsService: EventsService,
+    private readonly eventService: EventService,
     private readonly schedulerRegistry: SchedulerRegistry,
   ) {
     this.retentionDays = envs.retentionDays;
@@ -46,7 +46,7 @@ export class RetentionService implements OnModuleInit {
     );
 
     try {
-      const deletedCount = await this.eventsService.cleanup(
+      const deletedCount = await this.eventService.cleanup(
         this.retentionDays,
       );
 
@@ -73,7 +73,7 @@ export class RetentionService implements OnModuleInit {
   public async cleanupNow(): Promise<number> {
     this.logger.log('Manual cleanup triggered');
     try {
-      const deletedCount = await this.eventsService.cleanup(
+      const deletedCount = await this.eventService.cleanup(
         this.retentionDays,
       );
       this.logger.log(

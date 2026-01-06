@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { envs } from '../../config/envs';
@@ -20,9 +20,8 @@ export class TypeOrmEventRepository implements IEventRepository {
   constructor(
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
-    @Optional()
     @Inject(CircuitBreakerService)
-    private readonly circuitBreaker?: CircuitBreakerService,
+    private readonly circuitBreaker: CircuitBreakerService,
   ) {}
 
   /**
@@ -53,8 +52,8 @@ export class TypeOrmEventRepository implements IEventRepository {
           ingestedAt: new Date().toISOString(),
         }));
 
-        // Insert in chunks to avoid SQLite limits and improve reliability
-        const chunkSize = envs.sqliteChunkSize;
+        // Insert in chunks to avoid database limits and improve reliability
+        const chunkSize = envs.batchChunkSize;
         for (let i = 0; i < values.length; i += chunkSize) {
           const chunk = values.slice(i, i + chunkSize);
 
@@ -88,11 +87,8 @@ export class TypeOrmEventRepository implements IEventRepository {
     };
 
     try {
-      // Use circuit breaker if available, otherwise execute directly
-      if (this.circuitBreaker) {
-        return await this.circuitBreaker.execute(operation);
-      }
-      return await operation();
+      // Execute with circuit breaker protection
+      return await this.circuitBreaker.execute(operation);
     } catch (error) {
       // Transaction rolled back - all events failed
       ErrorLogger.logError(
@@ -143,7 +139,7 @@ export class TypeOrmEventRepository implements IEventRepository {
     sortField: string;
     sortOrder: 'ASC' | 'DESC';
   }): Promise<Event[]> {
-    // Use circuit breaker if available
+    // Execute with circuit breaker protection
     const operation = async () => {
       return await this.buildServiceAndTimeRangeQuery(
         params.service,
@@ -156,10 +152,7 @@ export class TypeOrmEventRepository implements IEventRepository {
         .getMany();
     };
 
-    if (this.circuitBreaker) {
-      return await this.circuitBreaker.execute(operation);
-    }
-    return await operation();
+    return await this.circuitBreaker.execute(operation);
   }
 
   /**
@@ -174,7 +167,7 @@ export class TypeOrmEventRepository implements IEventRepository {
     from: string;
     to: string;
   }): Promise<number> {
-    // Use circuit breaker if available
+    // Execute with circuit breaker protection
     const operation = async () => {
       return await this.buildServiceAndTimeRangeQuery(
         params.service,
@@ -183,10 +176,7 @@ export class TypeOrmEventRepository implements IEventRepository {
       ).getCount();
     };
 
-    if (this.circuitBreaker) {
-      return await this.circuitBreaker.execute(operation);
-    }
-    return await operation();
+    return await this.circuitBreaker.execute(operation);
   }
 
   /**
@@ -228,11 +218,8 @@ export class TypeOrmEventRepository implements IEventRepository {
       return { events, total };
     };
 
-    // Use circuit breaker if available, otherwise execute directly
-    if (this.circuitBreaker) {
-      return await this.circuitBreaker.execute(operation);
-    }
-    return await operation();
+    // Execute with circuit breaker protection
+    return await this.circuitBreaker.execute(operation);
   }
 
   /**
@@ -258,11 +245,8 @@ export class TypeOrmEventRepository implements IEventRepository {
       return result.affected || 0;
     };
 
-    // Use circuit breaker if available, otherwise execute directly
-    if (this.circuitBreaker) {
-      return await this.circuitBreaker.execute(operation);
-    }
-    return await operation();
+    // Execute with circuit breaker protection
+    return await this.circuitBreaker.execute(operation);
   }
 }
 

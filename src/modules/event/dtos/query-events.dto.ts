@@ -7,7 +7,7 @@ import { IsValidTimeRange } from '../../common/decorators/valid-time-range.decor
 import { ALLOWED_SORT_FIELDS } from '../constants/query.constants';
 import { envs } from '../../config/envs';
 
-export class QueryEventsDto {
+export class QueryDto {
   @ApiProperty({
     description: 'Service name to filter events',
     example: 'user-service',

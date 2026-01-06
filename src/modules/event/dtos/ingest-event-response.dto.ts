@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
  * DTO for event ingestion response
  * Returned when an event is successfully accepted and queued
  */
-export class IngestEventResponseDto {
+export class IngestResponseDto {
   @ApiProperty({
     description: 'Status of the ingestion operation',
     example: 'accepted',
@@ -25,7 +25,7 @@ export class IngestEventResponseDto {
   queued_at: string;
 
   /**
-   * Creates IngestEventResponseDto from service result
+   * Creates IngestResponseDto from service result
    * 
    * @param data - Service result containing eventId and queuedAt
    */

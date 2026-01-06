@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventBufferService } from '../../event/services/event-buffer.service';
-import { EventsService } from '../../event/services/events.service';
+import { EventService } from '../../event/services/events.service';
 import { envs } from '../../config/envs';
 import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
 import { CreateEventDto } from '../../event/dtos/create-event.dto';
@@ -26,7 +26,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly eventBufferService: EventBufferService,
-    private readonly eventsService: EventsService,
+    private readonly eventService: EventService,
   ) {
     this.batchSize = envs.batchSize;
     this.drainInterval = envs.drainInterval;
@@ -168,7 +168,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
         }));
 
         const insertStartTime = Date.now();
-        const { successful, failed } = await this.eventsService.insert(
+        const { successful, failed } = await this.eventService.insert(
           eventsToInsert,
         );
         const insertTimeMs = Date.now() - insertStartTime;

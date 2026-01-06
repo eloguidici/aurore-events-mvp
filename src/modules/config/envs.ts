@@ -8,8 +8,12 @@ interface EnvVars {
   PORT: number;
   HOST?: string;
 
-  // Database Configuration
-  DATABASE_PATH?: string;
+  // Database Configuration (PostgreSQL only)
+  DB_HOST: string;
+  DB_PORT: number;
+  DB_USERNAME: string;
+  DB_PASSWORD: string;
+  DB_DATABASE: string;
   DB_SYNCHRONIZE?: string;
   DB_LOGGING?: string;
 
@@ -39,7 +43,7 @@ interface EnvVars {
   // Validation Configuration
   MESSAGE_MAX_LENGTH?: number;
   METADATA_MAX_SIZE_KB?: number;
-  SQLITE_CHUNK_SIZE?: number;
+  BATCH_CHUNK_SIZE?: number;
 }
 
 // Define the schema for environment variables validation
@@ -50,8 +54,12 @@ const envsSchema = joi
     PORT: joi.number().required(),
     HOST: joi.string().required(),
 
-    // Database Configuration
-    DATABASE_PATH: joi.string().required(),
+    // Database Configuration (PostgreSQL only)
+    DB_HOST: joi.string().required(),
+    DB_PORT: joi.number().port().required(),
+    DB_USERNAME: joi.string().required(),
+    DB_PASSWORD: joi.string().required(),
+    DB_DATABASE: joi.string().required(),
     DB_SYNCHRONIZE: joi
       .alternatives()
       .try(
@@ -111,7 +119,7 @@ const envsSchema = joi
     // Validation Configuration
     MESSAGE_MAX_LENGTH: joi.number().min(100).max(10000).required(),
     METADATA_MAX_SIZE_KB: joi.number().min(1).max(100).required(),
-    SQLITE_CHUNK_SIZE: joi.number().min(100).max(5000).required(),
+    BATCH_CHUNK_SIZE: joi.number().min(100).max(10000).required(),
 
     // Checkpoint Configuration
     CHECKPOINT_INTERVAL_MS: joi.number().min(1000).max(60000).required(),
@@ -123,7 +131,11 @@ const { error, value } = envsSchema.validate({
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
   HOST: process.env.HOST,
-  DATABASE_PATH: process.env.DATABASE_PATH,
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT,
+  DB_USERNAME: process.env.DB_USERNAME,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_DATABASE: process.env.DB_DATABASE,
   DB_SYNCHRONIZE: process.env.DB_SYNCHRONIZE,
   DB_LOGGING: process.env.DB_LOGGING,
   BATCH_SIZE: process.env.BATCH_SIZE,
@@ -134,16 +146,21 @@ const { error, value } = envsSchema.validate({
   RETENTION_CRON_SCHEDULE: process.env.RETENTION_CRON_SCHEDULE,
   DEFAULT_QUERY_LIMIT: process.env.DEFAULT_QUERY_LIMIT,
   MAX_QUERY_LIMIT: process.env.MAX_QUERY_LIMIT,
-    SERVICE_NAME_MAX_LENGTH: process.env.SERVICE_NAME_MAX_LENGTH,
-    RETRY_AFTER_SECONDS: process.env.RETRY_AFTER_SECONDS,
-    MESSAGE_MAX_LENGTH: process.env.MESSAGE_MAX_LENGTH,
-    METADATA_MAX_SIZE_KB: process.env.METADATA_MAX_SIZE_KB,
-    SQLITE_CHUNK_SIZE: process.env.SQLITE_CHUNK_SIZE,
-    CHECKPOINT_INTERVAL_MS: process.env.CHECKPOINT_INTERVAL_MS,
+  SERVICE_NAME_MAX_LENGTH: process.env.SERVICE_NAME_MAX_LENGTH,
+  RETRY_AFTER_SECONDS: process.env.RETRY_AFTER_SECONDS,
+  MESSAGE_MAX_LENGTH: process.env.MESSAGE_MAX_LENGTH,
+  METADATA_MAX_SIZE_KB: process.env.METADATA_MAX_SIZE_KB,
+  BATCH_CHUNK_SIZE: process.env.BATCH_CHUNK_SIZE,
+  CHECKPOINT_INTERVAL_MS: process.env.CHECKPOINT_INTERVAL_MS,
 });
 
 if (error) {
-  throw new Error(`Config validation error: ${error.message}`);
+  const errorMessage = error.details
+    ? error.details.map((detail) => detail.message).join(', ')
+    : error.message;
+  throw new Error(
+    `Config validation error: ${errorMessage}. Please ensure all required environment variables are set in your .env file.`,
+  );
 }
 
 // Assign validated environment variables to the envVars object
@@ -166,8 +183,12 @@ export const envs = {
   port: envVars.PORT,
   host: envVars.HOST,
   
-  // Database Configuration
-  databasePath: envVars.DATABASE_PATH,
+  // Database Configuration (PostgreSQL)
+  dbHost: envVars.DB_HOST,
+  dbPort: envVars.DB_PORT,
+  dbUsername: envVars.DB_USERNAME,
+  dbPassword: envVars.DB_PASSWORD,
+  dbDatabase: envVars.DB_DATABASE,
   dbSynchronize: toBoolean(envVars.DB_SYNCHRONIZE),
   dbLogging: toBoolean(envVars.DB_LOGGING),
 
@@ -194,7 +215,7 @@ export const envs = {
   // Validation Configuration
   messageMaxLength: envVars.MESSAGE_MAX_LENGTH,
   metadataMaxSizeKB: envVars.METADATA_MAX_SIZE_KB,
-  sqliteChunkSize: envVars.SQLITE_CHUNK_SIZE,
+  batchChunkSize: envVars.BATCH_CHUNK_SIZE,
 
   // Checkpoint Configuration
   checkpointIntervalMs: envVars.CHECKPOINT_INTERVAL_MS,

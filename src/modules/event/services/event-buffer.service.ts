@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { envs } from '../../config/envs';
 import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { MetricsResponseDto } from '../dtos/metrics-response.dto';
+import { MetricsDto } from '../dtos/metrics-response.dto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createWriteStream } from 'fs';
@@ -168,9 +168,9 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get buffer metrics and statistics
    * 
-   * @returns MetricsResponseDto containing buffer metrics and statistics
+   * @returns MetricsDto containing buffer metrics and statistics
    */
-  public getMetrics(): MetricsResponseDto {
+  public getMetrics(): MetricsDto {
     const currentTime = Date.now();
     const uptimeSeconds = (currentTime - this.metrics.startTime) / 1000;
     const currentSize = this.getSize();
@@ -206,7 +206,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
       ? (currentTime - this.metrics.lastDrainTime) / 1000
       : null;
 
-    return new MetricsResponseDto({
+    return new MetricsDto({
       ...this.metrics,
       currentSize,
       capacity: this.maxSize,

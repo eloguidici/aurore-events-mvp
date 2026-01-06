@@ -11,23 +11,23 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { EventsService } from '../services/events.service';
+import { EventService } from '../services/events.service';
 import { EventBufferService } from '../services/event-buffer.service';
 import { CreateEventDto } from '../dtos/create-event.dto';
-import { QueryEventsDto } from '../dtos/query-events.dto';
-import { SearchEventsResponseDto, EventResponseDto } from '../dtos/search-events-response.dto';
-import { IngestEventResponseDto } from '../dtos/ingest-event-response.dto';
-import { MetricsResponseDto } from '../dtos/metrics-response.dto';
+import { QueryDto } from '../dtos/query-events.dto';
+import { SearchResponseDto, EventDto } from '../dtos/search-events-response.dto';
+import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
+import { MetricsDto } from '../dtos/metrics-response.dto';
 import { ApiIngestEvent, ApiQueryEvents, ApiGetMetrics } from './decorators/swagger.decorators';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @ApiTags('Events')
 @Controller()
-export class EventsController {
-  private readonly logger = new Logger(EventsController.name);
+export class EventController {
+  private readonly logger = new Logger(EventController.name);
 
   constructor(
-    private readonly eventsService: EventsService,
+    private readonly eventService: EventService,
     private readonly eventBufferService: EventBufferService,
   ) {}
 
@@ -49,9 +49,9 @@ export class EventsController {
    * If validation fails, NestJS automatically returns 400 Bad Request
    * This handler only runs if validation passes
    */
-  async ingestEvent(@Body() createEventDto: CreateEventDto): Promise<IngestEventResponseDto> {
+  async ingestEvent(@Body() createEventDto: CreateEventDto): Promise<IngestResponseDto> {
     try {
-      return await this.eventsService.ingest(createEventDto);
+      return await this.eventService.ingest(createEventDto);
     } catch (error) {
       // If it's already an HttpException (including our custom exceptions), re-throw it
       if (error instanceof HttpException) {
@@ -91,13 +91,13 @@ export class EventsController {
    * Supports pagination and sorting
    * 
    * @param queryDto - Query parameters (service, from, to, page, pageSize, sortField, sortOrder)
-   * @returns SearchEventsResponseDto with paginated results
+   * @returns SearchResponseDto with paginated results
    * @throws HttpException 400 if timestamp format is invalid or time range is invalid
    * @throws HttpException 500 if internal error occurs
    */
-  async queryEvents(@Query() queryDto: QueryEventsDto): Promise<SearchEventsResponseDto> {
+  async queryEvents(@Query() queryDto: QueryDto): Promise<SearchResponseDto> {
     try {
-      return await this.eventsService.search(queryDto);
+      return await this.eventService.search(queryDto);
     } catch (error) {
       if (error.message.includes('timestamp')) {
         throw new HttpException(
@@ -132,10 +132,10 @@ export class EventsController {
   /**
    * Get buffer metrics and system health status
    * 
-   * @returns MetricsResponseDto containing buffer metrics (size, capacity, utilization, etc.)
+   * @returns MetricsDto containing buffer metrics (size, capacity, utilization, etc.)
    * @throws HttpException 500 if internal error occurs
    */
-  getHealth(): MetricsResponseDto {
+  getHealth(): MetricsDto {
     try {
       return this.eventBufferService.getMetrics();
     } catch (error) {

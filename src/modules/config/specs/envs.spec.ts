@@ -20,11 +20,20 @@ describe('Environment Configuration', () => {
   });
 
   describe('Database Configuration', () => {
-    it('should have database configuration', () => {
-      expect(typeof envs.databasePath).toBe('string');
+    it('should have PostgreSQL database configuration', () => {
+      expect(typeof envs.dbHost).toBe('string');
+      expect(typeof envs.dbPort).toBe('number');
+      expect(typeof envs.dbUsername).toBe('string');
+      expect(typeof envs.dbPassword).toBe('string');
+      expect(typeof envs.dbDatabase).toBe('string');
       expect(typeof envs.dbSynchronize).toBe('boolean');
       expect(typeof envs.dbLogging).toBe('boolean');
-      expect(envs.databasePath.length).toBeGreaterThan(0);
+      expect(envs.dbHost.length).toBeGreaterThan(0);
+      expect(envs.dbPort).toBeGreaterThan(0);
+      expect(envs.dbPort).toBeLessThan(65536);
+      expect(envs.dbUsername.length).toBeGreaterThan(0);
+      expect(envs.dbPassword.length).toBeGreaterThan(0);
+      expect(envs.dbDatabase.length).toBeGreaterThan(0);
     });
   });
 

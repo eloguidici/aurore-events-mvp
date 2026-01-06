@@ -25,15 +25,17 @@ import { AppController } from './app.controller';
       },
     ]),
     TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: envs.databasePath,
+      type: 'postgres',
+      host: envs.dbHost,
+      port: envs.dbPort,
+      username: envs.dbUsername,
+      password: envs.dbPassword,
+      database: envs.dbDatabase,
       entities: [Event],
       synchronize: envs.dbSynchronize,
       logging: envs.dbLogging,
       extra: {
-        // Enable WAL (Write-Ahead Logging) mode for better concurrency
-        // Allows multiple readers while one writer, improves performance
-        enableWAL: true,
+        max: 20, // Maximum number of connections in the pool
       },
     }),
     EventModule,

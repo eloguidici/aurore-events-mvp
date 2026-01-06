@@ -2,12 +2,12 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { envs } from '../../config/envs';
 import { CreateEventDto } from '../dtos/create-event.dto';
-import { QueryEventsDto } from '../dtos/query-events.dto';
+import { QueryDto } from '../dtos/query-events.dto';
 import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { EventBufferService } from './event-buffer.service';
 import { BufferSaturatedException } from '../exceptions';
-import { EventResponseDto, SearchEventsResponseDto } from '../dtos/search-events-response.dto';
-import { IngestEventResponseDto } from '../dtos/ingest-event-response.dto';
+import { EventDto, SearchResponseDto } from '../dtos/search-events-response.dto';
+import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { IEventRepository } from '../repositories/event.repository.interface';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
@@ -15,8 +15,8 @@ import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
-export class EventsService {
-  private readonly logger = new Logger(EventsService.name);
+export class EventService {
+  private readonly logger = new Logger(EventService.name);
 
   constructor(
     @Inject(EVENT_REPOSITORY_TOKEN)
@@ -48,10 +48,10 @@ export class EventsService {
    * Enriches event with metadata, checks buffer capacity, and enqueues to buffer
    * 
    * @param createEventDto - Event data to ingest (validated by ValidationPipe)
-   * @returns IngestEventResponseDto with event_id and queued_at timestamp
+   * @returns IngestResponseDto with event_id and queued_at timestamp
    * @throws BufferSaturatedException if buffer is full (429)
    */
-  public async ingest(createEventDto: CreateEventDto): Promise<IngestEventResponseDto> {
+  public async ingest(createEventDto: CreateEventDto): Promise<IngestResponseDto> {
     const enrichedEvent = this.enrich(createEventDto);
 
     // Atomic enqueue operation - eliminates race condition
@@ -64,7 +64,7 @@ export class EventsService {
       throw new BufferSaturatedException(envs.retryAfterSeconds);
     }
 
-    return new IngestEventResponseDto({
+    return new IngestResponseDto({
       eventId: enrichedEvent.eventId,
       queuedAt: enrichedEvent.ingestedAt,
     });
@@ -85,10 +85,10 @@ export class EventsService {
    * Search events by service and time range with pagination and sorting
    * 
    * @param queryDto - Query parameters including service, time range, pagination, and sorting
-   * @returns SearchEventsResponseDto with paginated results
+   * @returns SearchResponseDto with paginated results
    * @throws Error if 'from' timestamp is not before 'to' timestamp
    */
-  public async search(queryDto: QueryEventsDto): Promise<SearchEventsResponseDto> {
+  public async search(queryDto: QueryDto): Promise<SearchResponseDto> {
     // Extract variables outside try-catch for error logging context
     const {
       service,
@@ -100,7 +100,7 @@ export class EventsService {
       sortOrder = 'DESC',
     } = queryDto;
 
-    // All validations are handled in QueryEventsDto via ValidationPipe:
+    // All validations are handled in QueryDto via ValidationPipe:
     // - Time range: @IsValidTimeRange decorator
     // - sortField: @IsSortField decorator
     // - sortOrder: @IsSortOrder decorator
@@ -126,10 +126,10 @@ export class EventsService {
         sortOrder: safeSortOrder,
       });
 
-      // Convert events to EventResponseDto
-      const items = events.map((event) => new EventResponseDto(event));
+      // Convert events to EventDto
+      const items = events.map((event) => new EventDto(event));
 
-      return new SearchEventsResponseDto({
+      return new SearchResponseDto({
         page,
         pageSize: limit,
         sortField: safeSortField,

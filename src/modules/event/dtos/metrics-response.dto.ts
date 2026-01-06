@@ -4,7 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * DTO for buffer metrics response
  * Contains buffer status, size, capacity, utilization statistics, and advanced metrics
  */
-export class MetricsResponseDto {
+export class MetricsDto {
   @ApiProperty({
     description: 'System health status based on buffer utilization and drop rate',
     example: 'healthy',
@@ -72,7 +72,7 @@ export class MetricsResponseDto {
   time_since_last_drain_seconds: number | null;
 
   /**
-   * Creates MetricsResponseDto from buffer metrics
+   * Creates MetricsDto from buffer metrics
    * 
    * @param metrics - Buffer metrics from EventBufferService
    */
