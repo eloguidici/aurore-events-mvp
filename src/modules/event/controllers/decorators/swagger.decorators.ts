@@ -135,6 +135,7 @@ export function ApiQueryEvents() {
 **Time Range Validation:**
 - The 'from' timestamp must be before the 'to' timestamp
 - Both timestamps must be valid ISO 8601 format dates
+- Time range between 'from' and 'to' must not exceed the configured maximum (default: 30 days)
 - Invalid time ranges will return a 400 Bad Request error
 
 **Pagination:**
@@ -166,16 +167,18 @@ export function ApiQueryEvents() {
       name: 'to',
       required: true,
       description:
-        'End timestamp for the query range in ISO 8601 format (e.g., 2024-01-15T23:59:59Z). Must be after "from" timestamp.',
+        'End timestamp for the query range in ISO 8601 format (e.g., 2024-01-15T23:59:59Z). Must be after "from" timestamp. Time range between "from" and "to" must not exceed the configured maximum (default: 30 days).',
       example: '2024-01-15T23:59:59Z',
       type: String,
     }),
     ApiQuery({
       name: 'page',
       required: false,
-      description: 'Page number for pagination (minimum: 1, default: 1)',
+      description: 'Page number for pagination (minimum: 1, maximum: 10000, default: 1)',
       example: 1,
       type: Number,
+      minimum: 1,
+      maximum: 10000,
     }),
     ApiQuery({
       name: 'pageSize',

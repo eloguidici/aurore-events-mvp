@@ -35,6 +35,7 @@ interface EnvVars {
   // Query Configuration
   DEFAULT_QUERY_LIMIT?: number;
   MAX_QUERY_LIMIT?: number;
+  MAX_QUERY_TIME_RANGE_DAYS?: number; // Maximum time range in days for queries
 
   // Service Configuration
   SERVICE_NAME_MAX_LENGTH?: number;
@@ -135,6 +136,7 @@ const envsSchema = joi
     // Query Configuration
     DEFAULT_QUERY_LIMIT: joi.number().min(1).max(10000).required(),
     MAX_QUERY_LIMIT: joi.number().min(1).max(10000).required(),
+    MAX_QUERY_TIME_RANGE_DAYS: joi.number().min(1).max(365).default(30), // Max 30 days default
 
     // Service Configuration
     SERVICE_NAME_MAX_LENGTH: joi.number().min(10).max(500).required(),
@@ -265,6 +267,7 @@ export const envs = {
   // Query Configuration
   defaultQueryLimit: envVars.DEFAULT_QUERY_LIMIT,
   maxQueryLimit: envVars.MAX_QUERY_LIMIT,
+  maxQueryTimeRangeDays: envVars.MAX_QUERY_TIME_RANGE_DAYS || 30,
 
   // Service Configuration
   serviceNameMaxLength: envVars.SERVICE_NAME_MAX_LENGTH,

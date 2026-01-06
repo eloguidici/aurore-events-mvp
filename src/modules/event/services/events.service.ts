@@ -45,6 +45,23 @@ export class EventService implements IEventService {
       ? Sanitizer.sanitizeObject(createEventDto.metadata)
       : null;
 
+    // Validate timestamp is within reasonable range (1970-2100)
+    // This prevents storing invalid dates that could cause issues in queries
+    const timestampDate = new Date(createEventDto.timestamp);
+    const minYear = 1970;
+    const maxYear = 2100;
+    if (
+      isNaN(timestampDate.getTime()) ||
+      timestampDate.getFullYear() < minYear ||
+      timestampDate.getFullYear() > maxYear
+    ) {
+      this.logger.warn(
+        `Timestamp out of reasonable range: ${createEventDto.timestamp}, using current time`,
+      );
+      // Use current time as fallback if timestamp is invalid
+      createEventDto.timestamp = new Date().toISOString();
+    }
+
     // Generate efficient event ID: use crypto.randomBytes for better performance than UUID
     // 6 bytes = 12 hex characters = sufficient uniqueness for event IDs
     return {
@@ -89,11 +106,11 @@ export class EventService implements IEventService {
   /**
    * Insert events to database in a single transaction
    *
-   * @param events - Array of events to insert
+   * @param events - Array of enriched events to insert (includes eventId)
    * @returns BatchInsertResult containing count of successful and failed insertions
    * @throws Logs error but does not throw - returns failed count instead
    */
-  public async insert(events: CreateEventDto[]): Promise<BatchInsertResult> {
+  public async insert(events: EnrichedEvent[]): Promise<BatchInsertResult> {
     return await this.eventRepository.batchInsert(events);
   }
 
@@ -126,9 +143,18 @@ export class EventService implements IEventService {
     const safeSortOrder = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     try {
-      // Calculate pagination
+      // Calculate pagination with validation
       const limit = Math.min(pageSize, envs.maxQueryLimit);
-      const offset = (page - 1) * limit;
+      const maxOffset = 10000 * limit; // Prevent excessive offsets (max page 10000)
+      const calculatedOffset = (page - 1) * limit;
+      const offset = Math.min(calculatedOffset, maxOffset);
+
+      // Warn if offset was limited
+      if (calculatedOffset > maxOffset) {
+        this.logger.warn(
+          `Offset limited from ${calculatedOffset} to ${maxOffset} (page ${page} exceeds maximum)`,
+        );
+      }
 
       // Use optimized method that returns events and total count in a single call
       // This method executes queries in parallel internally for optimal performance
@@ -144,7 +170,22 @@ export class EventService implements IEventService {
         });
 
       // Convert events to EventDto
-      const items = events.map((event) => new EventDto(event));
+      // EventDto constructor handles JSON.parse errors gracefully, but add extra safety
+      const items = events
+        .map((event) => {
+          try {
+            return new EventDto(event);
+          } catch (error) {
+            // If EventDto construction fails, log and skip this event
+            // This should be extremely rare but prevents one corrupt event from breaking the entire query
+            this.logger.warn(
+              `Failed to convert event to DTO: ${event.id}`,
+              error,
+            );
+            return null;
+          }
+        })
+        .filter((item): item is EventDto => item !== null);
 
       return new SearchResponseDto({
         page,

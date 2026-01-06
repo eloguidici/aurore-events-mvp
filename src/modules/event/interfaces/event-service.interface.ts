@@ -3,6 +3,7 @@ import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { QueryDto } from '../dtos/query-events.dto';
 import { SearchResponseDto } from '../dtos/search-events-response.dto';
 import { BatchInsertResult } from './batch-insert-result.interface';
+import { EnrichedEvent } from './enriched-event.interface';
 
 /**
  * Interface for EventService
@@ -21,10 +22,10 @@ export interface IEventService {
   /**
    * Insert events to database in a single transaction
    *
-   * @param events - Array of events to insert
+   * @param events - Array of enriched events to insert (includes eventId)
    * @returns BatchInsertResult containing count of successful and failed insertions
    */
-  insert(events: CreateEventDto[]): Promise<BatchInsertResult>;
+  insert(events: EnrichedEvent[]): Promise<BatchInsertResult>;
 
   /**
    * Search events by service and time range with pagination and sorting

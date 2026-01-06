@@ -1,13 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
-import { CreateEventDto } from '../dtos/create-event.dto';
 import { Event } from '../entities/event.entity';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
+import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { IEventRepository } from './event.repository.interface';
 
 /**
@@ -28,10 +29,10 @@ export class TypeOrmEventRepository implements IEventRepository {
   /**
    * Batch insert events to database using a transaction
    *
-   * @param events - Array of events to insert
+   * @param events - Array of enriched events to insert (includes eventId)
    * @returns Object containing count of successful and failed insertions
    */
-  async batchInsert(events: CreateEventDto[]): Promise<BatchInsertResult> {
+  async batchInsert(events: EnrichedEvent[]): Promise<BatchInsertResult> {
     if (events.length === 0) {
       return { successful: 0, failed: 0 };
     }
@@ -43,18 +44,37 @@ export class TypeOrmEventRepository implements IEventRepository {
       return await this.eventRepository.manager.transaction(
         async (transactionalEntityManager) => {
           let successful = 0;
-          const failed = 0;
+          let failed = 0;
 
-          const values = events.map((event) => ({
-            id: crypto.randomUUID(), // Generate UUID manually since .insert() doesn't auto-generate
-            timestamp: event.timestamp,
-            service: event.service,
-            message: event.message,
-            metadataJson: event.metadata
-              ? JSON.stringify(event.metadata)
-              : null,
-            ingestedAt: new Date().toISOString(),
-          }));
+          const values = events.map((event) => {
+            // Safely stringify metadata with error handling
+            let metadataJson: string | null = null;
+            if (event.metadata) {
+              try {
+                metadataJson = JSON.stringify(event.metadata);
+              } catch (error: any) {
+                // If stringify fails (e.g., circular reference), log and use null
+                // This should be extremely rare as sanitizer should prevent it
+                ErrorLogger.logWarning(
+                  this.logger,
+                  'Failed to stringify metadata, using null',
+                  error,
+                  { eventId: event.eventId, service: event.service },
+                );
+                metadataJson = null;
+              }
+            }
+
+            return {
+              id: randomUUID(), // Generate UUID for primary key
+              eventId: event.eventId, // Preserve eventId from enriched event
+              timestamp: event.timestamp,
+              service: event.service,
+              message: event.message,
+              metadataJson,
+              ingestedAt: event.ingestedAt, // Use ingestedAt from enriched event
+            };
+          });
 
           // Insert in chunks to avoid database limits and improve reliability
           const chunkSize = envs.batchChunkSize;
@@ -70,15 +90,27 @@ export class TypeOrmEventRepository implements IEventRepository {
                 .execute();
 
               successful += chunk.length;
-            } catch (chunkError) {
+            } catch (chunkError: any) {
+              // Check for duplicate eventId error (PostgreSQL unique constraint violation)
+              const isDuplicateError =
+                chunkError?.code === '23505' || // PostgreSQL unique violation
+                chunkError?.message?.includes('duplicate key') ||
+                chunkError?.message?.includes('UNIQUE constraint');
+
+              // Update failed count for the chunk that failed
+              failed += chunk.length;
+
               ErrorLogger.logError(
                 this.logger,
-                'Failed to insert chunk',
+                isDuplicateError
+                  ? 'Failed to insert chunk: duplicate eventId detected'
+                  : 'Failed to insert chunk',
                 chunkError,
                 {
                   chunkNumber: i / chunkSize + 1,
                   chunkSize: chunk.length,
                   totalChunks: Math.ceil(values.length / chunkSize),
+                  isDuplicateError,
                 },
               );
               // If any chunk fails, throw to rollback entire transaction
@@ -86,6 +118,9 @@ export class TypeOrmEventRepository implements IEventRepository {
             }
           }
 
+          // Note: In a transaction, if any chunk fails, the entire transaction rolls back
+          // So successful will be 0 and failed will be events.length if transaction fails
+          // This return is only reached if all chunks succeed
           return { successful, failed };
         },
       );
@@ -104,6 +139,32 @@ export class TypeOrmEventRepository implements IEventRepository {
       );
       return { successful: 0, failed: events.length };
     }
+  }
+
+  /**
+   * Validate and sanitize sort field to prevent SQL injection
+   * Only allows fields from ALLOWED_SORT_FIELDS
+   *
+   * @param sortField - Sort field to validate
+   * @returns Validated sort field or default
+   */
+  private validateSortField(sortField: string): string {
+    const ALLOWED_SORT_FIELDS = [
+      'timestamp',
+      'service',
+      'message',
+      'ingestedAt',
+      'createdAt',
+    ] as const;
+
+    // Validate against allowed fields to prevent SQL injection
+    if (ALLOWED_SORT_FIELDS.includes(sortField as any)) {
+      return sortField;
+    }
+
+    // Default to timestamp if invalid
+    this.logger.warn(`Invalid sortField: ${sortField}, defaulting to timestamp`);
+    return 'timestamp';
   }
 
   /**
@@ -146,15 +207,30 @@ export class TypeOrmEventRepository implements IEventRepository {
   }): Promise<Event[]> {
     // Execute with circuit breaker protection
     const operation = async () => {
-      return await this.buildServiceAndTimeRangeQuery(
+      // Validate sort field to prevent SQL injection (double-check even though DTO validates)
+      const safeSortField = this.validateSortField(params.sortField);
+
+      // Add timeout protection for long-running queries
+      const queryTimeout = 30000; // 30 seconds timeout
+      const queryPromise = this.buildServiceAndTimeRangeQuery(
         params.service,
         params.from,
         params.to,
       )
-        .orderBy(`event.${params.sortField}`, params.sortOrder)
+        .orderBy(`event.${safeSortField}`, params.sortOrder)
         .limit(params.limit)
         .offset(params.offset)
         .getMany();
+
+      // Race query against timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Query timeout exceeded')),
+          queryTimeout,
+        );
+      });
+
+      return await Promise.race([queryPromise, timeoutPromise]);
     };
 
     return await this.circuitBreaker.execute(operation);
@@ -202,6 +278,9 @@ export class TypeOrmEventRepository implements IEventRepository {
     sortOrder: 'ASC' | 'DESC';
   }): Promise<{ events: Event[]; total: number }> {
     const operation = async () => {
+      // Validate sort field to prevent SQL injection (double-check even though DTO validates)
+      const safeSortField = this.validateSortField(params.sortField);
+
       // Execute find and count queries in parallel for optimal performance
       const [events, total] = await Promise.all([
         this.buildServiceAndTimeRangeQuery(
@@ -209,7 +288,7 @@ export class TypeOrmEventRepository implements IEventRepository {
           params.from,
           params.to,
         )
-          .orderBy(`event.${params.sortField}`, params.sortOrder)
+          .orderBy(`event.${safeSortField}`, params.sortOrder)
           .limit(params.limit)
           .offset(params.offset)
           .getMany(),

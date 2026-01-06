@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "load-test": "ts-node scripts/load-test.ts",
     "load-test:parallel": "ts-node scripts/parallel-load-test.ts",
+    "clear-db": "ts-node scripts/clear-database.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f postgres",

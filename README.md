@@ -43,6 +43,8 @@ See [Installation](#installation) section for detailed steps.
 - **Storage Layer**: PostgreSQL database with indexed queries
 - **Retention Job**: Daily automated cleanup
 
+**📖 For detailed architecture documentation**, including class responsibilities, design patterns, and data flow diagrams, see: [`doc/ARCHITECTURE.md`](doc/ARCHITECTURE.md)
+
 ## Prerequisites
 
 **Before starting, ensure you have:**
@@ -340,7 +342,9 @@ npm run load-test:parallel [num_clients] [events_per_minute] [duration_seconds]
 npm run load-test:parallel 15 20000 60
 ```
 
-See `GUIA_PRUEBAS_AURORE.md` for detailed testing instructions.
+**📖 For detailed testing documentation**, including unit test coverage, testing strategy, and best practices, see:
+- [`doc/TESTING.md`](doc/TESTING.md) - Complete testing documentation
+- [`doc/GUIA_PRUEBAS_AURORE.md`](doc/GUIA_PRUEBAS_AURORE.md) - Load testing guide (Spanish)
 
 ## Performance
 
@@ -406,10 +410,34 @@ docker-compose exec postgres psql -U admin -d aurore_events
 docker-compose ps
 ```
 
+## Documentation
+
+The project includes comprehensive documentation in the `doc/` folder:
+
+### Core Documentation
+- **`ARCHITECTURE.md`** - Complete architecture documentation, class responsibilities, design patterns, and data flow diagrams
+- **`TESTING.md`** - Testing strategy, unit test coverage, E2E tests, and testing best practices
+- **`HOW_IT_WORKS.md`** - Detailed explanation of system operation and data flow
+
+### Quick Start & Setup
+- **`QUICK_START.md`** - Quick start guide (2-3 commands to get started)
+- **`DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
+- **`TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
+
+### Exercise Documentation (Aurore Labs)
+- **`part-a/`** - Part A: Design and MVP system architecture (7 documents)
+- **`part-b/`** - Part B: Mentoring and code review (with executable examples)
+- **`part-c/`** - Part C: Estimation and planning
+
+### Scripts Documentation
+- **`scripts/README.md`** - Load testing documentation
+- **`scripts/README_PARALLEL.md`** - Parallel load testing guide
+
 ## Quick Start Guide
 
 For a complete step-by-step guide on how to test the system, see:
-- **`GUIA_PRUEBAS_AURORE.md`** - Complete testing guide (Spanish)
+- **`doc/TESTING_GUIDE.md`** - Complete testing guide with examples
+- **`doc/TESTING.md`** - Testing strategy and best practices
 - **`scripts/README.md`** - Load testing documentation
 - **`scripts/README_PARALLEL.md`** - Parallel load testing guide
 

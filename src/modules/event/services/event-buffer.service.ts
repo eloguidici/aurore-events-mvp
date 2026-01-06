@@ -126,12 +126,27 @@ export class EventBufferService
     const count = Math.min(batchSize, currentSize);
     const batch: EnrichedEvent[] = [];
 
+    // Validate bufferHead is within bounds (prevent desynchronization)
+    if (this.bufferHead >= this.buffer.length) {
+      this.logger.warn(
+        `Buffer head desynchronized (head: ${this.bufferHead}, length: ${this.buffer.length}), resetting`,
+      );
+      this.bufferHead = 0;
+    }
+
     // Efficiently extract events using slice (O(n) but only once, not per element)
     // Then clear the drained portion
     for (let i = 0; i < count; i++) {
       const index = this.bufferHead + i;
       if (index < this.buffer.length) {
         batch.push(this.buffer[index]);
+      } else {
+        // If index is out of bounds, stop processing
+        // This should not happen if bufferHead is valid, but add safety check
+        this.logger.warn(
+          `Index out of bounds during drain (index: ${index}, length: ${this.buffer.length})`,
+        );
+        break;
       }
     }
 
@@ -277,6 +292,7 @@ export class EventBufferService
 
       // Load events into buffer (respecting maximum capacity)
       let loadedCount = 0;
+      let invalidCount = 0;
       for (const event of events) {
         if (this.getSize() >= this.maxSize) {
           ErrorLogger.logWarning(
@@ -295,6 +311,7 @@ export class EventBufferService
           this.buffer.push(event);
           loadedCount++;
         } else {
+          invalidCount++;
           const eventId = (event as any)?.eventId || 'unknown';
           ErrorLogger.logWarning(
             this.logger,
@@ -302,6 +319,13 @@ export class EventBufferService
             ErrorLogger.createContext(eventId, undefined),
           );
         }
+      }
+
+      // Log summary of checkpoint loading
+      if (invalidCount > 0) {
+        this.logger.warn(
+          `Checkpoint loaded: ${loadedCount} valid, ${invalidCount} invalid events`,
+        );
       }
 
       if (loadedCount > 0) {
@@ -364,11 +388,38 @@ export class EventBufferService
       // Write JSON array opening bracket
       writeStream.write('[\n');
 
-      // Stream each event as JSON
+      // Stream each event as JSON with error handling
+      let serializedCount = 0;
+      let failedCount = 0;
       for (let i = 0; i < events.length; i++) {
-        const eventJson = JSON.stringify(events[i]);
-        const isLast = i === events.length - 1;
-        writeStream.write(`  ${eventJson}${isLast ? '\n' : ',\n'}`);
+        try {
+          const eventJson = JSON.stringify(events[i]);
+          const isLast = i === events.length - 1;
+          writeStream.write(`  ${eventJson}${isLast ? '\n' : ',\n'}`);
+          serializedCount++;
+        } catch (error: any) {
+          // If stringify fails (e.g., circular reference), log and skip this event
+          // This should be extremely rare as sanitizer should prevent it
+          failedCount++;
+          ErrorLogger.logWarning(
+            this.logger,
+            'Failed to serialize event for checkpoint, skipping',
+            error,
+            {
+              eventId: events[i]?.eventId || 'unknown',
+              service: events[i]?.service || 'unknown',
+              index: i,
+            },
+          );
+          // Continue with next event - don't fail entire checkpoint
+        }
+      }
+
+      // Log summary if any events failed to serialize
+      if (failedCount > 0) {
+        this.logger.warn(
+          `Checkpoint serialization: ${serializedCount} succeeded, ${failedCount} failed`,
+        );
       }
 
       // Write JSON array closing bracket
@@ -437,20 +488,42 @@ export class EventBufferService
 
   /**
    * Validate event structure before loading from checkpoint
-   * Ensures event has all required fields with correct types
+   * Ensures event has all required fields with correct types and valid format
    *
    * @param event - Event object to validate
    * @returns true if event is valid EnrichedEvent, false otherwise
    */
   private isValid(event: any): event is EnrichedEvent {
-    return (
-      event &&
-      typeof event === 'object' &&
-      typeof event.eventId === 'string' &&
-      typeof event.timestamp === 'string' &&
-      typeof event.service === 'string' &&
-      typeof event.message === 'string' &&
-      typeof event.ingestedAt === 'string'
-    );
+    if (
+      !event ||
+      typeof event !== 'object' ||
+      typeof event.eventId !== 'string' ||
+      typeof event.timestamp !== 'string' ||
+      typeof event.service !== 'string' ||
+      typeof event.message !== 'string' ||
+      typeof event.ingestedAt !== 'string'
+    ) {
+      return false;
+    }
+
+    // Validate eventId format: must start with 'evt_' and have 12 hex characters
+    const eventIdPattern = /^evt_[0-9a-f]{12}$/i;
+    if (!eventIdPattern.test(event.eventId)) {
+      return false;
+    }
+
+    // Validate timestamp is parseable
+    const timestampDate = new Date(event.timestamp);
+    if (isNaN(timestampDate.getTime())) {
+      return false;
+    }
+
+    // Validate ingestedAt is parseable
+    const ingestedDate = new Date(event.ingestedAt);
+    if (isNaN(ingestedDate.getTime())) {
+      return false;
+    }
+
+    return true;
   }
 }

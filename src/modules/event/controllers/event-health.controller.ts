@@ -48,11 +48,17 @@ export class EventHealthController {
           ...this.circuitBreaker.getMetrics(),
         },
       };
-    } catch (error) {
+    } catch (error: any) {
+      // Sanitize error message to prevent information leakage
+      const sanitizedError =
+        error?.message && typeof error.message === 'string'
+          ? 'Database connection failed'
+          : 'Unknown database error';
+
       return {
         status: 'unhealthy',
         database: 'disconnected',
-        error: error.message,
+        error: sanitizedError,
         circuitBreaker: {
           state: this.circuitBreaker.getState(),
           ...this.circuitBreaker.getMetrics(),
@@ -113,19 +119,19 @@ export class EventHealthController {
       database:
         databaseHealth.status === 'fulfilled'
           ? databaseHealth.value
-          : { status: 'error', error: databaseHealth.reason },
+          : { status: 'error', error: 'Database health check failed' },
       buffer:
         bufferHealth.status === 'fulfilled'
           ? bufferHealth.value
-          : { status: 'error', error: bufferHealth.reason },
+          : { status: 'error', error: 'Buffer health check failed' },
       circuitBreaker:
         circuitMetrics.status === 'fulfilled'
           ? circuitMetrics.value
-          : { status: 'error', error: circuitMetrics.reason },
+          : { status: 'error', error: 'Circuit breaker metrics unavailable' },
       business:
         businessMetrics.status === 'fulfilled'
           ? businessMetrics.value
-          : { status: 'error', error: businessMetrics.reason },
+          : { status: 'error', error: 'Business metrics unavailable' },
     };
   }
 

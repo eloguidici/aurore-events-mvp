@@ -1,6 +1,6 @@
-import { CreateEventDto } from '../dtos/create-event.dto';
 import { Event } from '../entities/event.entity';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
+import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 
 /**
  * Interface for event repository
@@ -11,10 +11,10 @@ export interface IEventRepository {
   /**
    * Batch insert events to database
    *
-   * @param events - Array of events to insert
+   * @param events - Array of enriched events to insert (includes eventId)
    * @returns BatchInsertResult containing count of successful and failed insertions
    */
-  batchInsert(events: CreateEventDto[]): Promise<BatchInsertResult>;
+  batchInsert(events: EnrichedEvent[]): Promise<BatchInsertResult>;
 
   /**
    * Find events by service and time range with pagination and sorting

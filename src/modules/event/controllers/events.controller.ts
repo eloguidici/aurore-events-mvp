@@ -75,7 +75,7 @@ export class EventController {
             'Buffer is full, rejecting event (backpressure)',
             {
               service: createEventDto.service,
-              correlationId: req.correlationId,
+              correlationId: req.correlationId || 'unknown',
             },
           );
         }
@@ -87,7 +87,7 @@ export class EventController {
         'Unexpected error ingesting event',
         error,
         ErrorLogger.createContext(undefined, createEventDto.service, {
-          correlationId: req.correlationId,
+          correlationId: req.correlationId || 'unknown',
         }),
       );
       throw new HttpException(
@@ -121,12 +121,17 @@ export class EventController {
   ): Promise<SearchResponseDto> {
     try {
       return await this.eventService.search(queryDto);
-    } catch (error) {
-      if (error.message.includes('timestamp')) {
+    } catch (error: any) {
+      // Check for timestamp or time range validation errors
+      if (
+        error?.message?.includes('timestamp') ||
+        error?.message?.includes('time range') ||
+        error?.message?.includes('Time range')
+      ) {
         throw new HttpException(
           {
             status: 'error',
-            message: error.message,
+            message: error.message || 'Invalid timestamp or time range',
           },
           HttpStatus.BAD_REQUEST,
         );
@@ -138,7 +143,7 @@ export class EventController {
         ErrorLogger.createContext(undefined, queryDto.service, {
           from: queryDto.from,
           to: queryDto.to,
-          correlationId: req.correlationId,
+          correlationId: req.correlationId || 'unknown',
         }),
       );
       throw new HttpException(
@@ -159,7 +164,7 @@ export class EventController {
    * @returns MetricsDto containing buffer metrics (size, capacity, utilization, etc.)
    * @throws HttpException 500 if internal error occurs
    */
-  getHealth(): MetricsDto {
+  getMetrics(): MetricsDto {
     try {
       return this.eventBufferService.getMetrics();
     } catch (error) {

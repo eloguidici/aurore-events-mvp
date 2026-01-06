@@ -43,29 +43,114 @@ export class IsParseableTimestampConstraint implements ValidatorConstraintInterf
 }
 
 /**
- * Custom validator for metadata size
+ * Custom validator for metadata size and structure
  * Validates that metadata object, when serialized to JSON, does not exceed configured limit
+ * Also validates depth and key count to prevent performance issues
  * Reads limit from METADATA_MAX_SIZE_KB environment variable (default: 16KB)
  */
 @ValidatorConstraint({ name: 'isMetadataSizeValid', async: false })
 export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterface {
+  private readonly MAX_DEPTH = 5; // Maximum nesting depth
+  private readonly MAX_KEYS = 100; // Maximum number of keys in an object
+
   /**
-   * Validates if metadata size is within configured limit
+   * Calculate the depth of an object
+   *
+   * @param obj - Object to calculate depth for
+   * @param currentDepth - Current depth (default: 0)
+   * @returns Maximum depth of the object
+   */
+  private calculateDepth(obj: any, currentDepth: number = 0): number {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      return currentDepth;
+    }
+
+    let maxDepth = currentDepth;
+    for (const value of Object.values(obj)) {
+      if (typeof value === 'object' && value !== null) {
+        const depth = this.calculateDepth(value, currentDepth + 1);
+        maxDepth = Math.max(maxDepth, depth);
+      }
+    }
+
+    return maxDepth;
+  }
+
+  /**
+   * Count total keys in an object (recursively)
+   *
+   * @param obj - Object to count keys for
+   * @param visited - Set of visited objects to prevent circular references
+   * @returns Total number of keys
+   */
+  private countKeys(obj: any, visited: WeakSet<any> = new WeakSet()): number {
+    if (!obj || typeof obj !== 'object') {
+      return 0;
+    }
+
+    if (visited.has(obj)) {
+      return 0; // Circular reference detected
+    }
+
+    visited.add(obj);
+
+    if (Array.isArray(obj)) {
+      return obj.reduce((count, item) => {
+        if (typeof item === 'object' && item !== null) {
+          return count + this.countKeys(item, visited);
+        }
+        return count;
+      }, 0);
+    }
+
+    let count = Object.keys(obj).length;
+    for (const value of Object.values(obj)) {
+      if (typeof value === 'object' && value !== null) {
+        count += this.countKeys(value, visited);
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Validates if metadata size, depth, and key count are within limits
    *
    * @param metadata - Metadata object to validate
    * @param args - Validation arguments (can contain maxSizeKB as constraint)
-   * @returns true if metadata is within size limit or is optional, false otherwise
+   * @returns true if metadata is within all limits or is optional, false otherwise
    */
   validate(metadata: any, args: ValidationArguments) {
     if (!metadata) {
       return true; // Optional field
     }
+
+    if (typeof metadata !== 'object') {
+      return false; // Must be an object
+    }
+
     try {
-      // Get max size from constraint or validated envs
+      // Validate size
       const maxSizeKB = args.constraints[0] || envs.metadataMaxSizeKB;
       const metadataStr = JSON.stringify(metadata);
       const sizeKB = Buffer.byteLength(metadataStr, 'utf8') / 1024;
-      return sizeKB <= maxSizeKB;
+      if (sizeKB > maxSizeKB) {
+        return false;
+      }
+
+      // Validate depth
+      const depth = this.calculateDepth(metadata);
+      if (depth > this.MAX_DEPTH) {
+        return false;
+      }
+
+      // Validate key count
+      const keyCount = this.countKeys(metadata);
+      if (keyCount > this.MAX_KEYS) {
+        return false;
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -76,7 +161,7 @@ export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterfa
    */
   defaultMessage(args: ValidationArguments) {
     const maxSizeKB = args.constraints[0] || envs.metadataMaxSizeKB;
-    return `metadata size must not exceed ${maxSizeKB}KB`;
+    return `metadata must not exceed ${maxSizeKB}KB, 5 levels of nesting, or 100 total keys`;
   }
 }
 

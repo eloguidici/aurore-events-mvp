@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Event } from '../entities/event.entity';
 
 /**
@@ -5,7 +6,10 @@ import { Event } from '../entities/event.entity';
  * Maps Event entity to response format with parsed metadata
  */
 export class EventDto {
+  private static readonly logger = new Logger(EventDto.name);
+
   id: string;
+  eventId: string;
   timestamp: string;
   service: string;
   message: string;
@@ -15,15 +19,33 @@ export class EventDto {
 
   /**
    * Creates EventDto from Event entity
+   * Safely parses metadata JSON with error handling
    *
    * @param event - Event entity to convert
    */
   constructor(event: Event) {
     this.id = event.id;
+    this.eventId = event.eventId;
     this.timestamp = event.timestamp;
     this.service = event.service;
     this.message = event.message;
-    this.metadata = event.metadataJson ? JSON.parse(event.metadataJson) : null;
+    
+    // Safely parse metadata JSON with error handling
+    if (event.metadataJson) {
+      try {
+        this.metadata = JSON.parse(event.metadataJson);
+      } catch (error) {
+        // Log warning but continue - don't fail entire query for one corrupt event
+        EventDto.logger.warn(
+          `Failed to parse metadata JSON for event ${event.id}: ${error.message}`,
+          { eventId: event.id, service: event.service },
+        );
+        this.metadata = null;
+      }
+    } else {
+      this.metadata = null;
+    }
+    
     this.ingestedAt = event.ingestedAt;
     this.createdAt = event.createdAt;
   }

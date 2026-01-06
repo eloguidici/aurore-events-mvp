@@ -5,9 +5,10 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 
+import { randomBytes } from 'crypto';
+
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
-import { CreateEventDto } from '../../event/dtos/create-event.dto';
 import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
 import { EventBufferService } from '../../event/services/event-buffer.service';
 import { EventService } from '../../event/services/events.service';
@@ -141,8 +142,12 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     let batch: EnrichedEvent[] = [];
 
     try {
-      // Drain buffer
-      batch = this.eventBufferService.drain(this.batchSize);
+      // Drain buffer (with validation of batch size to prevent memory issues)
+      const requestedBatchSize = Math.min(
+        this.batchSize,
+        10000, // Hard limit to prevent memory issues
+      );
+      batch = this.eventBufferService.drain(requestedBatchSize);
 
       if (batch.length === 0) {
         return; // Buffer is empty
@@ -157,17 +162,11 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       // No need to validate again here
 
       // Insert events to storage
+      // Pass EnrichedEvent[] directly to preserve eventId
       if (batch.length > 0) {
-        const eventsToInsert: CreateEventDto[] = batch.map((event) => ({
-          timestamp: event.timestamp,
-          service: event.service,
-          message: event.message,
-          metadata: event.metadata,
-        }));
-
         const insertStartTime = Date.now();
         const { successful, failed } =
-          await this.eventService.insert(eventsToInsert);
+          await this.eventService.insert(batch);
         const insertTimeMs = Date.now() - insertStartTime;
         this.performanceMetrics.totalInsertTimeMs += insertTimeMs;
 
@@ -237,15 +236,37 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       // Don't wait for backoff - let the buffer handle the delay naturally
       for (const event of failedEvents) {
         try {
-          const retryCount = (event.retryCount || 0) + 1;
+          // Validate and limit retryCount to prevent corruption
+          const currentRetryCount = event.retryCount || 0;
+          const retryCount = Math.min(
+            Math.max(0, currentRetryCount) + 1,
+            this.maxRetries,
+          );
 
           if (retryCount < this.maxRetries) {
+            // For duplicate eventId errors, regenerate eventId to avoid collision
+            // Check if this is likely a duplicate eventId issue (first retry)
+            const shouldRegenerateEventId =
+              retryCount === 1 &&
+              (event.retryCount === undefined || event.retryCount === 0);
+
             // Increment retry count and re-enqueue immediately
             // The buffer will naturally space out retries through batch processing
             const retryEvent: EnrichedEvent = {
               ...event,
+              // Regenerate eventId if this might be a duplicate (very rare case)
+              eventId: shouldRegenerateEventId
+                ? `evt_${randomBytes(6).toString('hex')}`
+                : event.eventId,
               retryCount,
             };
+
+            // Log if eventId was regenerated
+            if (shouldRegenerateEventId) {
+              this.logger.debug(
+                `Regenerated eventId for retry: ${event.eventId} -> ${retryEvent.eventId}`,
+              );
+            }
 
             const enqueued = this.eventBufferService.enqueue(retryEvent);
             if (enqueued) {
