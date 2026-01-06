@@ -1,0 +1,15 @@
+export const MESSAGES = {
+  SERVER_IS_READY: 'SERVER_IS_READY',
+  SERVER_IS_NOT_READY: 'SERVER_IS_NOT_READY',
+  SERVER_IS_SHUTTING_DOWN: 'SERVER_IS_SHUTTING_DOWN',
+  SERVER_IS_NOT_SHUTTING_DOWN: 'SERVER_IS_NOT_SHUTTING_DOWN',
+};
+
+export const API_RESPONSES = {
+  HEALTH_CHECK_READY: 'Server is ready',
+  HEALTH_CHECK_NOT_READY: 'Server is not ready or is shutting down',
+  LIVENESS_CHECK_NOT_SHUTTING_DOWN: 'Server is not shutting down',
+  LIVENESS_CHECK_SHUTTING_DOWN: 'Server is shutting down',
+  READINESS_CHECK_READY: 'Server is ready',
+  READINESS_CHECK_NOT_READY: 'Server is not ready',
+};
