@@ -7,4 +7,3 @@ export interface EnrichedEvent {
   ingestedAt: string;
   retryCount?: number;
 }
-

@@ -8,7 +8,7 @@ import { ALLOWED_SORT_FIELDS } from '../../event/constants/query.constants';
 /**
  * Decorator for validating sort field against allowed fields
  * Prevents SQL injection by only allowing safe field names
- * 
+ *
  * @param validationOptions - Optional validation options
  * @returns Property decorator function
  */
@@ -37,4 +37,3 @@ export function IsSortField(validationOptions?: ValidationOptions) {
     });
   };
 }
-

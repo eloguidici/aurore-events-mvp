@@ -39,7 +39,7 @@ interface EnvVars {
   // Service Configuration
   SERVICE_NAME_MAX_LENGTH?: number;
   RETRY_AFTER_SECONDS?: number;
-  
+
   // Validation Configuration
   MESSAGE_MAX_LENGTH?: number;
   METADATA_MAX_SIZE_KB?: number;
@@ -62,7 +62,7 @@ interface EnvVars {
   THROTTLE_IP_LIMIT?: number;
   THROTTLE_QUERY_LIMIT?: number;
   THROTTLE_HEALTH_LIMIT?: number;
-  
+
   // Database Connection Pool Configuration
   DB_POOL_MAX?: number;
 }
@@ -71,7 +71,10 @@ interface EnvVars {
 // All parameters are REQUIRED - system will fail if any is missing
 const envsSchema = joi
   .object({
-    NODE_ENV: joi.string().valid('development', 'production', 'test').required(),
+    NODE_ENV: joi
+      .string()
+      .valid('development', 'production', 'test')
+      .required(),
     PORT: joi.number().required(),
     HOST: joi.string().required(),
 
@@ -162,7 +165,7 @@ const envsSchema = joi
     THROTTLE_IP_LIMIT: joi.number().min(100).max(100000).required(),
     THROTTLE_QUERY_LIMIT: joi.number().min(10).max(10000).required(),
     THROTTLE_HEALTH_LIMIT: joi.number().min(10).max(1000).required(),
-    
+
     // Database Connection Pool Configuration
     DB_POOL_MAX: joi.number().min(5).max(100).required(),
   })
@@ -194,8 +197,10 @@ const { error, value } = envsSchema.validate({
   METADATA_MAX_SIZE_KB: process.env.METADATA_MAX_SIZE_KB,
   BATCH_CHUNK_SIZE: process.env.BATCH_CHUNK_SIZE,
   CHECKPOINT_INTERVAL_MS: process.env.CHECKPOINT_INTERVAL_MS,
-  CIRCUIT_BREAKER_FAILURE_THRESHOLD: process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-  CIRCUIT_BREAKER_SUCCESS_THRESHOLD: process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD:
+    process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD:
+    process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
   CIRCUIT_BREAKER_TIMEOUT_MS: process.env.CIRCUIT_BREAKER_TIMEOUT_MS,
   SHUTDOWN_TIMEOUT_MS: process.env.SHUTDOWN_TIMEOUT_MS,
   METRICS_HISTORY_DEFAULT_LIMIT: process.env.METRICS_HISTORY_DEFAULT_LIMIT,
@@ -235,7 +240,7 @@ export const envs = {
   environment: envVars.NODE_ENV,
   port: envVars.PORT,
   host: envVars.HOST,
-  
+
   // Database Configuration (PostgreSQL)
   dbHost: envVars.DB_HOST,
   dbPort: envVars.DB_PORT,
@@ -290,8 +295,7 @@ export const envs = {
   throttleIpLimit: envVars.THROTTLE_IP_LIMIT,
   throttleQueryLimit: envVars.THROTTLE_QUERY_LIMIT,
   throttleHealthLimit: envVars.THROTTLE_HEALTH_LIMIT,
-  
+
   // Database Connection Pool Configuration
   dbPoolMax: envVars.DB_POOL_MAX,
 };
-

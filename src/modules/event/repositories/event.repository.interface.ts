@@ -10,7 +10,7 @@ import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
 export interface IEventRepository {
   /**
    * Batch insert events to database
-   * 
+   *
    * @param events - Array of events to insert
    * @returns BatchInsertResult containing count of successful and failed insertions
    */
@@ -18,7 +18,7 @@ export interface IEventRepository {
 
   /**
    * Find events by service and time range with pagination and sorting
-   * 
+   *
    * @param params - Query parameters
    * @returns Array of Event entities
    */
@@ -34,7 +34,7 @@ export interface IEventRepository {
 
   /**
    * Count events by service and time range
-   * 
+   *
    * @param params - Query parameters
    * @returns Total count of matching events
    */
@@ -48,7 +48,7 @@ export interface IEventRepository {
    * Find events by service and time range with pagination, sorting, and total count
    * Optimized method that returns both events and total count in a single operation
    * Uses parallel queries for better performance and type safety
-   * 
+   *
    * @param params - Query parameters including pagination and sorting
    * @returns Object containing events array and total count
    */
@@ -64,10 +64,9 @@ export interface IEventRepository {
 
   /**
    * Delete events older than specified retention days
-   * 
+   *
    * @param retentionDays - Number of days to retain events
    * @returns Number of events deleted
    */
   deleteOldEvents(retentionDays: number): Promise<number>;
 }
-

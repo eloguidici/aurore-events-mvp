@@ -7,7 +7,7 @@ import { CircuitState } from '../services/circuit-breaker.service';
 export interface ICircuitBreakerService {
   /**
    * Execute operation with circuit breaker protection
-   * 
+   *
    * @param operation - Async operation to execute
    * @returns Result of operation
    * @throws Error if circuit is open or operation fails
@@ -16,14 +16,14 @@ export interface ICircuitBreakerService {
 
   /**
    * Get current circuit state
-   * 
+   *
    * @returns Current circuit state (CLOSED, OPEN, or HALF_OPEN)
    */
   getState(): CircuitState;
 
   /**
    * Get circuit breaker metrics
-   * 
+   *
    * @returns Object containing state, failureCount, successCount, and lastFailureTime
    */
   getMetrics(): {
@@ -38,4 +38,3 @@ export interface ICircuitBreakerService {
    */
   reset(): void;
 }
-

@@ -15,4 +15,3 @@ export interface BatchValidationResult {
    */
   invalidEvents: EnrichedEvent[];
 }
-

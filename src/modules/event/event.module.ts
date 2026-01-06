@@ -31,4 +31,3 @@ import { CommonModule } from '../common/common.module';
   exports: [EventBufferService, EventService],
 })
 export class EventModule {}
-

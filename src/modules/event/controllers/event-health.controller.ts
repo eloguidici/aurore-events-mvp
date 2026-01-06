@@ -24,16 +24,21 @@ export class EventHealthController {
   ) {}
 
   @Get('database')
-  @Throttle({ default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs } })
+  @Throttle({
+    default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs },
+  })
   @ApiOperation({ summary: 'Check database connectivity and health' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Database is healthy' })
-  @ApiResponse({ status: HttpStatus.SERVICE_UNAVAILABLE, description: 'Database is unavailable' })
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: 'Database is unavailable',
+  })
   async checkDatabase() {
     try {
       // Simple query to check database connectivity
       await this.eventRepository.query('SELECT 1');
       const circuitState = this.circuitBreaker.getState();
-      
+
       return {
         status: 'healthy',
         database: 'connected',
@@ -56,9 +61,14 @@ export class EventHealthController {
   }
 
   @Get('buffer')
-  @Throttle({ default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs } })
+  @Throttle({
+    default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs },
+  })
   @ApiOperation({ summary: 'Check buffer health and metrics' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Buffer metrics retrieved' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Buffer metrics retrieved',
+  })
   async checkBuffer() {
     const metrics = this.eventBufferService.getMetrics();
     return {
@@ -72,35 +82,59 @@ export class EventHealthController {
         total_enqueued: metrics.metrics.total_enqueued,
         total_dropped: metrics.metrics.total_dropped,
         drop_rate_percent: metrics.metrics.drop_rate_percent,
-        throughput_events_per_second: metrics.metrics.throughput_events_per_second,
+        throughput_events_per_second:
+          metrics.metrics.throughput_events_per_second,
       },
     };
   }
 
   @Get('detailed')
-  @Throttle({ default: { limit: Math.floor(envs.throttleHealthLimit / 2), ttl: envs.throttleTtlMs } })
+  @Throttle({
+    default: {
+      limit: Math.floor(envs.throttleHealthLimit / 2),
+      ttl: envs.throttleTtlMs,
+    },
+  })
   @ApiOperation({ summary: 'Get detailed health status of all components' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Detailed health status' })
   async getDetailedHealth() {
-    const [databaseHealth, bufferHealth, circuitMetrics, businessMetrics] = await Promise.allSettled([
-      this.checkDatabase(),
-      Promise.resolve(this.checkBuffer()),
-      Promise.resolve(this.circuitBreaker.getMetrics()),
-      this.businessMetricsService.getBusinessMetrics(),
-    ]);
+    const [databaseHealth, bufferHealth, circuitMetrics, businessMetrics] =
+      await Promise.allSettled([
+        this.checkDatabase(),
+        Promise.resolve(this.checkBuffer()),
+        Promise.resolve(this.circuitBreaker.getMetrics()),
+        this.businessMetricsService.getBusinessMetrics(),
+      ]);
 
     return {
       timestamp: new Date().toISOString(),
       server: this.healthService.checkHealth(),
-      database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : { status: 'error', error: databaseHealth.reason },
-      buffer: bufferHealth.status === 'fulfilled' ? bufferHealth.value : { status: 'error', error: bufferHealth.reason },
-      circuitBreaker: circuitMetrics.status === 'fulfilled' ? circuitMetrics.value : { status: 'error', error: circuitMetrics.reason },
-      business: businessMetrics.status === 'fulfilled' ? businessMetrics.value : { status: 'error', error: businessMetrics.reason },
+      database:
+        databaseHealth.status === 'fulfilled'
+          ? databaseHealth.value
+          : { status: 'error', error: databaseHealth.reason },
+      buffer:
+        bufferHealth.status === 'fulfilled'
+          ? bufferHealth.value
+          : { status: 'error', error: bufferHealth.reason },
+      circuitBreaker:
+        circuitMetrics.status === 'fulfilled'
+          ? circuitMetrics.value
+          : { status: 'error', error: circuitMetrics.reason },
+      business:
+        businessMetrics.status === 'fulfilled'
+          ? businessMetrics.value
+          : { status: 'error', error: businessMetrics.reason },
     };
   }
 
   @Get('business')
-  @Throttle({ default: { limit: Math.floor(envs.throttleHealthLimit / 2), ttl: envs.throttleTtlMs } })
+  @Throttle({
+    default: {
+      limit: Math.floor(envs.throttleHealthLimit / 2),
+      ttl: envs.throttleTtlMs,
+    },
+  })
   @ApiOperation({
     summary: 'Get business metrics and insights',
     description: `Retrieves comprehensive business metrics about event patterns, service usage, and trends.
@@ -127,4 +161,3 @@ Metrics are cached for 1 minute to reduce database load. Use this endpoint for d
     return new BusinessMetricsDto(metrics);
   }
 }
-

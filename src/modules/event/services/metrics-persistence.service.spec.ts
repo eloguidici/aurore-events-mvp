@@ -114,7 +114,9 @@ describe('MetricsPersistenceService', () => {
       };
 
       // JSONL format - one JSON object per line
-      (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify(mockSnapshot) + '\n');
+      (fs.readFile as jest.Mock).mockResolvedValue(
+        JSON.stringify(mockSnapshot) + '\n',
+      );
 
       const result = await service.getMetricsHistory();
 
@@ -141,7 +143,9 @@ describe('MetricsPersistenceService', () => {
       };
 
       // JSONL format - create 100 lines
-      const lines = Array(100).fill(null).map(() => JSON.stringify(mockSnapshot));
+      const lines = Array(100)
+        .fill(null)
+        .map(() => JSON.stringify(mockSnapshot));
       (fs.readFile as jest.Mock).mockResolvedValue(lines.join('\n'));
 
       const result = await service.getMetricsHistory(10);
@@ -150,4 +154,3 @@ describe('MetricsPersistenceService', () => {
     });
   });
 });
-

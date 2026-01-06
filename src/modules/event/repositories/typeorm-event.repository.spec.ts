@@ -70,12 +70,14 @@ describe('TypeOrmEventRepository', () => {
         execute: jest.fn().mockResolvedValue({ affected: 1 }),
       };
 
-      mockEventRepository.manager.transaction.mockImplementation(async (callback) => {
-        const mockEntityManager = {
-          createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
-        };
-        return await callback(mockEntityManager);
-      });
+      mockEventRepository.manager.transaction.mockImplementation(
+        async (callback) => {
+          const mockEntityManager = {
+            createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+          };
+          return await callback(mockEntityManager);
+        },
+      );
 
       mockCircuitBreaker.execute.mockImplementation(async (operation) => {
         return await operation();
@@ -145,4 +147,3 @@ describe('TypeOrmEventRepository', () => {
     });
   });
 });
-

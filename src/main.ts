@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { envs } from './modules/config/envs';
-import { configureApplication, startApplication } from './config/bootstrap.config';
+import {
+  configureApplication,
+  startApplication,
+} from './config/bootstrap.config';
 
 /**
  * Bootstrap function - Application entry point
@@ -28,4 +31,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

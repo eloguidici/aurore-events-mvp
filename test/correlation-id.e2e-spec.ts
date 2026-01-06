@@ -30,7 +30,9 @@ describe('Correlation ID E2E', () => {
       .expect(202);
 
     expect(response.headers['x-correlation-id']).toBeDefined();
-    expect(response.headers['x-correlation-id']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(response.headers['x-correlation-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
   });
 
   it('should use provided correlation ID', async () => {

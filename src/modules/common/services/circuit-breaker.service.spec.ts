@@ -68,4 +68,3 @@ describe('CircuitBreakerService', () => {
     expect(metrics.successCount).toBe(0);
   });
 });
-

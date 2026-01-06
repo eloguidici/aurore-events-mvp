@@ -31,7 +31,12 @@ export class StructuredLogger implements LoggerService {
     this.output('verbose', message, context);
   }
 
-  private output(level: string, message: string, context?: string, extra?: Record<string, any>) {
+  private output(
+    level: string,
+    message: string,
+    context?: string,
+    extra?: Record<string, any>,
+  ) {
     const logEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -44,4 +49,3 @@ export class StructuredLogger implements LoggerService {
     console.log(JSON.stringify(logEntry));
   }
 }
-

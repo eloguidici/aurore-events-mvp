@@ -31,4 +31,3 @@ export class Event {
   @CreateDateColumn()
   createdAt: Date;
 }
-

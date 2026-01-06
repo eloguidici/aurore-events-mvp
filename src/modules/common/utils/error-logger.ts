@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 /**
  * Standardized error logging utility
  * Ensures consistent error log format across the application
- * 
+ *
  * Benefits:
  * - Consistent error format across all services
  * - Structured context (eventId, service, etc.) for better debugging
@@ -12,7 +12,7 @@ import { Logger } from '@nestjs/common';
 export class ErrorLogger {
   /**
    * Log an error with standardized format including context
-   * 
+   *
    * @param logger - Logger instance
    * @param message - Error message
    * @param error - Error object or error message string
@@ -41,7 +41,7 @@ export class ErrorLogger {
 
   /**
    * Log a warning with standardized format including context
-   * 
+   *
    * @param logger - Logger instance
    * @param message - Warning message
    * @param context - Additional context object (eventId, service, etc.)
@@ -59,18 +59,18 @@ export class ErrorLogger {
   /**
    * Helper to create error context object with common fields
    * Makes it easier to include eventId and service consistently
-   * 
+   *
    * @param eventId - Event ID (if applicable)
    * @param service - Service name (if applicable)
    * @param additionalContext - Any additional context fields
    * @returns Context object for error logging
-   * 
+   *
    * @example
    * // Simple usage
    * ErrorLogger.logError(logger, 'Error', error, { key: 'value' });
-   * 
+   *
    * // With helper for common fields
-   * ErrorLogger.logError(logger, 'Error', error, 
+   * ErrorLogger.logError(logger, 'Error', error,
    *   ErrorLogger.createContext('evt_123', 'my-service', { page: 1 })
    * );
    */
@@ -97,4 +97,3 @@ export class ErrorLogger {
     return this.createContext(eventId, service, additionalContext);
   }
 }
-

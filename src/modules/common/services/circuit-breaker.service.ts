@@ -45,7 +45,7 @@ export class CircuitBreakerService implements ICircuitBreakerService {
 
   /**
    * Execute operation with circuit breaker protection
-   * 
+   *
    * @param operation - Async operation to execute
    * @returns Result of operation
    * @throws Error if circuit is open or operation fails
@@ -54,12 +54,17 @@ export class CircuitBreakerService implements ICircuitBreakerService {
     // Check circuit state
     if (this.state === CircuitState.OPEN) {
       // Check if timeout has passed to try HALF_OPEN
-      if (this.lastFailureTime && Date.now() - this.lastFailureTime >= this.config.timeout) {
+      if (
+        this.lastFailureTime &&
+        Date.now() - this.lastFailureTime >= this.config.timeout
+      ) {
         this.state = CircuitState.HALF_OPEN;
         this.successCount = 0;
         this.logger.log('Circuit breaker: Moving to HALF_OPEN state');
       } else {
-        throw new Error('Circuit breaker is OPEN - database operations temporarily unavailable');
+        throw new Error(
+          'Circuit breaker is OPEN - database operations temporarily unavailable',
+        );
       }
     }
 
@@ -91,7 +96,9 @@ export class CircuitBreakerService implements ICircuitBreakerService {
       if (this.successCount >= this.config.successThreshold) {
         this.state = CircuitState.CLOSED;
         this.successCount = 0;
-        this.logger.log('Circuit breaker: Moving to CLOSED state (service recovered)');
+        this.logger.log(
+          'Circuit breaker: Moving to CLOSED state (service recovered)',
+        );
       }
     }
   }
@@ -165,7 +172,7 @@ export class CircuitBreakerService implements ICircuitBreakerService {
    * Determines if an error is transient (should trigger circuit breaker)
    * Transient errors: connection issues, timeouts, network problems
    * Permanent errors: validation errors, not found, business logic errors
-   * 
+   *
    * @param error - Error to classify
    * @returns true if error is transient, false otherwise
    */
@@ -175,9 +182,9 @@ export class CircuitBreakerService implements ICircuitBreakerService {
     }
 
     const transientPatterns = [
-      /ECONNREFUSED/i,      // Connection refused
-      /ETIMEDOUT/i,         // Timeout
-      /ENOTFOUND/i,         // DNS not found
+      /ECONNREFUSED/i, // Connection refused
+      /ETIMEDOUT/i, // Timeout
+      /ENOTFOUND/i, // DNS not found
       /connection.*refused/i,
       /connection.*timeout/i,
       /connection.*closed/i,
@@ -192,4 +199,3 @@ export class CircuitBreakerService implements ICircuitBreakerService {
     return transientPatterns.some((pattern) => pattern.test(error.message));
   }
 }
-

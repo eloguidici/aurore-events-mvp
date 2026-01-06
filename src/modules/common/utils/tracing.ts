@@ -20,7 +20,7 @@ export interface TracingContext {
 export class Tracing {
   /**
    * Create a new tracing context
-   * 
+   *
    * @param serviceName - Name of the service creating the trace
    * @param correlationId - Optional correlation ID from request
    * @param parentSpanId - Optional parent span ID for nested traces
@@ -43,7 +43,7 @@ export class Tracing {
 
   /**
    * Create a child span from parent context
-   * 
+   *
    * @param parentContext - Parent tracing context
    * @param serviceName - Name of the child service/operation
    * @returns Child tracing context
@@ -64,7 +64,7 @@ export class Tracing {
 
   /**
    * Get duration in milliseconds
-   * 
+   *
    * @param context - Tracing context
    * @returns Duration in milliseconds
    */
@@ -74,7 +74,7 @@ export class Tracing {
 
   /**
    * Format trace for logging
-   * 
+   *
    * @param context - Tracing context
    * @returns Formatted trace string
    */
@@ -82,4 +82,3 @@ export class Tracing {
     return `[traceId=${context.traceId}, spanId=${context.spanId}, service=${context.serviceName}]`;
   }
 }
-

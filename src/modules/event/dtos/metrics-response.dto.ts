@@ -6,7 +6,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  */
 export class MetricsDto {
   @ApiProperty({
-    description: 'System health status based on buffer utilization and drop rate',
+    description:
+      'System health status based on buffer utilization and drop rate',
     example: 'healthy',
     enum: ['healthy', 'warning', 'critical'],
   })
@@ -27,7 +28,8 @@ export class MetricsDto {
   buffer_capacity: number;
 
   @ApiProperty({
-    description: 'Buffer utilization percentage (formatted to 2 decimal places)',
+    description:
+      'Buffer utilization percentage (formatted to 2 decimal places)',
     example: '4.50',
     pattern: '^\\d+\\.\\d{2}$',
   })
@@ -58,14 +60,16 @@ export class MetricsDto {
   uptime_seconds: number;
 
   @ApiPropertyOptional({
-    description: 'Time in seconds since last event was enqueued (null if no events enqueued yet)',
+    description:
+      'Time in seconds since last event was enqueued (null if no events enqueued yet)',
     example: 2.5,
     nullable: true,
   })
   time_since_last_enqueue_seconds: number | null;
 
   @ApiPropertyOptional({
-    description: 'Time in seconds since last batch was drained (null if no batches drained yet)',
+    description:
+      'Time in seconds since last batch was drained (null if no batches drained yet)',
     example: 5.2,
     nullable: true,
   })
@@ -73,7 +77,7 @@ export class MetricsDto {
 
   /**
    * Creates MetricsDto from buffer metrics
-   * 
+   *
    * @param metrics - Buffer metrics from EventBufferService
    */
   constructor(metrics: {

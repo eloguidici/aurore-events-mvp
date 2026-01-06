@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { EventBufferService } from './event-buffer.service';
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { IMetricsPersistenceService } from '../interfaces/metrics-persistence-service.interface';
@@ -30,7 +35,9 @@ interface MetricsSnapshot {
  * Saves metrics snapshots periodically for historical analysis
  */
 @Injectable()
-export class MetricsPersistenceService implements IMetricsPersistenceService, OnModuleInit, OnModuleDestroy {
+export class MetricsPersistenceService
+  implements IMetricsPersistenceService, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(MetricsPersistenceService.name);
   private readonly metricsDir: string;
   private readonly metricsFile: string;
@@ -79,15 +86,13 @@ export class MetricsPersistenceService implements IMetricsPersistenceService, On
   private startPersistence(): void {
     this.persistenceInterval = setInterval(() => {
       this.saveMetrics().catch((error) => {
-        ErrorLogger.logError(
-          this.logger,
-          'Error saving metrics',
-          error,
-        );
+        ErrorLogger.logError(this.logger, 'Error saving metrics', error);
       });
     }, this.PERSISTENCE_INTERVAL_MS);
 
-    this.logger.log(`Metrics persistence started (interval: ${this.PERSISTENCE_INTERVAL_MS}ms)`);
+    this.logger.log(
+      `Metrics persistence started (interval: ${this.PERSISTENCE_INTERVAL_MS}ms)`,
+    );
   }
 
   /**
@@ -107,7 +112,8 @@ export class MetricsPersistenceService implements IMetricsPersistenceService, On
           total_enqueued: bufferMetrics.metrics.total_enqueued,
           total_dropped: bufferMetrics.metrics.total_dropped,
           drop_rate_percent: bufferMetrics.metrics.drop_rate_percent,
-          throughput_events_per_second: bufferMetrics.metrics.throughput_events_per_second,
+          throughput_events_per_second:
+            bufferMetrics.metrics.throughput_events_per_second,
         },
         circuitBreaker: {
           state: circuitMetrics.state,
@@ -122,22 +128,24 @@ export class MetricsPersistenceService implements IMetricsPersistenceService, On
 
       this.logger.debug('Metrics snapshot saved');
     } catch (error) {
-      ErrorLogger.logError(
-        this.logger,
-        'Failed to save metrics',
-        error,
-        { metricsFile: this.metricsFile },
-      );
+      ErrorLogger.logError(this.logger, 'Failed to save metrics', error, {
+        metricsFile: this.metricsFile,
+      });
     }
   }
 
   /**
    * Get metrics history (last N entries)
    */
-  public async getMetricsHistory(limit: number = envs.metricsHistoryDefaultLimit): Promise<MetricsSnapshot[]> {
+  public async getMetricsHistory(
+    limit: number = envs.metricsHistoryDefaultLimit,
+  ): Promise<MetricsSnapshot[]> {
     try {
       const content = await fs.readFile(this.metricsFile, 'utf-8');
-      const lines = content.trim().split('\n').filter((line) => line.trim());
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
       const snapshots = lines
         .slice(-limit)
         .map((line) => JSON.parse(line) as MetricsSnapshot);
@@ -159,4 +167,3 @@ export class MetricsPersistenceService implements IMetricsPersistenceService, On
     }
   }
 }
-

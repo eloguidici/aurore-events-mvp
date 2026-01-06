@@ -9,7 +9,7 @@ import { configureApp } from './app.config';
 /**
  * Configures all global pipes, middleware, and documentation
  * Sets up validation, CORS, and Swagger documentation
- * 
+ *
  * @param app - NestJS application instance
  */
 export function configureApplication(app: INestApplication): void {
@@ -26,7 +26,7 @@ export function configureApplication(app: INestApplication): void {
 /**
  * Initializes the application and starts the server
  * Triggers OnModuleInit hooks, starts listening, and signals readiness
- * 
+ *
  * @param app - NestJS application instance
  */
 export async function startApplication(app: INestApplication): Promise<void> {
@@ -39,9 +39,7 @@ export async function startApplication(app: INestApplication): Promise<void> {
   // Start listening on the configured port
   await app.listen(envs.port);
 
-  logger.log(
-    `🚀 Event System MVP running on http://${envs.host}:${envs.port}`,
-  );
+  logger.log(`🚀 Event System MVP running on http://${envs.host}:${envs.port}`);
 
   // Get HealthService and signal that the server is ready
   // This happens after all modules are initialized and the server is listening
@@ -50,4 +48,3 @@ export async function startApplication(app: INestApplication): Promise<void> {
 
   logger.log('✅ Server is ready to receive traffic');
 }
-

@@ -19,12 +19,10 @@ import { envs } from '../../config/envs';
  * Validates that timestamp can be parsed as a valid date (ISO 8601 or Unix epoch)
  */
 @ValidatorConstraint({ name: 'isParseableTimestamp', async: false })
-export class IsParseableTimestampConstraint
-  implements ValidatorConstraintInterface
-{
+export class IsParseableTimestampConstraint implements ValidatorConstraintInterface {
   /**
    * Validates if timestamp is a parseable date string
-   * 
+   *
    * @param timestamp - Timestamp value to validate
    * @param args - Validation arguments
    * @returns true if timestamp is parseable, false otherwise
@@ -51,12 +49,10 @@ export class IsParseableTimestampConstraint
  * Reads limit from METADATA_MAX_SIZE_KB environment variable (default: 16KB)
  */
 @ValidatorConstraint({ name: 'isMetadataSizeValid', async: false })
-export class IsMetadataSizeValidConstraint
-  implements ValidatorConstraintInterface
-{
+export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterface {
   /**
    * Validates if metadata size is within configured limit
-   * 
+   *
    * @param metadata - Metadata object to validate
    * @param args - Validation arguments (can contain maxSizeKB as constraint)
    * @returns true if metadata is within size limit or is optional, false otherwise
@@ -87,7 +83,7 @@ export class IsMetadataSizeValidConstraint
 
 /**
  * Decorator for validating parseable timestamp
- * 
+ *
  * @param validationOptions - Optional validation options
  * @returns Property decorator function
  */
@@ -106,12 +102,15 @@ export function IsParseableTimestamp(validationOptions?: ValidationOptions) {
 /**
  * Decorator for validating metadata size
  * Reads max size from METADATA_MAX_SIZE_KB environment variable (default: 16KB)
- * 
+ *
  * @param maxSizeKB - Optional max size in KB (overrides env var)
  * @param validationOptions - Optional validation options
  * @returns Property decorator function
  */
-export function IsMetadataSizeValid(maxSizeKB?: number, validationOptions?: ValidationOptions) {
+export function IsMetadataSizeValid(
+  maxSizeKB?: number,
+  validationOptions?: ValidationOptions,
+) {
   return function (object: Object, propertyName: string) {
     const maxSize = maxSizeKB || envs.metadataMaxSizeKB;
     registerDecorator({
@@ -126,7 +125,8 @@ export function IsMetadataSizeValid(maxSizeKB?: number, validationOptions?: Vali
 
 export class CreateEventDto {
   @ApiProperty({
-    description: 'Event timestamp in ISO 8601 format or Unix epoch (must be parseable)',
+    description:
+      'Event timestamp in ISO 8601 format or Unix epoch (must be parseable)',
     example: '2024-01-15T10:30:00Z',
     type: String,
   })
@@ -169,4 +169,3 @@ export class CreateEventDto {
   @IsMetadataSizeValid()
   metadata?: Record<string, any>;
 }
-

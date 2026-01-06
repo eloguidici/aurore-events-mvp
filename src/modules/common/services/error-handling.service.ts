@@ -47,8 +47,7 @@ export class ErrorHandlingService implements OnModuleInit {
     process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
       const errorMessage =
         reason instanceof Error ? reason.message : String(reason);
-      const errorStack =
-        reason instanceof Error ? reason.stack : undefined;
+      const errorStack = reason instanceof Error ? reason.stack : undefined;
 
       this.logger.error(
         `Unhandled Rejection: ${errorMessage}`,
@@ -95,12 +94,9 @@ export class ErrorHandlingService implements OnModuleInit {
         /typeerror/i,
       ];
 
-      return criticalPatterns.some((pattern) =>
-        pattern.test(reason.message),
-      );
+      return criticalPatterns.some((pattern) => pattern.test(reason.message));
     }
 
     return false;
   }
 }
-

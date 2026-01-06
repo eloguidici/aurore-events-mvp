@@ -47,49 +47,38 @@ export class RetentionService implements IRetentionService, OnModuleInit {
     );
 
     try {
-      const deletedCount = await this.eventService.cleanup(
-        this.retentionDays,
-      );
+      const deletedCount = await this.eventService.cleanup(this.retentionDays);
 
       this.logger.log(
         `Retention cleanup completed: ${deletedCount} events deleted`,
       );
     } catch (error) {
-      ErrorLogger.logError(
-        this.logger,
-        'Retention cleanup failed',
-        error,
-        { retentionDays: this.retentionDays },
-      );
+      ErrorLogger.logError(this.logger, 'Retention cleanup failed', error, {
+        retentionDays: this.retentionDays,
+      });
       // Continue - next day's run will catch remaining old events
     }
   }
 
   /**
    * Manual cleanup trigger (for testing or manual runs)
-   * 
+   *
    * @returns Number of events deleted
    * @throws Error if cleanup fails
    */
   public async cleanupNow(): Promise<number> {
     this.logger.log('Manual cleanup triggered');
     try {
-      const deletedCount = await this.eventService.cleanup(
-        this.retentionDays,
-      );
+      const deletedCount = await this.eventService.cleanup(this.retentionDays);
       this.logger.log(
         `Manual cleanup completed: ${deletedCount} events deleted`,
       );
       return deletedCount;
     } catch (error) {
-      ErrorLogger.logError(
-        this.logger,
-        'Manual cleanup failed',
-        error,
-        { retentionDays: this.retentionDays },
-      );
+      ErrorLogger.logError(this.logger, 'Manual cleanup failed', error, {
+        retentionDays: this.retentionDays,
+      });
       throw error;
     }
   }
 }
-

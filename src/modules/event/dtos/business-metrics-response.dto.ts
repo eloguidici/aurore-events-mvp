@@ -40,7 +40,8 @@ export class BusinessMetricsDto implements BusinessMetrics {
   eventsLastHour: number;
 
   @ApiProperty({
-    description: 'Average number of events per minute (calculated from last 24 hours)',
+    description:
+      'Average number of events per minute (calculated from last 24 hours)',
     example: 3.47,
     minimum: 0,
   })
@@ -81,4 +82,3 @@ export class BusinessMetricsDto implements BusinessMetrics {
     this.eventsByHour = metrics.eventsByHour;
   }
 }
-

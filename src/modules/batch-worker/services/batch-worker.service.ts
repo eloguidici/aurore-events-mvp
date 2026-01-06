@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { EventBufferService } from '../../event/services/event-buffer.service';
 import { EventService } from '../../event/services/events.service';
 import { envs } from '../../config/envs';
@@ -64,11 +69,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     // Process batches at regular intervals
     this.intervalId = setInterval(() => {
       this.process().catch((error) => {
-        ErrorLogger.logError(
-          this.logger,
-          'Batch processing error',
-          error,
-        );
+        ErrorLogger.logError(this.logger, 'Batch processing error', error);
       });
     }, this.drainInterval);
   }
@@ -97,23 +98,19 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     while (this.eventBufferService.getSize() > 0) {
       // Check timeout to prevent infinite loop
       if (Date.now() - startTime > SHUTDOWN_TIMEOUT_MS) {
-        ErrorLogger.logWarning(
-          this.logger,
-          'Shutdown timeout reached',
-          {
-            timeoutMs: SHUTDOWN_TIMEOUT_MS,
-            remainingEvents: this.eventBufferService.getSize(),
-          },
-        );
+        ErrorLogger.logWarning(this.logger, 'Shutdown timeout reached', {
+          timeoutMs: SHUTDOWN_TIMEOUT_MS,
+          remainingEvents: this.eventBufferService.getSize(),
+        });
         break;
       }
 
       try {
         await this.process();
         batchCount++;
-        
+
         // Small delay to allow other operations (like checkpoint) to run
-        await new Promise(resolve => setImmediate(resolve));
+        await new Promise((resolve) => setImmediate(resolve));
       } catch (error) {
         ErrorLogger.logError(
           this.logger,
@@ -141,7 +138,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   private async process() {
     const batchStartTime = Date.now();
     let batch: EnrichedEvent[] = [];
-    
+
     try {
       // Drain buffer
       batch = this.eventBufferService.drain(this.batchSize);
@@ -168,22 +165,17 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
         }));
 
         const insertStartTime = Date.now();
-        const { successful, failed } = await this.eventService.insert(
-          eventsToInsert,
-        );
+        const { successful, failed } =
+          await this.eventService.insert(eventsToInsert);
         const insertTimeMs = Date.now() - insertStartTime;
         this.performanceMetrics.totalInsertTimeMs += insertTimeMs;
 
         if (failed > 0) {
-          ErrorLogger.logWarning(
-            this.logger,
-            'Failed to insert events',
-            {
-              failedCount: failed,
-              successfulCount: successful,
-              totalAttempted: batch.length,
-            },
-          );
+          ErrorLogger.logWarning(this.logger, 'Failed to insert events', {
+            failedCount: failed,
+            successfulCount: successful,
+            totalAttempted: batch.length,
+          });
 
           // Retry failed events (up to maxRetries)
           // Note: insert doesn't specify which events failed, so we retry
@@ -202,7 +194,8 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       this.performanceMetrics.totalBatchesProcessed++;
       this.performanceMetrics.totalEventsProcessed += batch.length;
       this.performanceMetrics.averageBatchProcessingTimeMs =
-        (this.performanceMetrics.averageBatchProcessingTimeMs * (this.performanceMetrics.totalBatchesProcessed - 1) +
+        (this.performanceMetrics.averageBatchProcessingTimeMs *
+          (this.performanceMetrics.totalBatchesProcessed - 1) +
           batchProcessingTimeMs) /
         this.performanceMetrics.totalBatchesProcessed;
 
@@ -210,27 +203,23 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       if (this.performanceMetrics.totalBatchesProcessed % 100 === 0) {
         this.logger.log(
           `Performance metrics: avg batch time=${this.performanceMetrics.averageBatchProcessingTimeMs.toFixed(2)}ms, ` +
-          `avg insert=${(this.performanceMetrics.totalInsertTimeMs / this.performanceMetrics.totalBatchesProcessed).toFixed(2)}ms`,
+            `avg insert=${(this.performanceMetrics.totalInsertTimeMs / this.performanceMetrics.totalBatchesProcessed).toFixed(2)}ms`,
         );
       }
     } catch (error) {
       // Log error with standardized format - worker should continue processing
-      ErrorLogger.logError(
-        this.logger,
-        'Error processing batch',
-        error,
-        { batchSize: batch.length },
-      );
+      ErrorLogger.logError(this.logger, 'Error processing batch', error, {
+        batchSize: batch.length,
+      });
       // Worker continues - next batch will be processed
     }
   }
-
 
   /**
    * Retry failed events by re-enqueuing them to the buffer
    * Events are re-enqueued immediately (non-blocking)
    * The buffer naturally spaces out retries through batch processing intervals
-   * 
+   *
    * @param failedEvents - Array of events that failed to insert
    */
   private async retryFailed(failedEvents: EnrichedEvent[]) {
@@ -304,25 +293,17 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
       // Log summary
       if (enqueuedCount > 0 || droppedCount > 0 || maxRetriesReachedCount > 0) {
-        ErrorLogger.logWarning(
-          this.logger,
-          'Retry summary',
-          {
-            enqueuedCount,
-            droppedCount,
-            maxRetriesReachedCount,
-          },
-        );
+        ErrorLogger.logWarning(this.logger, 'Retry summary', {
+          enqueuedCount,
+          droppedCount,
+          maxRetriesReachedCount,
+        });
       }
     } catch (error) {
       // Log error but don't throw - worker should continue
-      ErrorLogger.logError(
-        this.logger,
-        'Error in retryFailed',
-        error,
-        { failedEventsCount: failedEvents.length },
-      );
+      ErrorLogger.logError(this.logger, 'Error in retryFailed', error, {
+        failedEventsCount: failedEvents.length,
+      });
     }
   }
 }
-

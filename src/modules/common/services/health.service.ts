@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  HttpStatus,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+} from '@nestjs/common';
 
 import { MESSAGES } from '../constants/constants';
 import { IHealthService } from '../interfaces/health.interface';
@@ -43,7 +48,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
   /**
    * Register shutdown handler for graceful shutdown
    * Handles SIGTERM and SIGINT signals
-   * 
+   *
    * @param handler - Function to call on shutdown
    */
   public registerShutdownHandler(handler: () => void) {
@@ -60,7 +65,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
 
   /**
    * Check if server is ready to receive traffic
-   * 
+   *
    * @returns true if server is ready, false otherwise
    */
   public isServerReady(): boolean {
@@ -69,7 +74,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
 
   /**
    * Check if server is in the process of shutting down
-   * 
+   *
    * @returns true if server is shutting down, false otherwise
    */
   public isServerShuttingDown(): boolean {
@@ -88,7 +93,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
   /**
    * Check overall health status
    * Returns status based on readiness and shutdown state
-   * 
+   *
    * @returns Object with HTTP status and message
    */
   public checkHealth() {
@@ -110,7 +115,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
   /**
    * Check liveness status
    * Verifies if server is running and not shutting down
-   * 
+   *
    * @returns Object with HTTP status and message
    */
   public checkLiveness() {
@@ -130,7 +135,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
   /**
    * Check readiness status
    * Determines if server is fully prepared to handle requests
-   * 
+   *
    * @returns Object with HTTP status and message
    */
   public checkReadiness() {
@@ -144,4 +149,3 @@ export class HealthService implements IHealthService, OnModuleDestroy {
     }
   }
 }
-

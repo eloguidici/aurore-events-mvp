@@ -12,7 +12,7 @@ export interface IEventService {
   /**
    * Ingest a new event
    * Enriches event with metadata and enqueues to buffer
-   * 
+   *
    * @param createEventDto - Event data to ingest
    * @returns IngestResponseDto with event_id and queued_at timestamp
    */
@@ -20,7 +20,7 @@ export interface IEventService {
 
   /**
    * Insert events to database in a single transaction
-   * 
+   *
    * @param events - Array of events to insert
    * @returns BatchInsertResult containing count of successful and failed insertions
    */
@@ -28,7 +28,7 @@ export interface IEventService {
 
   /**
    * Search events by service and time range with pagination and sorting
-   * 
+   *
    * @param queryDto - Query parameters including service, time range, pagination, and sorting
    * @returns SearchResponseDto with paginated results
    */
@@ -36,10 +36,9 @@ export interface IEventService {
 
   /**
    * Cleanup events older than retention period
-   * 
+   *
    * @param retentionDays - Number of days to retain events (events older than this are deleted)
    * @returns Number of events deleted
    */
   cleanup(retentionDays: number): Promise<number>;
 }
-

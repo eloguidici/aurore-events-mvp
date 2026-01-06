@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { envs } from '../../config/envs';
 import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { IEventBufferService } from '../interfaces/event-buffer-service.interface';
@@ -9,7 +14,9 @@ import { createWriteStream } from 'fs';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
-export class EventBufferService implements IEventBufferService, OnModuleInit, OnModuleDestroy {
+export class EventBufferService
+  implements IEventBufferService, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(EventBufferService.name);
   // Use array with head index for O(1) dequeue operations
   // This avoids O(n) shift() operations when draining batches
@@ -31,7 +38,10 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
   constructor() {
     this.maxSize = envs.bufferMaxSize;
     this.checkpointDir = path.join(process.cwd(), 'checkpoints');
-    this.checkpointPath = path.join(this.checkpointDir, 'buffer-checkpoint.json');
+    this.checkpointPath = path.join(
+      this.checkpointDir,
+      'buffer-checkpoint.json',
+    );
     // Checkpoint interval is required via environment variable (validated at startup)
     this.checkpointIntervalMs = envs.checkpointIntervalMs;
   }
@@ -43,13 +53,13 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
   async onModuleInit() {
     // Create checkpoint directory
     await this.ensureCheckpointDir();
-    
+
     // Load checkpoint on startup (if exists)
     await this.loadCheckpoint();
-    
+
     // Start periodic checkpointing
     this.startCheckpointing();
-    
+
     this.logger.log(
       `Event buffer initialized (max_size=${this.maxSize}, checkpoint_interval=${this.checkpointIntervalMs}ms)`,
     );
@@ -65,21 +75,23 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
       clearInterval(this.checkpointInterval);
       this.checkpointInterval = null;
     }
-    
+
     // Save final checkpoint before shutdown
     // Use getSize() to check for active events (ignores already-drained events)
     const activeEventsCount = this.getSize();
     if (activeEventsCount > 0) {
-      this.logger.log(`Saving final checkpoint with ${activeEventsCount} events`);
+      this.logger.log(
+        `Saving final checkpoint with ${activeEventsCount} events`,
+      );
       await this.saveCheckpoint();
     }
-    
+
     this.logger.log('Event buffer service destroyed');
   }
 
   /**
    * Enqueue an event to the buffer (non-blocking operation)
-   * 
+   *
    * @param event - Enriched event to add to buffer
    * @returns true if event was enqueued, false if buffer is full
    */
@@ -100,7 +112,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
    * Drain events from the buffer
    * Removes events from buffer and returns them for processing
    * Uses efficient O(1) per-element removal instead of O(n) shift()
-   * 
+   *
    * @param batchSize - Maximum number of events to drain
    * @returns Array of events (up to batchSize), or empty array if buffer is empty
    */
@@ -124,7 +136,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
 
     // Update head index and clean up old references to prevent memory leaks
     this.bufferHead += count;
-    
+
     // Periodically compact array to prevent memory growth
     // Compact when head is > 50% of array length
     if (this.bufferHead > this.buffer.length / 2) {
@@ -141,7 +153,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
 
   /**
    * Get current number of events in buffer
-   * 
+   *
    * @returns Current buffer size (number of events)
    */
   public getSize(): number {
@@ -150,7 +162,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
 
   /**
    * Get maximum buffer capacity
-   * 
+   *
    * @returns Maximum number of events buffer can hold
    */
   public getCapacity(): number {
@@ -159,7 +171,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
 
   /**
    * Check if buffer has reached maximum capacity
-   * 
+   *
    * @returns true if buffer is full, false otherwise
    */
   public isFull(): boolean {
@@ -168,7 +180,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
 
   /**
    * Get buffer metrics and statistics
-   * 
+   *
    * @returns MetricsDto containing buffer metrics and statistics
    */
   public getMetrics(): MetricsDto {
@@ -176,19 +188,20 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
     const uptimeSeconds = (currentTime - this.metrics.startTime) / 1000;
     const currentSize = this.getSize();
     const utilizationPercent = (currentSize / this.maxSize) * 100;
-    
+
     // Calculate drop rate (percentage of events dropped)
     // Drop rate = dropped / (enqueued + dropped) * 100
-    const totalAttempted = this.metrics.totalEnqueued + this.metrics.totalDropped;
-    const dropRate = totalAttempted > 0
-      ? (this.metrics.totalDropped / totalAttempted) * 100
-      : 0;
-    
+    const totalAttempted =
+      this.metrics.totalEnqueued + this.metrics.totalDropped;
+    const dropRate =
+      totalAttempted > 0
+        ? (this.metrics.totalDropped / totalAttempted) * 100
+        : 0;
+
     // Calculate throughput (events per second)
-    const throughput = uptimeSeconds > 0
-      ? this.metrics.totalEnqueued / uptimeSeconds
-      : 0;
-    
+    const throughput =
+      uptimeSeconds > 0 ? this.metrics.totalEnqueued / uptimeSeconds : 0;
+
     // Determine health status based on utilization and drop rate
     let healthStatus: 'healthy' | 'warning' | 'critical';
     if (utilizationPercent >= 90 || dropRate > 5) {
@@ -198,14 +211,16 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
     } else {
       healthStatus = 'healthy';
     }
-    
+
     // Calculate time since last operations
-    const timeSinceLastEnqueue = this.metrics.lastEnqueueTime > 0
-      ? (currentTime - this.metrics.lastEnqueueTime) / 1000
-      : null;
-    const timeSinceLastDrain = this.metrics.lastDrainTime > 0
-      ? (currentTime - this.metrics.lastDrainTime) / 1000
-      : null;
+    const timeSinceLastEnqueue =
+      this.metrics.lastEnqueueTime > 0
+        ? (currentTime - this.metrics.lastEnqueueTime) / 1000
+        : null;
+    const timeSinceLastDrain =
+      this.metrics.lastDrainTime > 0
+        ? (currentTime - this.metrics.lastDrainTime) / 1000
+        : null;
 
     return new MetricsDto({
       ...this.metrics,
@@ -224,7 +239,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
   /**
    * Ensure checkpoint directory exists
    * Creates directory if it doesn't exist (recursive)
-   * 
+   *
    * @throws Error if directory creation fails
    */
   private async ensureCheckpointDir(): Promise<void> {
@@ -311,12 +326,9 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
         // No checkpoint found (first run or already processed) - this is normal
         this.logger.debug('No checkpoint file found (normal on first run)');
       } else {
-        ErrorLogger.logError(
-          this.logger,
-          'Failed to load checkpoint',
-          error,
-          { checkpointPath: this.checkpointPath },
-        );
+        ErrorLogger.logError(this.logger, 'Failed to load checkpoint', error, {
+          checkpointPath: this.checkpointPath,
+        });
         // Don't throw error - continue without checkpoint
       }
     }
@@ -330,7 +342,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
    * Save current buffer state to disk (checkpoint)
    * Uses streaming to avoid loading all events in memory
    * Uses atomic write (temp file + rename) to prevent corruption
-   * 
+   *
    * @returns Promise that resolves when checkpoint is saved
    */
   private async saveCheckpoint(): Promise<void> {
@@ -345,7 +357,6 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
     const events = this.buffer.slice(this.bufferHead);
 
     try {
-
       // Stream to disk instead of loading all in memory
       writeStream = createWriteStream(tempPath, { encoding: 'utf-8' });
 
@@ -385,15 +396,10 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
         // Ignore cleanup errors
       }
 
-      ErrorLogger.logError(
-        this.logger,
-        'Failed to save checkpoint',
-        error,
-        {
-          checkpointPath: this.checkpointPath,
-          eventsCount: events.length,
-        },
-      );
+      ErrorLogger.logError(this.logger, 'Failed to save checkpoint', error, {
+        checkpointPath: this.checkpointPath,
+        eventsCount: events.length,
+      });
       // Don't throw error - system can continue without checkpoint
     } finally {
       // Ensure stream is closed
@@ -431,7 +437,7 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
   /**
    * Validate event structure before loading from checkpoint
    * Ensures event has all required fields with correct types
-   * 
+   *
    * @param event - Event object to validate
    * @returns true if event is valid EnrichedEvent, false otherwise
    */
@@ -447,4 +453,3 @@ export class EventBufferService implements IEventBufferService, OnModuleInit, On
     );
   }
 }
-

@@ -75,7 +75,9 @@ describe('EventService', () => {
 
       mockEventBufferService.enqueue.mockReturnValue(false);
 
-      await expect(service.ingest(createEventDto)).rejects.toThrow(BufferSaturatedException);
+      await expect(service.ingest(createEventDto)).rejects.toThrow(
+        BufferSaturatedException,
+      );
     });
 
     it('should sanitize input before enqueueing', async () => {
@@ -107,7 +109,10 @@ describe('EventService', () => {
         },
       ];
 
-      mockEventRepository.batchInsert.mockResolvedValue({ successful: 1, failed: 0 });
+      mockEventRepository.batchInsert.mockResolvedValue({
+        successful: 1,
+        failed: 0,
+      });
 
       const result = await service.insert(events);
 
@@ -149,8 +154,9 @@ describe('EventService', () => {
       const result = await service.cleanup(retentionDays);
 
       expect(result).toBe(100);
-      expect(mockEventRepository.deleteOldEvents).toHaveBeenCalledWith(retentionDays);
+      expect(mockEventRepository.deleteOldEvents).toHaveBeenCalledWith(
+        retentionDays,
+      );
     });
   });
 });
-

@@ -14,7 +14,7 @@ import {
 export class IsValidTimeRangeConstraint implements ValidatorConstraintInterface {
   /**
    * Validates that 'from' timestamp is before 'to' timestamp
-   * 
+   *
    * @param value - The value being validated (should be 'to' field)
    * @param args - Validation arguments containing the object and property name
    * @returns true if 'from' < 'to', false otherwise
@@ -52,9 +52,9 @@ export class IsValidTimeRangeConstraint implements ValidatorConstraintInterface 
 /**
  * Decorator for validating time range
  * Validates that 'from' timestamp is before 'to' timestamp
- * 
+ *
  * This decorator should be applied to the 'to' field of the DTO
- * 
+ *
  * @param validationOptions - Optional validation options
  * @returns Property decorator function
  */
@@ -69,4 +69,3 @@ export function IsValidTimeRange(validationOptions?: ValidationOptions) {
     });
   };
 }
-

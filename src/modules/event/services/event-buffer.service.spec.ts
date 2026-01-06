@@ -14,9 +14,29 @@ jest.mock('../../config/envs', () => ({
 
 // Mock fs module
 jest.mock('fs/promises');
-jest.mock('fs', () => ({
-  createWriteStream: jest.fn(),
-}));
+jest.mock('fs', () => {
+  const mockWriteStream = {
+    write: jest.fn().mockReturnValue(true),
+    end: jest.fn(),
+    on: jest.fn(),
+    closed: false,
+    destroy: jest.fn(),
+  };
+
+  return {
+    createWriteStream: jest.fn(() => {
+      // Setup the 'on' method to handle 'finish' event
+      mockWriteStream.on.mockImplementation((event, callback) => {
+        if (event === 'finish') {
+          // Immediately call finish callback
+          setImmediate(() => callback());
+        }
+        return mockWriteStream;
+      });
+      return mockWriteStream;
+    }),
+  };
+});
 
 describe('EventBufferService', () => {
   let service: EventBufferService;
@@ -33,6 +53,7 @@ describe('EventBufferService', () => {
     (fs.access as jest.Mock).mockResolvedValue(undefined);
     (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
     (fs.unlink as jest.Mock).mockResolvedValue(undefined);
+    (fs.rename as jest.Mock).mockResolvedValue(undefined);
   });
 
   afterEach(async () => {
@@ -162,7 +183,7 @@ describe('EventBufferService', () => {
   describe('getMetrics', () => {
     it('should return metrics', () => {
       const metrics = service.getMetrics();
-      
+
       expect(metrics).toBeDefined();
       expect(metrics).toHaveProperty('buffer_size');
       expect(metrics).toHaveProperty('buffer_capacity');
@@ -207,4 +228,3 @@ describe('EventBufferService', () => {
     });
   });
 });
-

@@ -61,7 +61,8 @@ export function ApiIngestEvent() {
     ApiBody({ type: CreateEventDto }),
     ApiResponse({
       status: HttpStatus.ACCEPTED,
-      description: 'Event accepted and queued successfully. Response includes correlation ID in X-Correlation-Id header.',
+      description:
+        'Event accepted and queued successfully. Response includes correlation ID in X-Correlation-Id header.',
       type: IngestResponseDto,
       headers: {
         'X-Correlation-Id': {
@@ -80,7 +81,10 @@ export function ApiIngestEvent() {
           errors: [
             {
               field: 'timestamp',
-              constraints: { isParseableTimestamp: 'timestamp must be a parseable date (ISO 8601 or Unix epoch)' },
+              constraints: {
+                isParseableTimestamp:
+                  'timestamp must be a parseable date (ISO 8601 or Unix epoch)',
+              },
             },
           ],
         },
@@ -152,14 +156,16 @@ export function ApiQueryEvents() {
     ApiQuery({
       name: 'from',
       required: true,
-      description: 'Start timestamp for the query range in ISO 8601 format (e.g., 2024-01-15T00:00:00Z). Must be before "to" timestamp.',
+      description:
+        'Start timestamp for the query range in ISO 8601 format (e.g., 2024-01-15T00:00:00Z). Must be before "to" timestamp.',
       example: '2024-01-15T00:00:00Z',
       type: String,
     }),
     ApiQuery({
       name: 'to',
       required: true,
-      description: 'End timestamp for the query range in ISO 8601 format (e.g., 2024-01-15T23:59:59Z). Must be after "from" timestamp.',
+      description:
+        'End timestamp for the query range in ISO 8601 format (e.g., 2024-01-15T23:59:59Z). Must be after "from" timestamp.',
       example: '2024-01-15T23:59:59Z',
       type: String,
     }),
@@ -173,27 +179,31 @@ export function ApiQueryEvents() {
     ApiQuery({
       name: 'pageSize',
       required: false,
-      description: 'Number of items per page (minimum: 1, default: 10, maximum: configured limit)',
+      description:
+        'Number of items per page (minimum: 1, default: 10, maximum: configured limit)',
       example: 10,
       type: Number,
     }),
     ApiQuery({
       name: 'sortField',
       required: false,
-      description: 'Field to sort by. Allowed values: timestamp, service, message, ingestedAt, createdAt. Default: timestamp',
+      description:
+        'Field to sort by. Allowed values: timestamp, service, message, ingestedAt, createdAt. Default: timestamp',
       example: 'timestamp',
       enum: ['timestamp', 'service', 'message', 'ingestedAt', 'createdAt'],
     }),
     ApiQuery({
       name: 'sortOrder',
       required: false,
-      description: 'Sort order: ASC (ascending) or DESC (descending). Default: DESC',
+      description:
+        'Sort order: ASC (ascending) or DESC (descending). Default: DESC',
       example: 'DESC',
       enum: ['ASC', 'DESC'],
     }),
     ApiResponse({
       status: HttpStatus.OK,
-      description: 'Events retrieved successfully. Response includes pagination metadata and event list. Response includes correlation ID in X-Correlation-Id header.',
+      description:
+        'Events retrieved successfully. Response includes pagination metadata and event list. Response includes correlation ID in X-Correlation-Id header.',
       type: SearchResponseDto,
       headers: {
         'X-Correlation-Id': {
@@ -203,7 +213,8 @@ export function ApiQueryEvents() {
       },
     }),
     ApiBadRequestResponse({
-      description: 'Invalid query parameters. Common causes: invalid timestamp format, "from" >= "to", invalid sort field, or invalid pagination values.',
+      description:
+        'Invalid query parameters. Common causes: invalid timestamp format, "from" >= "to", invalid sort field, or invalid pagination values.',
       schema: {
         example: {
           status: 'error',
@@ -259,9 +270,9 @@ Use this endpoint for monitoring system health and capacity planning.
     }),
     ApiResponse({
       status: HttpStatus.OK,
-      description: 'Buffer metrics retrieved successfully. Includes comprehensive statistics and health indicators.',
+      description:
+        'Buffer metrics retrieved successfully. Includes comprehensive statistics and health indicators.',
       type: MetricsDto,
     }),
   );
 }
-

@@ -12,22 +12,22 @@ export class CorrelationIdMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     // Get correlation ID from header or generate a new one
-    const correlationId = req.headers['x-correlation-id'] as string || uuidv4();
-    
+    const correlationId =
+      (req.headers['x-correlation-id'] as string) || uuidv4();
+
     // Add to request object for use in services
     req.correlationId = correlationId;
-    
+
     // Add to response header for client tracking
     res.setHeader('X-Correlation-Id', correlationId);
-    
+
     // Add to logger context (if using structured logging)
     this.logger.debug(`Request with correlation ID: ${correlationId}`, {
       correlationId,
       method: req.method,
       path: req.path,
     });
-    
+
     next();
   }
 }
-

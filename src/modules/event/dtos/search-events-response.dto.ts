@@ -16,7 +16,7 @@ export class EventDto {
 
   /**
    * Creates EventDto from Event entity
-   * 
+   *
    * @param event - Event entity to convert
    */
   constructor(event: Event) {
@@ -44,7 +44,7 @@ export class SearchResponseDto {
 
   /**
    * Creates SearchResponseDto with pagination and sorting info
-   * 
+   *
    * @param data - Response data including page, pageSize, sortField, sortOrder, total, and items
    */
   constructor(data: {
@@ -63,4 +63,3 @@ export class SearchResponseDto {
     this.items = data.items;
   }
 }
-

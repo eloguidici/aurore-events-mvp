@@ -6,7 +6,7 @@ import {
 
 /**
  * Decorator for validating sort order (ASC or DESC, case insensitive)
- * 
+ *
  * @param validationOptions - Optional validation options
  * @returns Property decorator function
  */
@@ -35,4 +35,3 @@ export function IsSortOrder(validationOptions?: ValidationOptions) {
     });
   };
 }
-

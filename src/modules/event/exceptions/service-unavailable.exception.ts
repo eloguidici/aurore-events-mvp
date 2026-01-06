@@ -3,7 +3,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 /**
  * Exception thrown when the system is under pressure and cannot accept events.
  * This can happen when the buffer becomes full between the capacity check and enqueue operation.
- * 
+ *
  * @example
  * throw new ServiceUnavailableException();
  */
@@ -19,4 +19,3 @@ export class ServiceUnavailableException extends HttpException {
     );
   }
 }
-

@@ -13,4 +13,3 @@ export interface BatchInsertResult {
    */
   failed: number;
 }
-

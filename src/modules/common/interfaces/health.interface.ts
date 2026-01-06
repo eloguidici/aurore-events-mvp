@@ -9,4 +9,3 @@ export interface IHealthService {
   checkLiveness(): { status: number; message: string };
   checkReadiness(): { status: number; message: string };
 }
-

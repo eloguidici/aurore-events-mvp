@@ -7,7 +7,7 @@ import * as sanitizeHtml from 'sanitize-html';
 export class Sanitizer {
   /**
    * Sanitize a string by removing HTML tags and dangerous content
-   * 
+   *
    * @param input - String to sanitize
    * @returns Sanitized string
    */
@@ -26,7 +26,7 @@ export class Sanitizer {
   /**
    * Sanitize an object recursively
    * Sanitizes all string values in the object
-   * 
+   *
    * @param obj - Object to sanitize
    * @returns Sanitized object
    */
@@ -61,4 +61,3 @@ export class Sanitizer {
     return sanitized;
   }
 }
-

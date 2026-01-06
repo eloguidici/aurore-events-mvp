@@ -26,7 +26,7 @@ export class TypeOrmEventRepository implements IEventRepository {
 
   /**
    * Batch insert events to database using a transaction
-   * 
+   *
    * @param events - Array of events to insert
    * @returns Object containing count of successful and failed insertions
    */
@@ -39,51 +39,55 @@ export class TypeOrmEventRepository implements IEventRepository {
     const operation = async () => {
       // Wrap entire batch in a single transaction for atomicity
       // If any chunk fails, entire transaction rolls back (all or nothing)
-      return await this.eventRepository.manager.transaction(async (transactionalEntityManager) => {
-        let successful = 0;
-        let failed = 0;
+      return await this.eventRepository.manager.transaction(
+        async (transactionalEntityManager) => {
+          let successful = 0;
+          let failed = 0;
 
-        const values = events.map((event) => ({
-          id: crypto.randomUUID(), // Generate UUID manually since .insert() doesn't auto-generate
-          timestamp: event.timestamp,
-          service: event.service,
-          message: event.message,
-          metadataJson: event.metadata ? JSON.stringify(event.metadata) : null,
-          ingestedAt: new Date().toISOString(),
-        }));
+          const values = events.map((event) => ({
+            id: crypto.randomUUID(), // Generate UUID manually since .insert() doesn't auto-generate
+            timestamp: event.timestamp,
+            service: event.service,
+            message: event.message,
+            metadataJson: event.metadata
+              ? JSON.stringify(event.metadata)
+              : null,
+            ingestedAt: new Date().toISOString(),
+          }));
 
-        // Insert in chunks to avoid database limits and improve reliability
-        const chunkSize = envs.batchChunkSize;
-        for (let i = 0; i < values.length; i += chunkSize) {
-          const chunk = values.slice(i, i + chunkSize);
+          // Insert in chunks to avoid database limits and improve reliability
+          const chunkSize = envs.batchChunkSize;
+          for (let i = 0; i < values.length; i += chunkSize) {
+            const chunk = values.slice(i, i + chunkSize);
 
-          try {
-            await transactionalEntityManager
-              .createQueryBuilder()
-              .insert()
-              .into(Event)
-              .values(chunk)
-              .execute();
+            try {
+              await transactionalEntityManager
+                .createQueryBuilder()
+                .insert()
+                .into(Event)
+                .values(chunk)
+                .execute();
 
-            successful += chunk.length;
-          } catch (chunkError) {
-            ErrorLogger.logError(
-              this.logger,
-              'Failed to insert chunk',
-              chunkError,
-              {
-                chunkNumber: i / chunkSize + 1,
-                chunkSize: chunk.length,
-                totalChunks: Math.ceil(values.length / chunkSize),
-              },
-            );
-            // If any chunk fails, throw to rollback entire transaction
-            throw chunkError;
+              successful += chunk.length;
+            } catch (chunkError) {
+              ErrorLogger.logError(
+                this.logger,
+                'Failed to insert chunk',
+                chunkError,
+                {
+                  chunkNumber: i / chunkSize + 1,
+                  chunkSize: chunk.length,
+                  totalChunks: Math.ceil(values.length / chunkSize),
+                },
+              );
+              // If any chunk fails, throw to rollback entire transaction
+              throw chunkError;
+            }
           }
-        }
 
-        return { successful, failed };
-      });
+          return { successful, failed };
+        },
+      );
     };
 
     try {
@@ -104,7 +108,7 @@ export class TypeOrmEventRepository implements IEventRepository {
   /**
    * Build base query builder with service and time range filters
    * Reusable method to avoid code duplication
-   * 
+   *
    * @param service - Service name to filter
    * @param from - Start timestamp
    * @param to - End timestamp
@@ -126,7 +130,7 @@ export class TypeOrmEventRepository implements IEventRepository {
    * Find events by service and time range with pagination and sorting
    * Optimized: Uses single query with window function for count (if supported)
    * Falls back to separate queries if window functions not available
-   * 
+   *
    * @param params - Query parameters
    * @returns Array of Event entities
    */
@@ -158,7 +162,7 @@ export class TypeOrmEventRepository implements IEventRepository {
   /**
    * Count events by service and time range
    * Optimized: Uses circuit breaker protection
-   * 
+   *
    * @param params - Query parameters
    * @returns Total count of matching events
    */
@@ -183,7 +187,7 @@ export class TypeOrmEventRepository implements IEventRepository {
    * Find events by service and time range with pagination, sorting, and total count
    * Optimized: Executes find and count queries in parallel for better performance
    * Protected by circuit breaker to prevent cascading failures
-   * 
+   *
    * @param params - Query parameters including pagination and sorting
    * @returns Object containing events array and total count
    */
@@ -225,7 +229,7 @@ export class TypeOrmEventRepository implements IEventRepository {
   /**
    * Delete events older than specified retention days
    * Protected by circuit breaker to prevent cascading failures
-   * 
+   *
    * @param retentionDays - Number of days to retain events
    * @returns Number of events deleted
    */
@@ -249,4 +253,3 @@ export class TypeOrmEventRepository implements IEventRepository {
     return await this.circuitBreaker.execute(operation);
   }
 }
-

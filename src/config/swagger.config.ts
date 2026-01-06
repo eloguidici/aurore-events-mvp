@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 /**
  * Configures and sets up Swagger documentation for the application
  * Sets up OpenAPI documentation at /api endpoint
- * 
+ *
  * @param app - NestJS application instance
  */
 export function setupSwagger(app: INestApplication): void {
@@ -23,4 +23,3 @@ export function setupSwagger(app: INestApplication): void {
     },
   });
 }
-

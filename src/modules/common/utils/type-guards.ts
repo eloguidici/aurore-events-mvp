@@ -5,7 +5,7 @@
 
 /**
  * Type guard to check if a value is a non-empty string
- * 
+ *
  * @param value - Value to check
  * @returns true if value is a non-empty string
  */
@@ -15,7 +15,7 @@ export function isNonEmptyString(value: unknown): value is string {
 
 /**
  * Type guard to check if a value is a valid date string (ISO 8601 or Unix epoch)
- * 
+ *
  * @param value - Value to check
  * @returns true if value is a valid date string
  */
@@ -42,7 +42,7 @@ export function isValidDateString(value: unknown): value is string {
 
 /**
  * Type guard to check if a value is a plain object (not array, null, or primitive)
- * 
+ *
  * @param value - Value to check
  * @returns true if value is a plain object
  */
@@ -57,7 +57,7 @@ export function isPlainObject(value: unknown): value is Record<string, any> {
 
 /**
  * Type guard to check if a value is a valid number within a range
- * 
+ *
  * @param value - Value to check
  * @param min - Minimum value (inclusive)
  * @param max - Maximum value (inclusive)
@@ -69,24 +69,16 @@ export function isNumberInRange(
   max: number,
 ): value is number {
   return (
-    typeof value === 'number' &&
-    !isNaN(value) &&
-    value >= min &&
-    value <= max
+    typeof value === 'number' && !isNaN(value) && value >= min && value <= max
   );
 }
 
 /**
  * Type guard to check if a value is a valid positive integer
- * 
+ *
  * @param value - Value to check
  * @returns true if value is a positive integer
  */
 export function isPositiveInteger(value: unknown): value is number {
-  return (
-    typeof value === 'number' &&
-    Number.isInteger(value) &&
-    value > 0
-  );
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
-

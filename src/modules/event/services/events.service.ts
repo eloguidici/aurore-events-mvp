@@ -6,7 +6,10 @@ import { QueryDto } from '../dtos/query-events.dto';
 import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { EventBufferService } from './event-buffer.service';
 import { BufferSaturatedException } from '../exceptions';
-import { EventDto, SearchResponseDto } from '../dtos/search-events-response.dto';
+import {
+  EventDto,
+  SearchResponseDto,
+} from '../dtos/search-events-response.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { IEventRepository } from '../repositories/event.repository.interface';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
@@ -29,7 +32,7 @@ export class EventService implements IEventService {
   /**
    * Enriches event with metadata (ID and ingestion timestamp)
    * Sanitizes input to prevent XSS and injection attacks
-   * 
+   *
    * @param createEventDto - Event data to enrich
    * @returns EnrichedEvent with generated eventId and ingestedAt timestamp
    */
@@ -56,12 +59,14 @@ export class EventService implements IEventService {
   /**
    * Ingest a new event
    * Enriches event with metadata, checks buffer capacity, and enqueues to buffer
-   * 
+   *
    * @param createEventDto - Event data to ingest (validated by ValidationPipe)
    * @returns IngestResponseDto with event_id and queued_at timestamp
    * @throws BufferSaturatedException if buffer is full (429)
    */
-  public async ingest(createEventDto: CreateEventDto): Promise<IngestResponseDto> {
+  public async ingest(
+    createEventDto: CreateEventDto,
+  ): Promise<IngestResponseDto> {
     const enrichedEvent = this.enrich(createEventDto);
 
     // Atomic enqueue operation - eliminates race condition
@@ -82,7 +87,7 @@ export class EventService implements IEventService {
 
   /**
    * Insert events to database in a single transaction
-   * 
+   *
    * @param events - Array of events to insert
    * @returns BatchInsertResult containing count of successful and failed insertions
    * @throws Logs error but does not throw - returns failed count instead
@@ -93,7 +98,7 @@ export class EventService implements IEventService {
 
   /**
    * Search events by service and time range with pagination and sorting
-   * 
+   *
    * @param queryDto - Query parameters including service, time range, pagination, and sorting
    * @returns SearchResponseDto with paginated results
    * @throws Error if 'from' timestamp is not before 'to' timestamp
@@ -126,15 +131,16 @@ export class EventService implements IEventService {
 
       // Use optimized method that returns events and total count in a single call
       // This method executes queries in parallel internally for optimal performance
-      const { events, total } = await this.eventRepository.findByServiceAndTimeRangeWithCount({
-        service,
-        from,
-        to,
-        limit,
-        offset,
-        sortField: safeSortField,
-        sortOrder: safeSortOrder,
-      });
+      const { events, total } =
+        await this.eventRepository.findByServiceAndTimeRangeWithCount({
+          service,
+          from,
+          to,
+          limit,
+          offset,
+          sortField: safeSortField,
+          sortOrder: safeSortOrder,
+        });
 
       // Convert events to EventDto
       const items = events.map((event) => new EventDto(event));
@@ -169,7 +175,7 @@ export class EventService implements IEventService {
 
   /**
    * Cleanup events older than retention period
-   * 
+   *
    * @param retentionDays - Number of days to retain events (events older than this are deleted)
    * @returns Number of events deleted
    */
@@ -177,4 +183,3 @@ export class EventService implements IEventService {
     return await this.eventRepository.deleteOldEvents(retentionDays);
   }
 }
-

@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 /**
  * Creates and configures the global ValidationPipe
  * Invalid events are rejected at the edge (400) and never enter the pipeline
- * 
+ *
  * @returns Configured ValidationPipe instance
  */
 export function createValidationPipe(): ValidationPipe {
@@ -35,4 +35,3 @@ export function createValidationPipe(): ValidationPipe {
     },
   });
 }
-

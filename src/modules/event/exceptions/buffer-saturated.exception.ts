@@ -3,7 +3,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 /**
  * Exception thrown when the event buffer is full and cannot accept more events.
  * This implements backpressure by rejecting new events with a 429 status code.
- * 
+ *
  * @example
  * throw new BufferSaturatedException(5); // retry after 5 seconds
  */
@@ -20,4 +20,3 @@ export class BufferSaturatedException extends HttpException {
     );
   }
 }
-

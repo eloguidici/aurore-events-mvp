@@ -58,12 +58,15 @@ export class BusinessMetricsService implements OnModuleInit {
   /**
    * Get comprehensive business metrics
    * Cached for 1 minute to reduce database load
-   * 
+   *
    * @returns BusinessMetrics object with various statistics
    */
   async getBusinessMetrics(): Promise<BusinessMetrics> {
     // Return cached metrics if still valid
-    if (this.metricsCache && Date.now() - this.cacheTimestamp < this.CACHE_TTL_MS) {
+    if (
+      this.metricsCache &&
+      Date.now() - this.cacheTimestamp < this.CACHE_TTL_MS
+    ) {
       return this.metricsCache;
     }
 
@@ -76,12 +79,12 @@ export class BusinessMetricsService implements OnModuleInit {
       const totalEvents = await this.eventRepository.count();
 
       // Get events by service
-      const eventsByServiceRaw = await this.eventRepository
+      const eventsByServiceRaw = (await this.eventRepository
         .createQueryBuilder('event')
         .select('event.service', 'service')
         .addSelect('COUNT(*)', 'count')
         .groupBy('event.service')
-        .getRawMany() as ServiceCountRow[];
+        .getRawMany()) as ServiceCountRow[];
 
       const eventsByService: Record<string, number> = {};
       eventsByServiceRaw.forEach((row) => {
@@ -101,9 +104,8 @@ export class BusinessMetricsService implements OnModuleInit {
         .getCount();
 
       // Calculate average events per minute (last 24 hours)
-      const averageEventsPerMinute = eventsLast24Hours > 0
-        ? eventsLast24Hours / (24 * 60)
-        : 0;
+      const averageEventsPerMinute =
+        eventsLast24Hours > 0 ? eventsLast24Hours / (24 * 60) : 0;
 
       // Get top 10 services by event count
       const topServices = eventsByServiceRaw
@@ -115,14 +117,14 @@ export class BusinessMetricsService implements OnModuleInit {
         .slice(0, 10);
 
       // Get events by hour (last 24 hours)
-      const eventsByHourRaw = await this.eventRepository
+      const eventsByHourRaw = (await this.eventRepository
         .createQueryBuilder('event')
-        .select("TO_CHAR(event.\"createdAt\", 'YYYY-MM-DD HH24:00')", 'hour')
+        .select('TO_CHAR(event."createdAt", \'YYYY-MM-DD HH24:00\')', 'hour')
         .addSelect('COUNT(*)', 'count')
         .where('event."createdAt" >= :last24Hours', { last24Hours })
         .groupBy('hour')
         .orderBy('hour', 'ASC')
-        .getRawMany() as HourlyCountRow[];
+        .getRawMany()) as HourlyCountRow[];
 
       const eventsByHour = eventsByHourRaw.map((row) => ({
         hour: row.hour,
@@ -179,4 +181,3 @@ export class BusinessMetricsService implements OnModuleInit {
     this.logger.debug('Business metrics cache invalidated');
   }
 }
-

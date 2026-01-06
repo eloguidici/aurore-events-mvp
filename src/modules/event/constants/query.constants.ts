@@ -22,5 +22,4 @@ export const ALLOWED_SORT_FIELDS = [
 /**
  * Type for allowed sort fields
  */
-export type AllowedSortField = typeof ALLOWED_SORT_FIELDS[number];
-
+export type AllowedSortField = (typeof ALLOWED_SORT_FIELDS)[number];

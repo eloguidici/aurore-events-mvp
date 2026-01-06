@@ -37,13 +37,11 @@ describe('Rate Limiting E2E', () => {
     // This test would need to make many requests quickly
     // For now, we just verify the endpoint exists and rate limiting is configured
     // In a real scenario, you'd need to make requests faster than the limit
-    const response = await request(app.getHttpServer())
-      .post('/events')
-      .send({
-        timestamp: new Date().toISOString(),
-        service: 'test-service',
-        message: 'Test message',
-      });
+    const response = await request(app.getHttpServer()).post('/events').send({
+      timestamp: new Date().toISOString(),
+      service: 'test-service',
+      message: 'Test message',
+    });
 
     // Should either succeed (within limit) or return 429 (rate limited)
     expect([202, 429]).toContain(response.status);

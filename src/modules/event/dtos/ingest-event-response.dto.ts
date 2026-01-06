@@ -26,7 +26,7 @@ export class IngestResponseDto {
 
   /**
    * Creates IngestResponseDto from service result
-   * 
+   *
    * @param data - Service result containing eventId and queuedAt
    */
   constructor(data: { eventId: string; queuedAt: string }) {
@@ -35,4 +35,3 @@ export class IngestResponseDto {
     this.queued_at = data.queuedAt;
   }
 }
-

@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsSortOrder } from '../../common/decorators/sort-order.decorator';
@@ -26,7 +33,8 @@ export class QueryDto {
   from: string; // ISO 8601 timestamp
 
   @ApiProperty({
-    description: 'End timestamp for the query range (ISO 8601 format). Must be after the "from" timestamp.',
+    description:
+      'End timestamp for the query range (ISO 8601 format). Must be after the "from" timestamp.',
     example: '2024-01-15T23:59:59Z',
     type: String,
   })
@@ -82,4 +90,3 @@ export class QueryDto {
   })
   sortOrder?: 'ASC' | 'DESC';
 }
-
