@@ -43,6 +43,7 @@ import { RetentionModule } from './modules/retention/retention.module';
       entities: [Event],
       synchronize: envs.dbSynchronize,
       logging: envs.dbLogging,
+      timezone: 'UTC', // Explicitly set timezone to UTC for all database operations
       extra: {
         max: envs.dbPoolMax, // Maximum number of connections in the pool
       },

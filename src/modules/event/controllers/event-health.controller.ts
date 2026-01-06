@@ -114,7 +114,7 @@ export class EventHealthController {
       ]);
 
     return {
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString(), // UTC timestamp (ISO 8601, ends with 'Z')
       server: this.healthService.checkHealth(),
       database:
         databaseHealth.status === 'fulfilled'

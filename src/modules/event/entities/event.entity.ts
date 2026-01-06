@@ -20,7 +20,7 @@ export class Event {
   eventId: string;
 
   @Column({ type: 'text' })
-  timestamp: string;
+  timestamp: string; // ISO 8601 format in UTC (e.g., '2024-01-15T10:30:00.000Z')
 
   @Column({ type: 'varchar', length: 100 })
   service: string;
@@ -28,12 +28,12 @@ export class Event {
   @Column({ type: 'text' })
   message: string;
 
-  @Column({ type: 'text', nullable: true })
-  metadataJson: string | null;
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any> | null; // JSONB type for native PostgreSQL JSON support and queries
 
   @Column({ type: 'text' })
-  ingestedAt: string;
+  ingestedAt: string; // ISO 8601 format in UTC (e.g., '2024-01-15T10:30:00.000Z')
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @CreateDateColumn({ type: 'timestamp with time zone' })
+  createdAt: Date; // UTC timestamp (PostgreSQL stores in UTC)
 }

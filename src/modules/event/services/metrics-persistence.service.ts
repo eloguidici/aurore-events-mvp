@@ -105,7 +105,7 @@ export class MetricsPersistenceService
       const circuitMetrics = this.circuitBreaker.getMetrics();
 
       const snapshot: MetricsSnapshot = {
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString(), // UTC timestamp (ISO 8601, ends with 'Z')
         buffer: {
           size: bufferMetrics.buffer_size,
           capacity: bufferMetrics.buffer_capacity,

@@ -210,14 +210,14 @@ export function IsMetadataSizeValid(
 export class CreateEventDto {
   @ApiProperty({
     description:
-      'Event timestamp in ISO 8601 format or Unix epoch (must be parseable)',
-    example: '2024-01-15T10:30:00Z',
+      'Event timestamp in ISO 8601 format (UTC) or Unix epoch (must be parseable). All timestamps are stored in UTC.',
+    example: '2024-01-15T10:30:00.000Z',
     type: String,
   })
   @IsString()
   @IsNotEmpty()
   @IsParseableTimestamp()
-  timestamp: string; // ISO 8601 or Unix epoch (must be parseable)
+  timestamp: string; // ISO 8601 (UTC) or Unix epoch (must be parseable, stored as UTC)
 
   @ApiProperty({
     description: 'Service name that generated the event',

@@ -47,31 +47,16 @@ export class TypeOrmEventRepository implements IEventRepository {
           let failed = 0;
 
           const values = events.map((event) => {
-            // Safely stringify metadata with error handling
-            let metadataJson: string | null = null;
-            if (event.metadata) {
-              try {
-                metadataJson = JSON.stringify(event.metadata);
-              } catch (error: any) {
-                // If stringify fails (e.g., circular reference), log and use null
-                // This should be extremely rare as sanitizer should prevent it
-                ErrorLogger.logError(
-                  this.logger,
-                  'Failed to stringify metadata, using null',
-                  error,
-                  { eventId: event.eventId, service: event.service },
-                );
-                metadataJson = null;
-              }
-            }
-
+            // TypeORM automatically handles JSONB serialization
+            // No need to manually stringify - TypeORM does it for us
+            // JSONB provides native PostgreSQL JSON support and validation
             return {
               id: randomUUID(), // Generate UUID for primary key
               eventId: event.eventId, // Preserve eventId from enriched event
               timestamp: event.timestamp,
               service: event.service,
               message: event.message,
-              metadataJson,
+              metadata: event.metadata || null, // JSONB type - TypeORM handles serialization
               ingestedAt: event.ingestedAt, // Use ingestedAt from enriched event
             };
           });
@@ -281,8 +266,11 @@ export class TypeOrmEventRepository implements IEventRepository {
       // Validate sort field to prevent SQL injection (double-check even though DTO validates)
       const safeSortField = this.validateSortField(params.sortField);
 
+      // Add timeout protection for long-running queries
+      const queryTimeout = 30000; // 30 seconds timeout
+
       // Execute find and count queries in parallel for optimal performance
-      const [events, total] = await Promise.all([
+      const queryPromise = Promise.all([
         this.buildServiceAndTimeRangeQuery(
           params.service,
           params.from,
@@ -297,6 +285,19 @@ export class TypeOrmEventRepository implements IEventRepository {
           from: params.from,
           to: params.to,
         }),
+      ]);
+
+      // Race query against timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Query timeout exceeded')),
+          queryTimeout,
+        );
+      });
+
+      const [events, total] = await Promise.race([
+        queryPromise,
+        timeoutPromise,
       ]);
 
       return { events, total };
@@ -315,9 +316,11 @@ export class TypeOrmEventRepository implements IEventRepository {
    */
   async deleteOldEvents(retentionDays: number): Promise<number> {
     const operation = async () => {
+      // Calculate cutoff date in UTC
+      // All timestamps are stored in UTC, so we use UTC for calculations
       const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-      const cutoffIso = cutoffDate.toISOString();
+      cutoffDate.setUTCDate(cutoffDate.getUTCDate() - retentionDays);
+      const cutoffIso = cutoffDate.toISOString(); // Always returns UTC format (ends with 'Z')
 
       const result = await this.eventRepository
         .createQueryBuilder()

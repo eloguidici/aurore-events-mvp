@@ -32,19 +32,20 @@ export class QueryDto {
   service: string;
 
   @ApiProperty({
-    description: 'Start timestamp for the query range (ISO 8601 format)',
-    example: '2024-01-15T00:00:00Z',
+    description:
+      'Start timestamp for the query range in ISO 8601 format (UTC). All timestamps are in UTC.',
+    example: '2024-01-15T00:00:00.000Z',
     type: String,
   })
   @IsString()
   @IsNotEmpty()
   @IsParseableTimestamp()
-  from: string; // ISO 8601 timestamp
+  from: string; // ISO 8601 timestamp (UTC)
 
   @ApiProperty({
     description:
-      'End timestamp for the query range (ISO 8601 format). Must be after the "from" timestamp.',
-    example: '2024-01-15T23:59:59Z',
+      'End timestamp for the query range in ISO 8601 format (UTC). Must be after the "from" timestamp. All timestamps are in UTC.',
+    example: '2024-01-15T23:59:59.000Z',
     type: String,
   })
   @IsString()
@@ -56,7 +57,7 @@ export class QueryDto {
   @IsMaxTimeRange(undefined, {
     message: `Time range between 'from' and 'to' must not exceed ${envs.maxQueryTimeRangeDays} days`,
   })
-  to: string; // ISO 8601 timestamp
+  to: string; // ISO 8601 timestamp (UTC)
 
   @IsOptional()
   @IsInt({ message: 'page must be an integer number' })

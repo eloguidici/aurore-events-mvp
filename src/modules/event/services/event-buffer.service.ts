@@ -110,6 +110,83 @@ export class EventBufferService
   }
 
   /**
+   * Compact buffer array when head exceeds 50% of length
+   * Removes drained events from memory to prevent memory growth
+   *
+   * @private
+   */
+  private compactBufferIfNeeded(): void {
+    if (this.bufferHead > this.buffer.length / 2) {
+      this.buffer.splice(0, this.bufferHead);
+      this.bufferHead = 0;
+    }
+  }
+
+  /**
+   * Serialize events to write stream with error handling
+   * Skips events that fail to serialize (e.g., circular references)
+   *
+   * @param events - Events to serialize
+   * @param writeStream - Stream to write to
+   * @returns Object with counts of successful and failed serializations
+   * @private
+   */
+  private serializeEventsToStream(
+    events: EnrichedEvent[],
+    writeStream: ReturnType<typeof createWriteStream>,
+  ): { serializedCount: number; failedCount: number } {
+    let serializedCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < events.length; i++) {
+      try {
+        const eventJson = JSON.stringify(events[i]);
+        const isLast = i === events.length - 1;
+        writeStream.write(`  ${eventJson}${isLast ? '\n' : ',\n'}`);
+        serializedCount++;
+      } catch (error: any) {
+        // If stringify fails (e.g., circular reference), log and skip this event
+        // This should be extremely rare as sanitizer should prevent it
+        failedCount++;
+        ErrorLogger.logError(
+          this.logger,
+          'Failed to serialize event for checkpoint, skipping',
+          error,
+          {
+            eventId: events[i]?.eventId || 'unknown',
+            service: events[i]?.service || 'unknown',
+            index: i,
+          },
+        );
+        // Continue with next event - don't fail entire checkpoint
+      }
+    }
+
+    return { serializedCount, failedCount };
+  }
+
+  /**
+   * Validate and fix bufferHead if desynchronized
+   * Prevents index out of bounds errors and ensures buffer consistency
+   *
+   * @private
+   */
+  private validateAndFixBufferHead(): void {
+    if (this.bufferHead < 0) {
+      this.logger.warn(
+        `Buffer head is negative (head: ${this.bufferHead}), resetting to 0`,
+      );
+      this.bufferHead = 0;
+    }
+    if (this.bufferHead >= this.buffer.length) {
+      this.logger.warn(
+        `Buffer head desynchronized (head: ${this.bufferHead}, length: ${this.buffer.length}), resetting`,
+      );
+      this.bufferHead = 0;
+    }
+  }
+
+  /**
    * Drain events from the buffer
    * Removes events from buffer and returns them for processing
    * Uses efficient O(1) per-element removal instead of O(n) shift()
@@ -134,49 +211,34 @@ export class EventBufferService
       return [];
     }
 
+    // Validate and fix bufferHead if needed (prevent desynchronization)
+    this.validateAndFixBufferHead();
+
     const count = Math.min(safeBatchSize, currentSize);
     const batch: EnrichedEvent[] = [];
 
-    // Validate bufferHead is within bounds (prevent desynchronization)
-    if (this.bufferHead < 0) {
-      this.logger.warn(
-        `Buffer head is negative (head: ${this.bufferHead}), resetting to 0`,
-      );
-      this.bufferHead = 0;
-    }
-    if (this.bufferHead >= this.buffer.length) {
-      this.logger.warn(
-        `Buffer head desynchronized (head: ${this.bufferHead}, length: ${this.buffer.length}), resetting`,
-      );
-      this.bufferHead = 0;
-    }
-
-    // Efficiently extract events using slice (O(n) but only once, not per element)
-    // Then clear the drained portion
+    // Efficiently extract events (O(n) but only once, not per element)
+    // Extract events from bufferHead to bufferHead + count
     for (let i = 0; i < count; i++) {
       const index = this.bufferHead + i;
-      if (index < this.buffer.length) {
-        batch.push(this.buffer[index]);
-      } else {
-        // If index is out of bounds, stop processing
-        // This should not happen if bufferHead is valid, but add safety check
+      if (index >= this.buffer.length) {
+        // Safety check: should not happen after validateAndFixBufferHead()
         this.logger.warn(
           `Index out of bounds during drain (index: ${index}, length: ${this.buffer.length})`,
         );
         break;
       }
+      batch.push(this.buffer[index]);
     }
 
-    // Update head index and clean up old references to prevent memory leaks
+    // Update head index to mark events as drained
     this.bufferHead += count;
 
     // Periodically compact array to prevent memory growth
-    // Compact when head is > 50% of array length
-    if (this.bufferHead > this.buffer.length / 2) {
-      this.buffer.splice(0, this.bufferHead);
-      this.bufferHead = 0;
-    }
+    // Compact when head is > 50% of array length to free memory
+    this.compactBufferIfNeeded();
 
+    // Update metrics if events were drained
     if (batch.length > 0) {
       this.metrics.lastDrainTime = Date.now();
     }
@@ -378,12 +440,9 @@ export class EventBufferService
 
   /**
    * Save current buffer state to disk (checkpoint)
-   * This allows recovery if system crashes
-   */
-  /**
-   * Save current buffer state to disk (checkpoint)
    * Uses streaming to avoid loading all events in memory
    * Uses atomic write (temp file + rename) to prevent corruption
+   * This allows recovery if system crashes
    *
    * @returns Promise that resolves when checkpoint is saved
    */
@@ -406,36 +465,15 @@ export class EventBufferService
       writeStream.write('[\n');
 
       // Stream each event as JSON with error handling
-      let serializedCount = 0;
-      let failedCount = 0;
-      for (let i = 0; i < events.length; i++) {
-        try {
-          const eventJson = JSON.stringify(events[i]);
-          const isLast = i === events.length - 1;
-          writeStream.write(`  ${eventJson}${isLast ? '\n' : ',\n'}`);
-          serializedCount++;
-        } catch (error: any) {
-          // If stringify fails (e.g., circular reference), log and skip this event
-          // This should be extremely rare as sanitizer should prevent it
-          failedCount++;
-          ErrorLogger.logError(
-            this.logger,
-            'Failed to serialize event for checkpoint, skipping',
-            error,
-            {
-              eventId: events[i]?.eventId || 'unknown',
-              service: events[i]?.service || 'unknown',
-              index: i,
-            },
-          );
-          // Continue with next event - don't fail entire checkpoint
-        }
-      }
+      const serializationResult = this.serializeEventsToStream(
+        events,
+        writeStream,
+      );
 
       // Log summary if any events failed to serialize
-      if (failedCount > 0) {
+      if (serializationResult.failedCount > 0) {
         this.logger.warn(
-          `Checkpoint serialization: ${serializedCount} succeeded, ${failedCount} failed`,
+          `Checkpoint serialization: ${serializationResult.serializedCount} succeeded, ${serializationResult.failedCount} failed`,
         );
       }
 
@@ -511,6 +549,7 @@ export class EventBufferService
    * @returns true if event is valid EnrichedEvent, false otherwise
    */
   private isValid(event: any): event is EnrichedEvent {
+    // Early return: check basic structure
     if (
       !event ||
       typeof event !== 'object' ||
@@ -529,15 +568,13 @@ export class EventBufferService
       return false;
     }
 
-    // Validate timestamp is parseable
+    // Validate timestamps are parseable
     const timestampDate = new Date(event.timestamp);
-    if (isNaN(timestampDate.getTime())) {
-      return false;
-    }
-
-    // Validate ingestedAt is parseable
     const ingestedDate = new Date(event.ingestedAt);
-    if (isNaN(ingestedDate.getTime())) {
+    if (
+      isNaN(timestampDate.getTime()) ||
+      isNaN(ingestedDate.getTime())
+    ) {
       return false;
     }
 

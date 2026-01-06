@@ -52,8 +52,116 @@ export class BusinessMetricsService implements OnModuleInit {
     private readonly eventRepository: Repository<Event>,
   ) {}
 
+  /**
+   * Initialize business metrics service when module starts
+   * Sets up logging for service initialization
+   */
   onModuleInit() {
     this.logger.log('Business metrics service initialized');
+  }
+
+  /**
+   * Convert service count rows to a record mapping service names to counts
+   *
+   * @param serviceCountRows - Raw service count data
+   * @returns Record mapping service names to event counts
+   * @private
+   */
+  private convertServiceCountsToRecord(
+    serviceCountRows: ServiceCountRow[],
+  ): Record<string, number> {
+    const eventsByService: Record<string, number> = {};
+    serviceCountRows.forEach((row) => {
+      eventsByService[row.service] = parseInt(row.count, 10);
+    });
+    return eventsByService;
+  }
+
+  /**
+   * Get raw service count data for further processing
+   *
+   * @returns Array of service count rows
+   * @private
+   */
+  private async getServiceCountRows(): Promise<ServiceCountRow[]> {
+    return (await this.eventRepository
+      .createQueryBuilder('event')
+      .select('event.service', 'service')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('event.service')
+      .getRawMany()) as ServiceCountRow[];
+  }
+
+  /**
+   * Get event counts for different time ranges
+   *
+   * @param last24Hours - Date representing 24 hours ago
+   * @param lastHour - Date representing 1 hour ago
+   * @returns Object with counts for last 24 hours and last hour
+   * @private
+   */
+  private async getTimeRangeCounts(last24Hours: Date, lastHour: Date): Promise<{
+    eventsLast24Hours: number;
+    eventsLastHour: number;
+  }> {
+    const [eventsLast24Hours, eventsLastHour] = await Promise.all([
+      this.eventRepository
+        .createQueryBuilder('event')
+        .where('event."createdAt" >= :last24Hours', { last24Hours })
+        .getCount(),
+      this.eventRepository
+        .createQueryBuilder('event')
+        .where('event."createdAt" >= :lastHour', { lastHour })
+        .getCount(),
+    ]);
+
+    return { eventsLast24Hours, eventsLastHour };
+  }
+
+  /**
+   * Get top N services by event count
+   *
+   * @param serviceCountRows - Raw service count data
+   * @param limit - Number of top services to return (default: 10)
+   * @returns Array of top services sorted by count
+   * @private
+   */
+  private getTopServices(
+    serviceCountRows: ServiceCountRow[],
+    limit: number = 10,
+  ): Array<{ service: string; count: number }> {
+    return serviceCountRows
+      .map((row) => ({
+        service: row.service,
+        count: parseInt(row.count, 10),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
+
+  /**
+   * Get events grouped by hour for the last 24 hours
+   *
+   * @param last24Hours - Date representing 24 hours ago
+   * @returns Array of hourly event counts
+   * @private
+   */
+  private async getEventsByHour(
+    last24Hours: Date,
+  ): Promise<Array<{ hour: string; count: number }>> {
+    const eventsByHourRaw = (await this.eventRepository
+      .createQueryBuilder('event')
+      .select('TO_CHAR(event."createdAt", \'YYYY-MM-DD HH24:00\')', 'hour')
+      .addSelect('COUNT(*)', 'count')
+      .where('event."createdAt" >= :last24Hours', { last24Hours })
+      .groupBy('hour')
+      .orderBy('hour', 'ASC')
+      .getRawMany()) as HourlyCountRow[];
+
+    return eventsByHourRaw.map((row) => ({
+      hour: row.hour,
+      count: parseInt(row.count, 10),
+    }));
   }
 
   /**
@@ -72,71 +180,40 @@ export class BusinessMetricsService implements OnModuleInit {
     }
 
     try {
+      // All date calculations use UTC
+      // new Date() creates a date in local timezone, but we compare with UTC timestamps in DB
       const now = new Date();
       const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const lastHour = new Date(now.getTime() - 60 * 60 * 1000);
 
-      // Get total events count
-      const totalEvents = await this.eventRepository.count();
+      // Execute queries in parallel for better performance
+      const [
+        totalEvents,
+        serviceCountRows,
+        timeRangeCounts,
+        eventsByHour,
+      ] = await Promise.all([
+        this.eventRepository.count(),
+        this.getServiceCountRows(),
+        this.getTimeRangeCounts(last24Hours, lastHour),
+        this.getEventsByHour(last24Hours),
+      ]);
 
-      // Get events by service
-      const eventsByServiceRaw = (await this.eventRepository
-        .createQueryBuilder('event')
-        .select('event.service', 'service')
-        .addSelect('COUNT(*)', 'count')
-        .groupBy('event.service')
-        .getRawMany()) as ServiceCountRow[];
-
-      const eventsByService: Record<string, number> = {};
-      eventsByServiceRaw.forEach((row) => {
-        eventsByService[row.service] = parseInt(row.count, 10);
-      });
-
-      // Get events in last 24 hours
-      const eventsLast24Hours = await this.eventRepository
-        .createQueryBuilder('event')
-        .where('event."createdAt" >= :last24Hours', { last24Hours })
-        .getCount();
-
-      // Get events in last hour
-      const eventsLastHour = await this.eventRepository
-        .createQueryBuilder('event')
-        .where('event."createdAt" >= :lastHour', { lastHour })
-        .getCount();
+      // Process service data
+      const eventsByService = this.convertServiceCountsToRecord(serviceCountRows);
+      const topServices = this.getTopServices(serviceCountRows);
 
       // Calculate average events per minute (last 24 hours)
       const averageEventsPerMinute =
-        eventsLast24Hours > 0 ? eventsLast24Hours / (24 * 60) : 0;
-
-      // Get top 10 services by event count
-      const topServices = eventsByServiceRaw
-        .map((row) => ({
-          service: row.service,
-          count: parseInt(row.count, 10),
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
-
-      // Get events by hour (last 24 hours)
-      const eventsByHourRaw = (await this.eventRepository
-        .createQueryBuilder('event')
-        .select('TO_CHAR(event."createdAt", \'YYYY-MM-DD HH24:00\')', 'hour')
-        .addSelect('COUNT(*)', 'count')
-        .where('event."createdAt" >= :last24Hours', { last24Hours })
-        .groupBy('hour')
-        .orderBy('hour', 'ASC')
-        .getRawMany()) as HourlyCountRow[];
-
-      const eventsByHour = eventsByHourRaw.map((row) => ({
-        hour: row.hour,
-        count: parseInt(row.count, 10),
-      }));
+        timeRangeCounts.eventsLast24Hours > 0
+          ? timeRangeCounts.eventsLast24Hours / (24 * 60)
+          : 0;
 
       this.metricsCache = {
         totalEvents,
         eventsByService,
-        eventsLast24Hours,
-        eventsLastHour,
+        eventsLast24Hours: timeRangeCounts.eventsLast24Hours,
+        eventsLastHour: timeRangeCounts.eventsLastHour,
         averageEventsPerMinute: Math.round(averageEventsPerMinute * 100) / 100,
         topServices,
         eventsByHour,
@@ -159,6 +236,9 @@ export class BusinessMetricsService implements OnModuleInit {
   /**
    * Get empty metrics structure
    * Used as fallback when metrics calculation fails
+   *
+   * @returns Empty BusinessMetrics object with zero values
+   * @private
    */
   private getEmptyMetrics(): BusinessMetrics {
     return {

@@ -10,6 +10,8 @@ services:
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: aurore_events
       PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: UTC
+      PGTZ: UTC
     ports:
       - "5432:5432"
     volumes:

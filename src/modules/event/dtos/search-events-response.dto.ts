@@ -19,7 +19,7 @@ export class EventDto {
 
   /**
    * Creates EventDto from Event entity
-   * Safely parses metadata JSON with error handling
+   * With JSONB, metadata is already parsed by TypeORM - no manual parsing needed
    *
    * @param event - Event entity to convert
    */
@@ -30,21 +30,9 @@ export class EventDto {
     this.service = event.service;
     this.message = event.message;
     
-    // Safely parse metadata JSON with error handling
-    if (event.metadataJson) {
-      try {
-        this.metadata = JSON.parse(event.metadataJson);
-      } catch (error) {
-        // Log warning but continue - don't fail entire query for one corrupt event
-        EventDto.logger.warn(
-          `Failed to parse metadata JSON for event ${event.id}: ${error.message}`,
-          { eventId: event.id, service: event.service },
-        );
-        this.metadata = null;
-      }
-    } else {
-      this.metadata = null;
-    }
+    // With JSONB, TypeORM automatically parses the JSON
+    // metadata is already a JavaScript object, not a string
+    this.metadata = event.metadata || null;
     
     this.ingestedAt = event.ingestedAt;
     this.createdAt = event.createdAt;

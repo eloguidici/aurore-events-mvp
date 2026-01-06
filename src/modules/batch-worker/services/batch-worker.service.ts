@@ -41,14 +41,17 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Start batch worker when module initializes
+   * Initialize batch worker when module starts
+   * Automatically starts processing batches at configured intervals
    */
   onModuleInit() {
     this.start();
   }
 
   /**
-   * Stop batch worker and process remaining events when module is destroyed
+   * Cleanup batch worker when module is destroyed
+   * Processes all remaining events in buffer before stopping
+   * Implements graceful shutdown with timeout protection
    */
   async onModuleDestroy() {
     await this.stop();
@@ -136,6 +139,8 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   /**
    * Process a batch of events from the buffer
    * Drains buffer, validates events, inserts to database, and handles retries
+   *
+   * @private
    */
   private async process() {
     const batchStartTime = Date.now();
@@ -216,11 +221,130 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Calculate next retry count for an event
+   * Validates and limits retryCount to prevent corruption
+   *
+   * @param event - Event to calculate retry count for
+   * @returns Next retry count (capped at maxRetries)
+   * @private
+   */
+  private calculateRetryCount(event: EnrichedEvent): number {
+    const currentRetryCount = event.retryCount || 0;
+    return Math.min(Math.max(0, currentRetryCount) + 1, this.maxRetries);
+  }
+
+  /**
+   * Determine if eventId should be regenerated for retry
+   * Regenerates on first retry to avoid potential duplicate key collisions
+   *
+   * @param retryCount - Current retry count
+   * @param originalRetryCount - Original retry count from event
+   * @returns true if eventId should be regenerated
+   * @private
+   */
+  private shouldRegenerateEventId(
+    retryCount: number,
+    originalRetryCount: number | undefined,
+  ): boolean {
+    return retryCount === 1 && (originalRetryCount === undefined || originalRetryCount === 0);
+  }
+
+  /**
+   * Prepare event for retry with updated retry count and potentially new eventId
+   *
+   * @param event - Original event that failed
+   * @param retryCount - Calculated retry count
+   * @returns EnrichedEvent ready for retry
+   * @private
+   */
+  private prepareRetryEvent(
+    event: EnrichedEvent,
+    retryCount: number,
+  ): EnrichedEvent {
+    const shouldRegenerate = this.shouldRegenerateEventId(
+      retryCount,
+      event.retryCount,
+    );
+
+    const retryEvent: EnrichedEvent = {
+      ...event,
+      eventId: shouldRegenerate
+        ? `evt_${randomBytes(6).toString('hex')}`
+        : event.eventId,
+      retryCount,
+    };
+
+    // Log if eventId was regenerated
+    if (shouldRegenerate) {
+      this.logger.debug(
+        `Regenerated eventId for retry: ${event.eventId} -> ${retryEvent.eventId}`,
+      );
+    }
+
+    return retryEvent;
+  }
+
+  /**
+   * Attempt to enqueue event for retry
+   *
+   * @param retryEvent - Event prepared for retry
+   * @param originalEventId - Original event ID for logging
+   * @param retryCount - Current retry attempt number
+   * @returns true if successfully enqueued, false otherwise
+   * @private
+   */
+  private enqueueRetryEvent(
+    retryEvent: EnrichedEvent,
+    originalEventId: string,
+    retryCount: number,
+  ): boolean {
+    const enqueued = this.eventBufferService.enqueue(retryEvent);
+
+    if (enqueued) {
+      this.logger.debug(
+        `Re-enqueued event ${originalEventId} for retry (attempt ${retryCount}/${this.maxRetries})`,
+      );
+      return true;
+    } else {
+      ErrorLogger.logWarning(
+        this.logger,
+        'Failed to re-enqueue event for retry: buffer full',
+        ErrorLogger.createContext(originalEventId, retryEvent.service, {
+          retryCount: retryEvent.retryCount,
+        }),
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Handle event that has reached maximum retries
+   * Logs to dead-letter queue (for MVP, just logs)
+   *
+   * @param event - Event that permanently failed
+   * @private
+   */
+  private handleMaxRetriesReached(event: EnrichedEvent): void {
+    ErrorLogger.logError(
+      this.logger,
+      `Event permanently failed after ${this.maxRetries} retries`,
+      new Error('Max retries exceeded'),
+      ErrorLogger.createContext(event.eventId, event.service, {
+        timestamp: event.timestamp,
+        maxRetries: this.maxRetries,
+      }),
+    );
+    // In production, you might want to persist these to a dead-letter table
+    // For MVP, we log and continue (system never crashes)
+  }
+
+  /**
    * Retry failed events by re-enqueuing them to the buffer
    * Events are re-enqueued immediately (non-blocking)
    * The buffer naturally spaces out retries through batch processing intervals
    *
    * @param failedEvents - Array of events that failed to insert
+   * @private
    */
   private async retryFailed(failedEvents: EnrichedEvent[]) {
     if (failedEvents.length === 0) {
@@ -236,68 +360,24 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       // Don't wait for backoff - let the buffer handle the delay naturally
       for (const event of failedEvents) {
         try {
-          // Validate and limit retryCount to prevent corruption
-          const currentRetryCount = event.retryCount || 0;
-          const retryCount = Math.min(
-            Math.max(0, currentRetryCount) + 1,
-            this.maxRetries,
-          );
+          const retryCount = this.calculateRetryCount(event);
 
           if (retryCount < this.maxRetries) {
-            // For duplicate eventId errors, regenerate eventId to avoid collision
-            // Check if this is likely a duplicate eventId issue (first retry)
-            const shouldRegenerateEventId =
-              retryCount === 1 &&
-              (event.retryCount === undefined || event.retryCount === 0);
-
-            // Increment retry count and re-enqueue immediately
-            // The buffer will naturally space out retries through batch processing
-            const retryEvent: EnrichedEvent = {
-              ...event,
-              // Regenerate eventId if this might be a duplicate (very rare case)
-              eventId: shouldRegenerateEventId
-                ? `evt_${randomBytes(6).toString('hex')}`
-                : event.eventId,
+            const retryEvent = this.prepareRetryEvent(event, retryCount);
+            const enqueued = this.enqueueRetryEvent(
+              retryEvent,
+              event.eventId,
               retryCount,
-            };
+            );
 
-            // Log if eventId was regenerated
-            if (shouldRegenerateEventId) {
-              this.logger.debug(
-                `Regenerated eventId for retry: ${event.eventId} -> ${retryEvent.eventId}`,
-              );
-            }
-
-            const enqueued = this.eventBufferService.enqueue(retryEvent);
             if (enqueued) {
               enqueuedCount++;
-              this.logger.debug(
-                `Re-enqueued event ${event.eventId} for retry (attempt ${retryCount}/${this.maxRetries})`,
-              );
             } else {
               droppedCount++;
-              ErrorLogger.logWarning(
-                this.logger,
-                'Failed to re-enqueue event for retry: buffer full',
-                ErrorLogger.createContext(event.eventId, event.service, {
-                  retryCount: retryEvent.retryCount,
-                }),
-              );
             }
           } else {
-            // Permanently failed - log to dead-letter
+            this.handleMaxRetriesReached(event);
             maxRetriesReachedCount++;
-            ErrorLogger.logError(
-              this.logger,
-              `Event permanently failed after ${this.maxRetries} retries`,
-              new Error('Max retries exceeded'),
-              ErrorLogger.createContext(event.eventId, event.service, {
-                timestamp: event.timestamp,
-                maxRetries: this.maxRetries,
-              }),
-            );
-            // In production, you might want to persist these to a dead-letter table
-            // For MVP, we log and continue (system never crashes)
           }
         } catch (error) {
           // Log error for individual event retry but continue with next event
