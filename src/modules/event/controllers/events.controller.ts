@@ -8,6 +8,7 @@ import {
   HttpStatus,
   HttpException,
   Logger,
+  Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -20,6 +21,8 @@ import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { MetricsDto } from '../dtos/metrics-response.dto';
 import { ApiIngestEvent, ApiQueryEvents, ApiGetMetrics } from './decorators/swagger.decorators';
 import { ErrorLogger } from '../../common/utils/error-logger';
+import { Request } from 'express';
+import { envs } from '../../config/envs';
 
 @ApiTags('Events')
 @Controller()
@@ -33,7 +36,7 @@ export class EventController {
 
   @Post('events')
   @HttpCode(HttpStatus.ACCEPTED)
-  @Throttle({ default: { limit: 300000, ttl: 60000 } }) // 300,000 requests per minute = 5,000 events/second
+  @Throttle({ default: { limit: envs.throttleGlobalLimit, ttl: envs.throttleTtlMs } })
   @ApiIngestEvent()
   /**
    * Ingest a new event
@@ -49,8 +52,10 @@ export class EventController {
    * If validation fails, NestJS automatically returns 400 Bad Request
    * This handler only runs if validation passes
    */
-  async ingestEvent(@Body() createEventDto: CreateEventDto): Promise<IngestResponseDto> {
+  async ingestEvent(@Body() createEventDto: CreateEventDto, @Req() req: Request): Promise<IngestResponseDto> {
     try {
+      // Include correlation ID in error context if available
+      const correlationId = req.correlationId;
       return await this.eventService.ingest(createEventDto);
     } catch (error) {
       // If it's already an HttpException (including our custom exceptions), re-throw it
@@ -60,7 +65,10 @@ export class EventController {
           ErrorLogger.logWarning(
             this.logger,
             'Buffer is full, rejecting event (backpressure)',
-            { service: createEventDto.service },
+            { 
+              service: createEventDto.service,
+              correlationId: req.correlationId,
+            },
           );
         }
         throw error;
@@ -70,7 +78,9 @@ export class EventController {
         this.logger,
         'Unexpected error ingesting event',
         error,
-        ErrorLogger.createContext(undefined, createEventDto.service),
+        ErrorLogger.createContext(undefined, createEventDto.service, {
+          correlationId: req.correlationId,
+        }),
       );
       throw new HttpException(
         {
@@ -84,7 +94,7 @@ export class EventController {
   }
 
   @Get('events')
-  @Throttle({ default: { limit: 200, ttl: 60000 } }) // 200 requests per minute for queries
+  @Throttle({ default: { limit: envs.throttleQueryLimit, ttl: envs.throttleTtlMs } })
   @ApiQueryEvents()
   /**
    * Search and query events by service and time range
@@ -95,7 +105,7 @@ export class EventController {
    * @throws HttpException 400 if timestamp format is invalid or time range is invalid
    * @throws HttpException 500 if internal error occurs
    */
-  async queryEvents(@Query() queryDto: QueryDto): Promise<SearchResponseDto> {
+  async queryEvents(@Query() queryDto: QueryDto, @Req() req: Request): Promise<SearchResponseDto> {
     try {
       return await this.eventService.search(queryDto);
     } catch (error) {
@@ -115,6 +125,7 @@ export class EventController {
         ErrorLogger.createContext(undefined, queryDto.service, {
           from: queryDto.from,
           to: queryDto.to,
+          correlationId: req.correlationId,
         }),
       );
       throw new HttpException(

@@ -44,6 +44,27 @@ interface EnvVars {
   MESSAGE_MAX_LENGTH?: number;
   METADATA_MAX_SIZE_KB?: number;
   BATCH_CHUNK_SIZE?: number;
+
+  // Circuit Breaker Configuration
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD?: number;
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD?: number;
+  CIRCUIT_BREAKER_TIMEOUT_MS?: number;
+
+  // Shutdown Configuration
+  SHUTDOWN_TIMEOUT_MS?: number;
+
+  // Metrics Configuration
+  METRICS_HISTORY_DEFAULT_LIMIT?: number;
+
+  // Rate Limiting Configuration
+  THROTTLE_TTL_MS?: number;
+  THROTTLE_GLOBAL_LIMIT?: number;
+  THROTTLE_IP_LIMIT?: number;
+  THROTTLE_QUERY_LIMIT?: number;
+  THROTTLE_HEALTH_LIMIT?: number;
+  
+  // Database Connection Pool Configuration
+  DB_POOL_MAX?: number;
 }
 
 // Define the schema for environment variables validation
@@ -123,6 +144,27 @@ const envsSchema = joi
 
     // Checkpoint Configuration
     CHECKPOINT_INTERVAL_MS: joi.number().min(1000).max(60000).required(),
+
+    // Circuit Breaker Configuration
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: joi.number().min(1).max(20).required(),
+    CIRCUIT_BREAKER_SUCCESS_THRESHOLD: joi.number().min(1).max(10).required(),
+    CIRCUIT_BREAKER_TIMEOUT_MS: joi.number().min(1000).max(300000).required(),
+
+    // Shutdown Configuration
+    SHUTDOWN_TIMEOUT_MS: joi.number().min(5000).max(300000).required(),
+
+    // Metrics Configuration
+    METRICS_HISTORY_DEFAULT_LIMIT: joi.number().min(10).max(1000).required(),
+
+    // Rate Limiting Configuration
+    THROTTLE_TTL_MS: joi.number().min(1000).max(3600000).required(),
+    THROTTLE_GLOBAL_LIMIT: joi.number().min(1000).max(1000000).required(),
+    THROTTLE_IP_LIMIT: joi.number().min(100).max(100000).required(),
+    THROTTLE_QUERY_LIMIT: joi.number().min(10).max(10000).required(),
+    THROTTLE_HEALTH_LIMIT: joi.number().min(10).max(1000).required(),
+    
+    // Database Connection Pool Configuration
+    DB_POOL_MAX: joi.number().min(5).max(100).required(),
   })
   .unknown(true);
 
@@ -152,6 +194,17 @@ const { error, value } = envsSchema.validate({
   METADATA_MAX_SIZE_KB: process.env.METADATA_MAX_SIZE_KB,
   BATCH_CHUNK_SIZE: process.env.BATCH_CHUNK_SIZE,
   CHECKPOINT_INTERVAL_MS: process.env.CHECKPOINT_INTERVAL_MS,
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD: process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+  CIRCUIT_BREAKER_TIMEOUT_MS: process.env.CIRCUIT_BREAKER_TIMEOUT_MS,
+  SHUTDOWN_TIMEOUT_MS: process.env.SHUTDOWN_TIMEOUT_MS,
+  METRICS_HISTORY_DEFAULT_LIMIT: process.env.METRICS_HISTORY_DEFAULT_LIMIT,
+  THROTTLE_TTL_MS: process.env.THROTTLE_TTL_MS,
+  THROTTLE_GLOBAL_LIMIT: process.env.THROTTLE_GLOBAL_LIMIT,
+  THROTTLE_IP_LIMIT: process.env.THROTTLE_IP_LIMIT,
+  THROTTLE_QUERY_LIMIT: process.env.THROTTLE_QUERY_LIMIT,
+  THROTTLE_HEALTH_LIMIT: process.env.THROTTLE_HEALTH_LIMIT,
+  DB_POOL_MAX: process.env.DB_POOL_MAX,
 });
 
 if (error) {
@@ -219,5 +272,26 @@ export const envs = {
 
   // Checkpoint Configuration
   checkpointIntervalMs: envVars.CHECKPOINT_INTERVAL_MS,
+
+  // Circuit Breaker Configuration
+  circuitBreakerFailureThreshold: envVars.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+  circuitBreakerSuccessThreshold: envVars.CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+  circuitBreakerTimeoutMs: envVars.CIRCUIT_BREAKER_TIMEOUT_MS,
+
+  // Shutdown Configuration
+  shutdownTimeoutMs: envVars.SHUTDOWN_TIMEOUT_MS,
+
+  // Metrics Configuration
+  metricsHistoryDefaultLimit: envVars.METRICS_HISTORY_DEFAULT_LIMIT,
+
+  // Rate Limiting Configuration
+  throttleTtlMs: envVars.THROTTLE_TTL_MS,
+  throttleGlobalLimit: envVars.THROTTLE_GLOBAL_LIMIT,
+  throttleIpLimit: envVars.THROTTLE_IP_LIMIT,
+  throttleQueryLimit: envVars.THROTTLE_QUERY_LIMIT,
+  throttleHealthLimit: envVars.THROTTLE_HEALTH_LIMIT,
+  
+  // Database Connection Pool Configuration
+  dbPoolMax: envVars.DB_POOL_MAX,
 };
 

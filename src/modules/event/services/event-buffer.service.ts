@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { envs } from '../../config/envs';
 import { EnrichedEvent } from '../interfaces/enriched-event.interface';
+import { IEventBufferService } from '../interfaces/event-buffer-service.interface';
 import { MetricsDto } from '../dtos/metrics-response.dto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -8,7 +9,7 @@ import { createWriteStream } from 'fs';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
-export class EventBufferService implements OnModuleInit, OnModuleDestroy {
+export class EventBufferService implements IEventBufferService, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventBufferService.name);
   // Use array with head index for O(1) dequeue operations
   // This avoids O(n) shift() operations when draining batches

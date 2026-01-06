@@ -10,12 +10,14 @@ import { EventDto, SearchResponseDto } from '../dtos/search-events-response.dto'
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { IEventRepository } from '../repositories/event.repository.interface';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
+import { IEventService } from '../interfaces/event-service.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
 import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
 import { ErrorLogger } from '../../common/utils/error-logger';
+import { Sanitizer } from '../../common/utils/sanitizer';
 
 @Injectable()
-export class EventService {
+export class EventService implements IEventService {
   private readonly logger = new Logger(EventService.name);
 
   constructor(
@@ -26,19 +28,27 @@ export class EventService {
 
   /**
    * Enriches event with metadata (ID and ingestion timestamp)
+   * Sanitizes input to prevent XSS and injection attacks
    * 
    * @param createEventDto - Event data to enrich
    * @returns EnrichedEvent with generated eventId and ingestedAt timestamp
    */
   private enrich(createEventDto: CreateEventDto): EnrichedEvent {
+    // Sanitize input to prevent XSS and injection attacks
+    const sanitizedService = Sanitizer.sanitizeString(createEventDto.service);
+    const sanitizedMessage = Sanitizer.sanitizeString(createEventDto.message);
+    const sanitizedMetadata = createEventDto.metadata
+      ? Sanitizer.sanitizeObject(createEventDto.metadata)
+      : null;
+
     // Generate efficient event ID: use crypto.randomBytes for better performance than UUID
     // 6 bytes = 12 hex characters = sufficient uniqueness for event IDs
     return {
       eventId: `evt_${randomBytes(6).toString('hex')}`, // 12 hex chars, more efficient than UUID
       timestamp: createEventDto.timestamp,
-      service: createEventDto.service,
-      message: createEventDto.message,
-      metadata: createEventDto.metadata,
+      service: sanitizedService,
+      message: sanitizedMessage,
+      metadata: sanitizedMetadata,
       ingestedAt: new Date().toISOString(),
     };
   }

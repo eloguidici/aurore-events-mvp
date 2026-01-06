@@ -3,10 +3,11 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { envs } from '../../config/envs';
 import { EventService } from '../../event/services/events.service';
+import { IRetentionService } from '../interfaces/retention-service.interface';
 import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
-export class RetentionService implements OnModuleInit {
+export class RetentionService implements IRetentionService, OnModuleInit {
   private readonly logger = new Logger(RetentionService.name);
   private readonly retentionDays: number;
   private readonly cronSchedule: string;

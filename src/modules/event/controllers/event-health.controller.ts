@@ -4,9 +4,12 @@ import { Throttle } from '@nestjs/throttler';
 import { HealthService } from '../../common/services/health.service';
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { EventBufferService } from '../services/event-buffer.service';
+import { BusinessMetricsService } from '../services/business-metrics.service';
+import { BusinessMetricsDto } from '../dtos/business-metrics-response.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Event } from '../entities/event.entity';
+import { envs } from '../../config/envs';
 
 @ApiTags('Event Health')
 @Controller('health')
@@ -15,12 +18,13 @@ export class EventHealthController {
     private readonly healthService: HealthService,
     private readonly circuitBreaker: CircuitBreakerService,
     private readonly eventBufferService: EventBufferService,
+    private readonly businessMetricsService: BusinessMetricsService,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
   ) {}
 
   @Get('database')
-  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
+  @Throttle({ default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs } })
   @ApiOperation({ summary: 'Check database connectivity and health' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Database is healthy' })
   @ApiResponse({ status: HttpStatus.SERVICE_UNAVAILABLE, description: 'Database is unavailable' })
@@ -52,7 +56,7 @@ export class EventHealthController {
   }
 
   @Get('buffer')
-  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
+  @Throttle({ default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs } })
   @ApiOperation({ summary: 'Check buffer health and metrics' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Buffer metrics retrieved' })
   async checkBuffer() {
@@ -74,14 +78,15 @@ export class EventHealthController {
   }
 
   @Get('detailed')
-  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
+  @Throttle({ default: { limit: Math.floor(envs.throttleHealthLimit / 2), ttl: envs.throttleTtlMs } })
   @ApiOperation({ summary: 'Get detailed health status of all components' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Detailed health status' })
   async getDetailedHealth() {
-    const [databaseHealth, bufferHealth, circuitMetrics] = await Promise.allSettled([
+    const [databaseHealth, bufferHealth, circuitMetrics, businessMetrics] = await Promise.allSettled([
       this.checkDatabase(),
       Promise.resolve(this.checkBuffer()),
       Promise.resolve(this.circuitBreaker.getMetrics()),
+      this.businessMetricsService.getBusinessMetrics(),
     ]);
 
     return {
@@ -90,7 +95,36 @@ export class EventHealthController {
       database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : { status: 'error', error: databaseHealth.reason },
       buffer: bufferHealth.status === 'fulfilled' ? bufferHealth.value : { status: 'error', error: bufferHealth.reason },
       circuitBreaker: circuitMetrics.status === 'fulfilled' ? circuitMetrics.value : { status: 'error', error: circuitMetrics.reason },
+      business: businessMetrics.status === 'fulfilled' ? businessMetrics.value : { status: 'error', error: businessMetrics.reason },
     };
+  }
+
+  @Get('business')
+  @Throttle({ default: { limit: Math.floor(envs.throttleHealthLimit / 2), ttl: envs.throttleTtlMs } })
+  @ApiOperation({
+    summary: 'Get business metrics and insights',
+    description: `Retrieves comprehensive business metrics about event patterns, service usage, and trends.
+
+**Metrics Included:**
+- **Total Events**: Total number of events in the system
+- **Events by Service**: Breakdown of events grouped by service name
+- **Events Last 24 Hours**: Number of events ingested in the last 24 hours
+- **Events Last Hour**: Number of events ingested in the last hour
+- **Average Events per Minute**: Calculated from last 24 hours
+- **Top Services**: Top 10 services by event count
+- **Events by Hour**: Hourly breakdown of events (last 24 hours)
+
+**Caching:**
+Metrics are cached for 1 minute to reduce database load. Use this endpoint for dashboards and analytics.`,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Business metrics retrieved successfully',
+    type: BusinessMetricsDto,
+  })
+  async getBusinessMetrics(): Promise<BusinessMetricsDto> {
+    const metrics = await this.businessMetricsService.getBusinessMetrics();
+    return new BusinessMetricsDto(metrics);
   }
 }
 

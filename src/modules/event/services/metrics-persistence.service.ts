@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventBufferService } from './event-buffer.service';
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
+import { IMetricsPersistenceService } from '../interfaces/metrics-persistence-service.interface';
+import { envs } from '../../config/envs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ErrorLogger } from '../../common/utils/error-logger';
@@ -28,7 +30,7 @@ interface MetricsSnapshot {
  * Saves metrics snapshots periodically for historical analysis
  */
 @Injectable()
-export class MetricsPersistenceService implements OnModuleInit, OnModuleDestroy {
+export class MetricsPersistenceService implements IMetricsPersistenceService, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MetricsPersistenceService.name);
   private readonly metricsDir: string;
   private readonly metricsFile: string;
@@ -132,7 +134,7 @@ export class MetricsPersistenceService implements OnModuleInit, OnModuleDestroy 
   /**
    * Get metrics history (last N entries)
    */
-  public async getMetricsHistory(limit: number = 100): Promise<MetricsSnapshot[]> {
+  public async getMetricsHistory(limit: number = envs.metricsHistoryDefaultLimit): Promise<MetricsSnapshot[]> {
     try {
       const content = await fs.readFile(this.metricsFile, 'utf-8');
       const lines = content.trim().split('\n').filter((line) => line.trim());

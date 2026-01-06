@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -11,6 +11,8 @@ import { BatchWorkerModule } from './modules/batch-worker/batch-worker.module';
 import { RetentionModule } from './modules/retention/retention.module';
 import { CommonModule } from './modules/common/common.module';
 import { AppController } from './app.controller';
+import { IpThrottlerGuard } from './modules/common/guards/ip-throttler.guard';
+import { CorrelationIdMiddleware } from './modules/common/middleware/correlation-id.middleware';
 
 @Module({
   imports: [
@@ -20,8 +22,14 @@ import { AppController } from './app.controller';
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // Time window in milliseconds (1 minute)
-        limit: 300000, // Maximum number of requests per window (5,000 events/second)
+        name: 'default',
+        ttl: envs.throttleTtlMs,
+        limit: envs.throttleGlobalLimit,
+      },
+      {
+        name: 'ip',
+        ttl: envs.throttleTtlMs,
+        limit: envs.throttleIpLimit,
       },
     ]),
     TypeOrmModule.forRoot({
@@ -35,7 +43,7 @@ import { AppController } from './app.controller';
       synchronize: envs.dbSynchronize,
       logging: envs.dbLogging,
       extra: {
-        max: 20, // Maximum number of connections in the pool
+        max: envs.dbPoolMax, // Maximum number of connections in the pool
       },
     }),
     EventModule,
@@ -47,9 +55,14 @@ import { AppController } from './app.controller';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: IpThrottlerGuard, // Use custom guard for per-IP rate limiting
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply correlation ID middleware to all routes
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}
 

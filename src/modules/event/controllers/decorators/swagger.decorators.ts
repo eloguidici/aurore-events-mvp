@@ -26,9 +26,26 @@ export function ApiIngestEvent() {
 
 **Event Processing Flow:**
 1. Event is validated against schema requirements
-2. Event is enriched with eventId and ingestedAt timestamp
-3. Event is queued in memory buffer for batch processing
-4. Response is returned immediately (202 Accepted)
+2. Event data is automatically sanitized to prevent XSS attacks (HTML/scripts removed)
+3. Event is enriched with eventId and ingestedAt timestamp
+4. Event is queued in memory buffer for batch processing
+5. Response is returned immediately (202 Accepted) with correlation ID in header
+
+**Security:**
+- All input data (service, message, metadata) is automatically sanitized
+- HTML tags and scripts are removed to prevent XSS attacks
+- No action required from client - sanitization happens automatically
+
+**Correlation IDs:**
+- Each request receives a correlation ID in the \`X-Correlation-Id\` response header
+- Include \`X-Correlation-Id\` in your requests to track them across the system
+- Useful for debugging and request tracing
+
+**Rate Limiting:**
+- Per-IP rate limiting is enforced to prevent abuse
+- Global limit: 300,000 requests/minute (configurable)
+- Per-IP limit: 10,000 requests/minute (configurable)
+- Configure via \`THROTTLE_*\` environment variables
 
 **Backpressure Handling:**
 - If buffer is full (BUFFER_SATURATED), returns 429 Too Many Requests with retry_after header
@@ -44,8 +61,14 @@ export function ApiIngestEvent() {
     ApiBody({ type: CreateEventDto }),
     ApiResponse({
       status: HttpStatus.ACCEPTED,
-      description: 'Event accepted and queued successfully',
+      description: 'Event accepted and queued successfully. Response includes correlation ID in X-Correlation-Id header.',
       type: IngestResponseDto,
+      headers: {
+        'X-Correlation-Id': {
+          description: 'Correlation ID for request tracking',
+          schema: { type: 'string', format: 'uuid' },
+        },
+      },
     }),
     ApiBadRequestResponse({
       description: 'Invalid event schema or validation failed',
@@ -95,6 +118,14 @@ export function ApiQueryEvents() {
     ApiOperation({
       summary: 'Search events',
       description: `Retrieves events for a specific service within a time range with pagination and sorting support.
+
+**Correlation IDs:**
+- Response includes \`X-Correlation-Id\` header for request tracking
+- Include \`X-Correlation-Id\` in your request headers to maintain correlation
+
+**Rate Limiting:**
+- Per-IP rate limiting is enforced (200 requests/minute per IP)
+- Configure via \`THROTTLE_*\` environment variables
       
 **Time Range Validation:**
 - The 'from' timestamp must be before the 'to' timestamp
@@ -162,8 +193,14 @@ export function ApiQueryEvents() {
     }),
     ApiResponse({
       status: HttpStatus.OK,
-      description: 'Events retrieved successfully. Response includes pagination metadata and event list.',
+      description: 'Events retrieved successfully. Response includes pagination metadata and event list. Response includes correlation ID in X-Correlation-Id header.',
       type: SearchResponseDto,
+      headers: {
+        'X-Correlation-Id': {
+          description: 'Correlation ID for request tracking',
+          schema: { type: 'string', format: 'uuid' },
+        },
+      },
     }),
     ApiBadRequestResponse({
       description: 'Invalid query parameters. Common causes: invalid timestamp format, "from" >= "to", invalid sort field, or invalid pagination values.',
@@ -212,7 +249,13 @@ export function ApiGetMetrics() {
 - **warning**: Utilization 70-90% or drop rate 1-5%
 - **critical**: Utilization >= 90% or drop rate > 5%
 
-Use this endpoint for monitoring system health and capacity planning.`,
+Use this endpoint for monitoring system health and capacity planning.
+
+**Correlation IDs:**
+- Response includes \`X-Correlation-Id\` header for request tracking
+
+**Rate Limiting:**
+- No specific rate limit (uses global throttling configuration)`,
     }),
     ApiResponse({
       status: HttpStatus.OK,

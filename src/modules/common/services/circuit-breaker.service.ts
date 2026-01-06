@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ErrorLogger } from '../utils/error-logger';
+import { ICircuitBreakerService } from '../interfaces/circuit-breaker-service.interface';
+import { envs } from '../../config/envs';
 
 /**
  * Circuit breaker states
@@ -24,7 +26,7 @@ interface CircuitBreakerConfig {
  * Prevents cascading failures when database is down
  */
 @Injectable()
-export class CircuitBreakerService {
+export class CircuitBreakerService implements ICircuitBreakerService {
   private readonly logger = new Logger(CircuitBreakerService.name);
   private state: CircuitState = CircuitState.CLOSED;
   private failureCount = 0;
@@ -33,11 +35,11 @@ export class CircuitBreakerService {
   private readonly config: CircuitBreakerConfig;
 
   constructor() {
-    // Configurable via envs in production
+    // Configuration from environment variables
     this.config = {
-      failureThreshold: 5, // Open circuit after 5 failures
-      successThreshold: 2, // Close circuit after 2 successes in HALF_OPEN
-      timeout: 30000, // Wait 30 seconds before trying HALF_OPEN
+      failureThreshold: envs.circuitBreakerFailureThreshold,
+      successThreshold: envs.circuitBreakerSuccessThreshold,
+      timeout: envs.circuitBreakerTimeoutMs,
     };
   }
 
@@ -69,8 +71,11 @@ export class CircuitBreakerService {
       this.onSuccess();
       return result;
     } catch (error) {
-      // On failure
-      this.onFailure();
+      // Only count transient errors (connection issues, timeouts, etc.)
+      // Permanent errors (validation, not found, etc.) should not trigger circuit breaker
+      if (this.isTransientError(error)) {
+        this.onFailure();
+      }
       throw error;
     }
   }
@@ -154,6 +159,37 @@ export class CircuitBreakerService {
     this.successCount = 0;
     this.lastFailureTime = null;
     this.logger.log('Circuit breaker: Manually reset to CLOSED state');
+  }
+
+  /**
+   * Determines if an error is transient (should trigger circuit breaker)
+   * Transient errors: connection issues, timeouts, network problems
+   * Permanent errors: validation errors, not found, business logic errors
+   * 
+   * @param error - Error to classify
+   * @returns true if error is transient, false otherwise
+   */
+  private isTransientError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false; // Unknown error type, don't count as transient
+    }
+
+    const transientPatterns = [
+      /ECONNREFUSED/i,      // Connection refused
+      /ETIMEDOUT/i,         // Timeout
+      /ENOTFOUND/i,         // DNS not found
+      /connection.*refused/i,
+      /connection.*timeout/i,
+      /connection.*closed/i,
+      /network.*error/i,
+      /socket.*hang.*up/i,
+      /ECONNRESET/i,
+      /EPIPE/i,
+      /database.*unavailable/i,
+      /too many connections/i,
+    ];
+
+    return transientPatterns.some((pattern) => pattern.test(error.message));
   }
 }
 

@@ -91,5 +91,73 @@ describe('Environment Configuration', () => {
       expect(envs.retryAfterSeconds).toBeLessThanOrEqual(300);
     });
   });
+
+  describe('Circuit Breaker Configuration', () => {
+    it('should have circuit breaker configuration', () => {
+      expect(typeof envs.circuitBreakerFailureThreshold).toBe('number');
+      expect(typeof envs.circuitBreakerSuccessThreshold).toBe('number');
+      expect(typeof envs.circuitBreakerTimeoutMs).toBe('number');
+    });
+
+    it('should have valid circuit breaker values', () => {
+      expect(envs.circuitBreakerFailureThreshold).toBeGreaterThanOrEqual(1);
+      expect(envs.circuitBreakerFailureThreshold).toBeLessThanOrEqual(20);
+      expect(envs.circuitBreakerSuccessThreshold).toBeGreaterThanOrEqual(1);
+      expect(envs.circuitBreakerSuccessThreshold).toBeLessThanOrEqual(10);
+      expect(envs.circuitBreakerTimeoutMs).toBeGreaterThanOrEqual(1000);
+      expect(envs.circuitBreakerTimeoutMs).toBeLessThanOrEqual(300000);
+    });
+  });
+
+  describe('Shutdown Configuration', () => {
+    it('should have shutdown configuration', () => {
+      expect(typeof envs.shutdownTimeoutMs).toBe('number');
+      expect(envs.shutdownTimeoutMs).toBeGreaterThanOrEqual(5000);
+      expect(envs.shutdownTimeoutMs).toBeLessThanOrEqual(300000);
+    });
+  });
+
+  describe('Metrics Configuration', () => {
+    it('should have metrics configuration', () => {
+      expect(typeof envs.metricsHistoryDefaultLimit).toBe('number');
+      expect(envs.metricsHistoryDefaultLimit).toBeGreaterThanOrEqual(10);
+      expect(envs.metricsHistoryDefaultLimit).toBeLessThanOrEqual(1000);
+    });
+  });
+
+  describe('Rate Limiting Configuration', () => {
+    it('should have rate limiting configuration', () => {
+      expect(typeof envs.throttleTtlMs).toBe('number');
+      expect(typeof envs.throttleGlobalLimit).toBe('number');
+      expect(typeof envs.throttleIpLimit).toBe('number');
+    });
+
+    it('should have valid rate limiting values', () => {
+      expect(envs.throttleTtlMs).toBeGreaterThanOrEqual(1000);
+      expect(envs.throttleTtlMs).toBeLessThanOrEqual(3600000);
+      expect(envs.throttleGlobalLimit).toBeGreaterThanOrEqual(1000);
+      expect(envs.throttleGlobalLimit).toBeLessThanOrEqual(1000000);
+      expect(envs.throttleIpLimit).toBeGreaterThanOrEqual(100);
+      expect(envs.throttleIpLimit).toBeLessThanOrEqual(100000);
+    });
+
+    it('should validate throttle query limit', () => {
+      expect(typeof envs.throttleQueryLimit).toBe('number');
+      expect(envs.throttleQueryLimit).toBeGreaterThanOrEqual(10);
+      expect(envs.throttleQueryLimit).toBeLessThanOrEqual(10000);
+    });
+
+    it('should validate throttle health limit', () => {
+      expect(typeof envs.throttleHealthLimit).toBe('number');
+      expect(envs.throttleHealthLimit).toBeGreaterThanOrEqual(10);
+      expect(envs.throttleHealthLimit).toBeLessThanOrEqual(1000);
+    });
+
+    it('should validate database pool max connections', () => {
+      expect(typeof envs.dbPoolMax).toBe('number');
+      expect(envs.dbPoolMax).toBeGreaterThanOrEqual(5);
+      expect(envs.dbPoolMax).toBeLessThanOrEqual(100);
+    });
+  });
 });
 

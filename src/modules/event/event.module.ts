@@ -5,6 +5,7 @@ import { EventHealthController } from './controllers/event-health.controller';
 import { EventService } from './services/events.service';
 import { EventBufferService } from './services/event-buffer.service';
 import { MetricsPersistenceService } from './services/metrics-persistence.service';
+import { BusinessMetricsService } from './services/business-metrics.service';
 import { Event } from './entities/event.entity';
 import { TypeOrmEventRepository } from './repositories/typeorm-event.repository';
 import { EVENT_REPOSITORY_TOKEN } from './repositories/event.repository.token';
@@ -20,6 +21,7 @@ import { CommonModule } from '../common/common.module';
     EventService,
     EventBufferService,
     MetricsPersistenceService,
+    BusinessMetricsService,
     TypeOrmEventRepository,
     {
       provide: EVENT_REPOSITORY_TOKEN,

@@ -90,7 +90,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Process ALL remaining events in buffer before stopping
-    const SHUTDOWN_TIMEOUT_MS = 30000; // 30 seconds max
+    const SHUTDOWN_TIMEOUT_MS = envs.shutdownTimeoutMs;
     const startTime = Date.now();
     let batchCount = 0;
 
