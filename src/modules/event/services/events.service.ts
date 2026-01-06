@@ -171,6 +171,7 @@ export class EventService implements IEventService {
 
       // Convert events to EventDto
       // EventDto constructor handles JSON.parse errors gracefully, but add extra safety
+      let filteredCount = 0;
       const items = events
         .map((event) => {
           try {
@@ -178,6 +179,7 @@ export class EventService implements IEventService {
           } catch (error) {
             // If EventDto construction fails, log and skip this event
             // This should be extremely rare but prevents one corrupt event from breaking the entire query
+            filteredCount++;
             this.logger.warn(
               `Failed to convert event to DTO: ${event.id}`,
               error,
@@ -187,12 +189,25 @@ export class EventService implements IEventService {
         })
         .filter((item): item is EventDto => item !== null);
 
+      // Log summary if any events were filtered
+      if (filteredCount > 0) {
+        this.logger.warn(
+          `Filtered ${filteredCount} corrupt event(s) from query results (service: ${service}, page: ${page})`,
+        );
+      }
+
+      // Adjust total to account for filtered corrupt events
+      // This ensures pagination is consistent: total reflects only valid events
+      // Note: This adjustment is per-page, so if there are corrupt events in other pages,
+      // the total might still be slightly off, but it's better than including corrupt events
+      const adjustedTotal = Math.max(0, total - filteredCount);
+
       return new SearchResponseDto({
         page,
         pageSize: limit,
         sortField: safeSortField,
         sortOrder: safeSortOrder,
-        total,
+        total: adjustedTotal,
         items,
       });
     } catch (error) {

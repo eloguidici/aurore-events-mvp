@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CreateEventDto } from '../dtos/create-event.dto';
 import { QueryDto } from '../dtos/query-events.dto';
 import { BufferSaturatedException } from '../exceptions';
+import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
 import { EventBufferService } from './event-buffer.service';
 import { EventService } from './events.service';
@@ -97,11 +98,13 @@ describe('EventService', () => {
 
   describe('insert', () => {
     it('should insert events and return result', async () => {
-      const events: CreateEventDto[] = [
+      const events: EnrichedEvent[] = [
         {
+          eventId: 'evt_test123456',
           timestamp: new Date().toISOString(),
           service: 'test-service',
           message: 'Test message',
+          ingestedAt: new Date().toISOString(),
         },
       ];
 

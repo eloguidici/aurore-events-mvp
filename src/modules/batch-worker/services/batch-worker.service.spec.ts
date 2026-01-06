@@ -167,16 +167,9 @@ describe('BatchWorkerService', () => {
     expect(mockEventBufferService.drain).toHaveBeenCalled();
     expect(mockEventBufferService.drain).toHaveBeenCalledWith(100);
 
-    // Verify insert was called with the events
+    // Verify insert was called with the events (EnrichedEvent[])
     expect(mockEventService.insert).toHaveBeenCalled();
-    expect(mockEventService.insert).toHaveBeenCalledWith([
-      {
-        timestamp: mockEvents[0].timestamp,
-        service: mockEvents[0].service,
-        message: mockEvents[0].message,
-        metadata: mockEvents[0].metadata,
-      },
-    ]);
+    expect(mockEventService.insert).toHaveBeenCalledWith(mockEvents);
 
     // Verify enqueue was called during retry
     expect(mockEventBufferService.enqueue).toHaveBeenCalled();

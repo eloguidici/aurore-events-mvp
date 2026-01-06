@@ -55,7 +55,7 @@ export class TypeOrmEventRepository implements IEventRepository {
               } catch (error: any) {
                 // If stringify fails (e.g., circular reference), log and use null
                 // This should be extremely rare as sanitizer should prevent it
-                ErrorLogger.logWarning(
+                ErrorLogger.logError(
                   this.logger,
                   'Failed to stringify metadata, using null',
                   error,

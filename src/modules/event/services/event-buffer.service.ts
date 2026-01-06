@@ -118,15 +118,32 @@ export class EventBufferService
    * @returns Array of events (up to batchSize), or empty array if buffer is empty
    */
   public drain(batchSize: number): EnrichedEvent[] {
+    // Validate batchSize parameter
+    if (batchSize <= 0) {
+      this.logger.warn(
+        `Invalid batchSize: ${batchSize}, must be > 0. Returning empty array.`,
+      );
+      return [];
+    }
+
+    // Cap batchSize to prevent excessive memory usage
+    const safeBatchSize = Math.min(batchSize, this.maxSize);
+
     const currentSize = this.getSize();
     if (currentSize === 0) {
       return [];
     }
 
-    const count = Math.min(batchSize, currentSize);
+    const count = Math.min(safeBatchSize, currentSize);
     const batch: EnrichedEvent[] = [];
 
     // Validate bufferHead is within bounds (prevent desynchronization)
+    if (this.bufferHead < 0) {
+      this.logger.warn(
+        `Buffer head is negative (head: ${this.bufferHead}), resetting to 0`,
+      );
+      this.bufferHead = 0;
+    }
     if (this.bufferHead >= this.buffer.length) {
       this.logger.warn(
         `Buffer head desynchronized (head: ${this.bufferHead}, length: ${this.buffer.length}), resetting`,
@@ -401,7 +418,7 @@ export class EventBufferService
           // If stringify fails (e.g., circular reference), log and skip this event
           // This should be extremely rare as sanitizer should prevent it
           failedCount++;
-          ErrorLogger.logWarning(
+          ErrorLogger.logError(
             this.logger,
             'Failed to serialize event for checkpoint, skipping',
             error,
