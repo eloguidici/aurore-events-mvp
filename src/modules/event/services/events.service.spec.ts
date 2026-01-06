@@ -1,16 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventService } from './events.service';
-import { EventBufferService } from './event-buffer.service';
-import { IEventRepository } from '../repositories/event.repository.interface';
-import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
+
 import { CreateEventDto } from '../dtos/create-event.dto';
 import { QueryDto } from '../dtos/query-events.dto';
 import { BufferSaturatedException } from '../exceptions';
+import { IEventRepository } from '../repositories/event.repository.interface';
+import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
+import { EventBufferService } from './event-buffer.service';
+import { EventService } from './events.service';
 
 describe('EventService', () => {
   let service: EventService;
-  let eventBufferService: EventBufferService;
-  let eventRepository: IEventRepository;
 
   const mockEventRepository = {
     batchInsert: jest.fn(),
@@ -38,8 +37,6 @@ describe('EventService', () => {
     }).compile();
 
     service = module.get<EventService>(EventService);
-    eventBufferService = module.get<EventBufferService>(EventBufferService);
-    eventRepository = module.get<IEventRepository>(EVENT_REPOSITORY_TOKEN);
 
     jest.clearAllMocks();
   });

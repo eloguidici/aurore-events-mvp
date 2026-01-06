@@ -1,13 +1,14 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { envs } from '../../config/envs';
-import { Event } from '../entities/event.entity';
-import { CreateEventDto } from '../dtos/create-event.dto';
-import { IEventRepository } from './event.repository.interface';
-import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
+
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
+import { envs } from '../../config/envs';
+import { CreateEventDto } from '../dtos/create-event.dto';
+import { Event } from '../entities/event.entity';
+import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
+import { IEventRepository } from './event.repository.interface';
 
 /**
  * TypeORM implementation of EventRepository
@@ -42,7 +43,7 @@ export class TypeOrmEventRepository implements IEventRepository {
       return await this.eventRepository.manager.transaction(
         async (transactionalEntityManager) => {
           let successful = 0;
-          let failed = 0;
+          const failed = 0;
 
           const values = events.map((event) => ({
             id: crypto.randomUUID(), // Generate UUID manually since .insert() doesn't auto-generate

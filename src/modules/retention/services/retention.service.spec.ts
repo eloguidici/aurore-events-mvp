@@ -1,12 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { RetentionService } from './retention.service';
+import { Test, TestingModule } from '@nestjs/testing';
+
 import { EventService } from '../../event/services/events.service';
+import { RetentionService } from './retention.service';
 
 describe('RetentionService', () => {
   let service: RetentionService;
-  let eventService: EventService;
-  let schedulerRegistry: SchedulerRegistry;
 
   const mockEventService = {
     cleanup: jest.fn(),
@@ -32,8 +31,6 @@ describe('RetentionService', () => {
     }).compile();
 
     service = module.get<RetentionService>(RetentionService);
-    eventService = module.get<EventService>(EventService);
-    schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
 
     jest.clearAllMocks();
   });

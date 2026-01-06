@@ -1,5 +1,5 @@
-import { EnrichedEvent } from './enriched-event.interface';
 import { MetricsDto } from '../dtos/metrics-response.dto';
+import { EnrichedEvent } from './enriched-event.interface';
 
 /**
  * Interface for EventBufferService

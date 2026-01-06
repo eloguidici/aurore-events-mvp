@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventBufferService } from './event-buffer.service';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import * as fs from 'fs/promises';
-import * as path from 'path';
+
+import { EnrichedEvent } from '../interfaces/enriched-event.interface';
+import { EventBufferService } from './event-buffer.service';
 
 // Mock envs before importing the service
 jest.mock('../../config/envs', () => ({

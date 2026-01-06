@@ -1,20 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { MetricsPersistenceService } from './metrics-persistence.service';
+import * as fs from 'fs/promises';
+
+import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { Event } from '../entities/event.entity';
 import { EventBufferService } from './event-buffer.service';
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { MetricsPersistenceService } from './metrics-persistence.service';
 
 // Mock fs module
 jest.mock('fs/promises');
 
 describe('MetricsPersistenceService', () => {
   let service: MetricsPersistenceService;
-  let eventRepository: Repository<Event>;
-  let eventBufferService: EventBufferService;
 
   const mockEventRepository = {
     createQueryBuilder: jest.fn(),
@@ -63,8 +60,6 @@ describe('MetricsPersistenceService', () => {
     }).compile();
 
     service = module.get<MetricsPersistenceService>(MetricsPersistenceService);
-    eventRepository = module.get<Repository<Event>>(getRepositoryToken(Event));
-    eventBufferService = module.get<EventBufferService>(EventBufferService);
 
     // Mock fs methods
     (fs.mkdir as jest.Mock).mockResolvedValue(undefined);

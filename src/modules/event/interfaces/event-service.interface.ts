@@ -1,6 +1,6 @@
 import { CreateEventDto } from '../dtos/create-event.dto';
-import { QueryDto } from '../dtos/query-events.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
+import { QueryDto } from '../dtos/query-events.dto';
 import { SearchResponseDto } from '../dtos/search-events-response.dto';
 import { BatchInsertResult } from './batch-insert-result.interface';
 

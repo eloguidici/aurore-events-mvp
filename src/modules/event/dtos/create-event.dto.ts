@@ -1,17 +1,18 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString,
   IsNotEmpty,
-  IsOptional,
   IsObject,
+  IsOptional,
+  IsString,
   MaxLength,
+  registerDecorator,
   ValidateIf,
   ValidationArguments,
+  ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-  ValidationOptions,
-  registerDecorator,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 import { envs } from '../../config/envs';
 
 /**

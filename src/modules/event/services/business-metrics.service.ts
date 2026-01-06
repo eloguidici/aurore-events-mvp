@@ -1,8 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Event } from '../entities/event.entity';
+
 import { ErrorLogger } from '../../common/utils/error-logger';
+import { Event } from '../entities/event.entity';
 
 /**
  * Business metrics interface

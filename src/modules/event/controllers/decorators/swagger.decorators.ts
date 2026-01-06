@@ -1,18 +1,19 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import {
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiQuery,
   ApiBadRequestResponse,
-  ApiTooManyRequestsResponse,
-  ApiServiceUnavailableResponse,
+  ApiBody,
   ApiInternalServerErrorResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiServiceUnavailableResponse,
+  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
+
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { IngestResponseDto } from '../../dtos/ingest-event-response.dto';
-import { SearchResponseDto } from '../../dtos/search-events-response.dto';
 import { MetricsDto } from '../../dtos/metrics-response.dto';
+import { SearchResponseDto } from '../../dtos/search-events-response.dto';
 
 /**
  * Swagger decorators for POST /events endpoint

@@ -1,11 +1,12 @@
-import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+
 import { AppModule } from './app.module';
-import { envs } from './modules/config/envs';
 import {
   configureApplication,
   startApplication,
 } from './config/bootstrap.config';
+import { envs } from './modules/config/envs';
 
 /**
  * Bootstrap function - Application entry point

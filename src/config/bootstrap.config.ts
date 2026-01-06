@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
-import { envs } from '../modules/config/envs';
+
 import { HealthService } from '../modules/common/services/health.service';
-import { createValidationPipe } from './validation.config';
-import { setupSwagger } from './swagger.config';
+import { envs } from '../modules/config/envs';
 import { configureApp } from './app.config';
+import { setupSwagger } from './swagger.config';
+import { createValidationPipe } from './validation.config';
 
 /**
  * Configures all global pipes, middleware, and documentation

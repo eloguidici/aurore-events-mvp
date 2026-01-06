@@ -1,7 +1,8 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import 'express'; // Import to ensure type augmentation is loaded
+
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
-import 'express'; // Import to ensure type augmentation is loaded
 
 /**
  * Custom throttler guard that uses IP address for rate limiting

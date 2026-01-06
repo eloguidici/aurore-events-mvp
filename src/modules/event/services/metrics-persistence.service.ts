@@ -1,16 +1,17 @@
 import {
   Injectable,
   Logger,
-  OnModuleInit,
   OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
-import { EventBufferService } from './event-buffer.service';
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { IMetricsPersistenceService } from '../interfaces/metrics-persistence-service.interface';
-import { envs } from '../../config/envs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
+import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
+import { envs } from '../../config/envs';
+import { IMetricsPersistenceService } from '../interfaces/metrics-persistence-service.interface';
+import { EventBufferService } from './event-buffer.service';
 
 interface MetricsSnapshot {
   timestamp: string;

@@ -1,18 +1,19 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { envs } from './modules/config/envs';
-import { EventModule } from './modules/event/event.module';
-import { Event } from './modules/event/entities/event.entity';
-import { BatchWorkerModule } from './modules/batch-worker/batch-worker.module';
-import { RetentionModule } from './modules/retention/retention.module';
-import { CommonModule } from './modules/common/common.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { AppController } from './app.controller';
+import { BatchWorkerModule } from './modules/batch-worker/batch-worker.module';
+import { CommonModule } from './modules/common/common.module';
 import { IpThrottlerGuard } from './modules/common/guards/ip-throttler.guard';
 import { CorrelationIdMiddleware } from './modules/common/middleware/correlation-id.middleware';
+import { envs } from './modules/config/envs';
+import { Event } from './modules/event/entities/event.entity';
+import { EventModule } from './modules/event/event.module';
+import { RetentionModule } from './modules/retention/retention.module';
 
 @Module({
   imports: [

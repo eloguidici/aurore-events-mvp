@@ -1,8 +1,9 @@
 import {
   registerDecorator,
-  ValidationOptions,
   ValidationArguments,
+  ValidationOptions,
 } from 'class-validator';
+
 import { ALLOWED_SORT_FIELDS } from '../../event/constants/query.constants';
 
 /**

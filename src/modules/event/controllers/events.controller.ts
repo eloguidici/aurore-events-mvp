@@ -1,35 +1,36 @@
 import {
-  Controller,
-  Post,
-  Get,
   Body,
-  Query,
+  Controller,
+  Get,
   HttpCode,
-  HttpStatus,
   HttpException,
+  HttpStatus,
   Logger,
+  Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { EventService } from '../services/events.service';
-import { EventBufferService } from '../services/event-buffer.service';
+import { Request } from 'express';
+
+import { ErrorLogger } from '../../common/utils/error-logger';
+import { envs } from '../../config/envs';
 import { CreateEventDto } from '../dtos/create-event.dto';
-import { QueryDto } from '../dtos/query-events.dto';
-import {
-  SearchResponseDto,
-  EventDto,
-} from '../dtos/search-events-response.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { MetricsDto } from '../dtos/metrics-response.dto';
+import { QueryDto } from '../dtos/query-events.dto';
 import {
+  EventDto,
+  SearchResponseDto,
+} from '../dtos/search-events-response.dto';
+import { EventBufferService } from '../services/event-buffer.service';
+import { EventService } from '../services/events.service';
+import {
+  ApiGetMetrics,
   ApiIngestEvent,
   ApiQueryEvents,
-  ApiGetMetrics,
 } from './decorators/swagger.decorators';
-import { ErrorLogger } from '../../common/utils/error-logger';
-import { Request } from 'express';
-import { envs } from '../../config/envs';
 
 @ApiTags('Events')
 @Controller()

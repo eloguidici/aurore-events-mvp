@@ -1,4 +1,4 @@
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
 /**

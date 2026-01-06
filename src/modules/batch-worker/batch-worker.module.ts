@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { BatchWorkerService } from './services/batch-worker.service';
+
 import { EventModule } from '../event/event.module';
+import { BatchWorkerService } from './services/batch-worker.service';
 
 /**
  * Batch Worker Module

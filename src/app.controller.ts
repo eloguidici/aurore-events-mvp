@@ -8,12 +8,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { HealthService } from './modules/common/services/health.service';
 import {
   ApiHealthCheck,
   ApiLivenessCheck,
   ApiReadinessCheck,
 } from './app.controller.decorators';
+import { HealthService } from './modules/common/services/health.service';
 import { ErrorLogger } from './modules/common/utils/error-logger';
 
 @ApiTags('Health Check')

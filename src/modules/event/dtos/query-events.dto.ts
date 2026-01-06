@@ -1,18 +1,19 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 import {
-  IsString,
+  IsInt,
   IsNotEmpty,
   IsOptional,
-  IsInt,
-  Min,
+  IsString,
   Max,
+  Min,
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsSortOrder } from '../../common/decorators/sort-order.decorator';
+
 import { IsSortField } from '../../common/decorators/sort-field.decorator';
+import { IsSortOrder } from '../../common/decorators/sort-order.decorator';
 import { IsValidTimeRange } from '../../common/decorators/valid-time-range.decorator';
-import { ALLOWED_SORT_FIELDS } from '../constants/query.constants';
 import { envs } from '../../config/envs';
+import { ALLOWED_SORT_FIELDS } from '../constants/query.constants';
 
 export class QueryDto {
   @ApiProperty({

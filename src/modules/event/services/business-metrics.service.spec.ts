@@ -1,12 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { BusinessMetricsService } from './business-metrics.service';
+
 import { Event } from '../entities/event.entity';
+import { BusinessMetricsService } from './business-metrics.service';
 
 describe('BusinessMetricsService', () => {
   let service: BusinessMetricsService;
-  let repository: Repository<Event>;
 
   const mockRepository = {
     count: jest.fn(),
@@ -25,7 +24,6 @@ describe('BusinessMetricsService', () => {
     }).compile();
 
     service = module.get<BusinessMetricsService>(BusinessMetricsService);
-    repository = module.get<Repository<Event>>(getRepositoryToken(Event));
   });
 
   it('should be defined', () => {

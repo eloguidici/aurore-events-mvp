@@ -1,17 +1,18 @@
 import {
   Injectable,
   Logger,
-  OnModuleInit,
   OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
-import { envs } from '../../config/envs';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { IEventBufferService } from '../interfaces/event-buffer-service.interface';
-import { MetricsDto } from '../dtos/metrics-response.dto';
+import { createWriteStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createWriteStream } from 'fs';
+
 import { ErrorLogger } from '../../common/utils/error-logger';
+import { envs } from '../../config/envs';
+import { MetricsDto } from '../dtos/metrics-response.dto';
+import { EnrichedEvent } from '../interfaces/enriched-event.interface';
+import { IEventBufferService } from '../interfaces/event-buffer-service.interface';
 
 @Injectable()
 export class EventBufferService

@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BatchWorkerService } from './batch-worker.service';
+
+import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
 import { EventBufferService } from '../../event/services/event-buffer.service';
 import { EventService } from '../../event/services/events.service';
-import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
+import { BatchWorkerService } from './batch-worker.service';
 
 // Mock envs before importing the service
 jest.mock('../../config/envs', () => ({
@@ -16,8 +17,6 @@ jest.mock('../../config/envs', () => ({
 
 describe('BatchWorkerService', () => {
   let service: BatchWorkerService;
-  let eventBufferService: EventBufferService;
-  let eventService: EventService;
 
   const mockEventBufferService = {
     drain: jest.fn(),
@@ -45,8 +44,6 @@ describe('BatchWorkerService', () => {
     }).compile();
 
     service = module.get<BatchWorkerService>(BatchWorkerService);
-    eventBufferService = module.get<EventBufferService>(EventBufferService);
-    eventService = module.get<EventService>(EventService);
 
     // Reset mocks
     jest.clearAllMocks();

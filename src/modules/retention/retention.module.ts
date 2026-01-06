@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { RetentionService } from './services/retention.service';
+
 import { EventModule } from '../event/event.module';
+import { RetentionService } from './services/retention.service';
 
 /**
  * Retention Module

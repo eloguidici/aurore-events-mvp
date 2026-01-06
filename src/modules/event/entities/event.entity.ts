@@ -1,9 +1,9 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Entity,
   Index,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity('events')

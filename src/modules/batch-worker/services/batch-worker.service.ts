@@ -1,15 +1,16 @@
 import {
   Injectable,
   Logger,
-  OnModuleInit,
   OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
+
+import { ErrorLogger } from '../../common/utils/error-logger';
+import { envs } from '../../config/envs';
+import { CreateEventDto } from '../../event/dtos/create-event.dto';
+import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
 import { EventBufferService } from '../../event/services/event-buffer.service';
 import { EventService } from '../../event/services/events.service';
-import { envs } from '../../config/envs';
-import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
-import { CreateEventDto } from '../../event/dtos/create-event.dto';
-import { ErrorLogger } from '../../common/utils/error-logger';
 
 @Injectable()
 export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {

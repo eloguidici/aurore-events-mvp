@@ -1,15 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { TypeOrmEventRepository } from './typeorm-event.repository';
-import { Event } from '../entities/event.entity';
+
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { CreateEventDto } from '../dtos/create-event.dto';
+import { Event } from '../entities/event.entity';
+import { TypeOrmEventRepository } from './typeorm-event.repository';
 
 describe('TypeOrmEventRepository', () => {
   let repository: TypeOrmEventRepository;
-  let eventRepository: Repository<Event>;
-  let circuitBreaker: CircuitBreakerService;
 
   const mockEventRepository = {
     manager: {
@@ -38,8 +36,6 @@ describe('TypeOrmEventRepository', () => {
     }).compile();
 
     repository = module.get<TypeOrmEventRepository>(TypeOrmEventRepository);
-    eventRepository = module.get<Repository<Event>>(getRepositoryToken(Event));
-    circuitBreaker = module.get<CircuitBreakerService>(CircuitBreakerService);
 
     jest.clearAllMocks();
   });

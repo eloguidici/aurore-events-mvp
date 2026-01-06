@@ -1,15 +1,16 @@
 import { Controller, Get, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { HealthService } from '../../common/services/health.service';
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { EventBufferService } from '../services/event-buffer.service';
-import { BusinessMetricsService } from '../services/business-metrics.service';
-import { BusinessMetricsDto } from '../dtos/business-metrics-response.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Event } from '../entities/event.entity';
+
+import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
+import { HealthService } from '../../common/services/health.service';
 import { envs } from '../../config/envs';
+import { BusinessMetricsDto } from '../dtos/business-metrics-response.dto';
+import { Event } from '../entities/event.entity';
+import { BusinessMetricsService } from '../services/business-metrics.service';
+import { EventBufferService } from '../services/event-buffer.service';
 
 @ApiTags('Event Health')
 @Controller('health')

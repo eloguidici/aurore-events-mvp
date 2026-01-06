@@ -1,23 +1,24 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+
+import { ErrorLogger } from '../../common/utils/error-logger';
+import { Sanitizer } from '../../common/utils/sanitizer';
 import { envs } from '../../config/envs';
+import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
 import { CreateEventDto } from '../dtos/create-event.dto';
+import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { QueryDto } from '../dtos/query-events.dto';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { EventBufferService } from './event-buffer.service';
-import { BufferSaturatedException } from '../exceptions';
 import {
   EventDto,
   SearchResponseDto,
 } from '../dtos/search-events-response.dto';
-import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
-import { IEventRepository } from '../repositories/event.repository.interface';
+import { BufferSaturatedException } from '../exceptions';
 import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
+import { EnrichedEvent } from '../interfaces/enriched-event.interface';
 import { IEventService } from '../interfaces/event-service.interface';
+import { IEventRepository } from '../repositories/event.repository.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
-import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
-import { ErrorLogger } from '../../common/utils/error-logger';
-import { Sanitizer } from '../../common/utils/sanitizer';
+import { EventBufferService } from './event-buffer.service';
 
 @Injectable()
 export class EventService implements IEventService {

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ErrorLogger } from '../utils/error-logger';
-import { ICircuitBreakerService } from '../interfaces/circuit-breaker-service.interface';
+
 import { envs } from '../../config/envs';
+import { ICircuitBreakerService } from '../interfaces/circuit-breaker-service.interface';
+import { ErrorLogger } from '../utils/error-logger';
 
 /**
  * Circuit breaker states
