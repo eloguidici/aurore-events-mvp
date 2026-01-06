@@ -2,6 +2,8 @@
  * Type augmentation for Express Request
  * Adds correlationId property to Request interface
  */
+import 'express';
+
 declare module 'express-serve-static-core' {
   interface Request {
     /**
