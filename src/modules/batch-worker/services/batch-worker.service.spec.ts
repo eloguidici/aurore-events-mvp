@@ -145,16 +145,26 @@ describe('BatchWorkerService', () => {
       },
     ];
 
-    // Configure mocks - ensure they return the expected values
-    mockEventBufferService.drain.mockReturnValue(mockEvents);
-    mockEventService.insert.mockResolvedValue({ successful: 0, failed: 1 });
+    // Reset mocks explicitly for this test
+    mockEventBufferService.drain.mockReset();
+    mockEventService.insert.mockReset();
+    mockEventBufferService.enqueue.mockReset();
+    
+    // Configure mocks using mockImplementation to ensure they work correctly
+    mockEventBufferService.drain.mockImplementation(() => mockEvents);
+    mockEventService.insert.mockImplementation(() => 
+      Promise.resolve({ successful: 0, failed: 1 })
+    );
     mockEventBufferService.enqueue.mockReturnValue(true);
 
-    // Don't start the service to avoid interval interference
-    // Just test the process method directly
+    // Verify the service is using the mocked dependencies
+    expect(service['eventBufferService']).toBe(mockEventBufferService);
+    expect(service['eventService']).toBe(mockEventService);
+    
+    // Test the process method directly - same as the working test
     await (service as any).process();
     
-    // Verify drain was called
+    // Verify drain was called and returned events
     expect(mockEventBufferService.drain).toHaveBeenCalled();
     expect(mockEventBufferService.drain).toHaveBeenCalledWith(100);
     
