@@ -132,7 +132,7 @@ export class MetricsPersistenceService implements OnModuleInit, OnModuleDestroy 
   /**
    * Get metrics history (last N entries)
    */
-  async getMetricsHistory(limit: number = 100): Promise<MetricsSnapshot[]> {
+  public async getMetricsHistory(limit: number = 100): Promise<MetricsSnapshot[]> {
     try {
       const content = await fs.readFile(this.metricsFile, 'utf-8');
       const lines = content.trim().split('\n').filter((line) => line.trim());

@@ -25,13 +25,12 @@ export class EventsService {
   ) {}
 
   /**
-   * Builds an enriched event from DTO by adding metadata
-   * Generates event ID and ingestion timestamp
+   * Enriches event with metadata (ID and ingestion timestamp)
    * 
    * @param createEventDto - Event data to enrich
    * @returns EnrichedEvent with generated eventId and ingestedAt timestamp
    */
-  private buildEnrichedEvent(createEventDto: CreateEventDto): EnrichedEvent {
+  private enrich(createEventDto: CreateEventDto): EnrichedEvent {
     // Generate efficient event ID: use crypto.randomBytes for better performance than UUID
     // 6 bytes = 12 hex characters = sufficient uniqueness for event IDs
     return {
@@ -52,8 +51,8 @@ export class EventsService {
    * @returns IngestEventResponseDto with event_id and queued_at timestamp
    * @throws BufferSaturatedException if buffer is full (429)
    */
-  ingestEvent(createEventDto: CreateEventDto): IngestEventResponseDto {
-    const enrichedEvent = this.buildEnrichedEvent(createEventDto);
+  public async ingest(createEventDto: CreateEventDto): Promise<IngestEventResponseDto> {
+    const enrichedEvent = this.enrich(createEventDto);
 
     // Atomic enqueue operation - eliminates race condition
     // Try to enqueue directly, if buffer is full, throw exception
@@ -72,24 +71,24 @@ export class EventsService {
   }
 
   /**
-   * Batch insert events to database using a transaction
+   * Insert events to database in a single transaction
    * 
    * @param events - Array of events to insert
    * @returns BatchInsertResult containing count of successful and failed insertions
    * @throws Logs error but does not throw - returns failed count instead
    */
-  async batchInsert(events: CreateEventDto[]): Promise<BatchInsertResult> {
+  public async insert(events: CreateEventDto[]): Promise<BatchInsertResult> {
     return await this.eventRepository.batchInsert(events);
   }
 
   /**
-   * Query events by service and time range with pagination and sorting
+   * Search events by service and time range with pagination and sorting
    * 
    * @param queryDto - Query parameters including service, time range, pagination, and sorting
    * @returns SearchEventsResponseDto with paginated results
    * @throws Error if 'from' timestamp is not before 'to' timestamp
    */
-  async queryEvents(queryDto: QueryEventsDto): Promise<SearchEventsResponseDto> {
+  public async search(queryDto: QueryEventsDto): Promise<SearchEventsResponseDto> {
     // Extract variables outside try-catch for error logging context
     const {
       service,
@@ -159,12 +158,12 @@ export class EventsService {
   }
 
   /**
-   * Delete events older than specified retention days
+   * Cleanup events older than retention period
    * 
    * @param retentionDays - Number of days to retain events (events older than this are deleted)
    * @returns Number of events deleted
    */
-  async deleteOldEvents(retentionDays: number): Promise<number> {
+  public async cleanup(retentionDays: number): Promise<number> {
     return await this.eventRepository.deleteOldEvents(retentionDays);
   }
 }

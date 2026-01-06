@@ -51,7 +51,7 @@ export class EventsController {
    */
   async ingestEvent(@Body() createEventDto: CreateEventDto): Promise<IngestEventResponseDto> {
     try {
-      return this.eventsService.ingestEvent(createEventDto);
+      return await this.eventsService.ingest(createEventDto);
     } catch (error) {
       // If it's already an HttpException (including our custom exceptions), re-throw it
       if (error instanceof HttpException) {
@@ -97,7 +97,7 @@ export class EventsController {
    */
   async queryEvents(@Query() queryDto: QueryEventsDto): Promise<SearchEventsResponseDto> {
     try {
-      return await this.eventsService.queryEvents(queryDto);
+      return await this.eventsService.search(queryDto);
     } catch (error) {
       if (error.message.includes('timestamp')) {
         throw new HttpException(

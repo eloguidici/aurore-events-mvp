@@ -48,7 +48,7 @@ export class CircuitBreakerService {
    * @returns Result of operation
    * @throws Error if circuit is open or operation fails
    */
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
+  public async execute<T>(operation: () => Promise<T>): Promise<T> {
     // Check circuit state
     if (this.state === CircuitState.OPEN) {
       // Check if timeout has passed to try HALF_OPEN
@@ -129,14 +129,14 @@ export class CircuitBreakerService {
   /**
    * Get current circuit state
    */
-  getState(): CircuitState {
+  public getState(): CircuitState {
     return this.state;
   }
 
   /**
    * Get circuit breaker metrics
    */
-  getMetrics() {
+  public getMetrics() {
     return {
       state: this.state,
       failureCount: this.failureCount,
@@ -148,7 +148,7 @@ export class CircuitBreakerService {
   /**
    * Manually reset circuit breaker (for testing/admin)
    */
-  reset(): void {
+  public reset(): void {
     this.state = CircuitState.CLOSED;
     this.failureCount = 0;
     this.successCount = 0;

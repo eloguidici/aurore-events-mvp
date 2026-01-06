@@ -82,7 +82,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
    * @param event - Enriched event to add to buffer
    * @returns true if event was enqueued, false if buffer is full
    */
-  enqueue(event: EnrichedEvent): boolean {
+  public enqueue(event: EnrichedEvent): boolean {
     // Use getSize() to account for bufferHead (efficient draining)
     if (this.getSize() >= this.maxSize) {
       this.metrics.totalDropped++;
@@ -96,14 +96,14 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Drain a batch of events from the buffer
+   * Drain events from the buffer
    * Removes events from buffer and returns them for processing
    * Uses efficient O(1) per-element removal instead of O(n) shift()
    * 
    * @param batchSize - Maximum number of events to drain
    * @returns Array of events (up to batchSize), or empty array if buffer is empty
    */
-  drainBatch(batchSize: number): EnrichedEvent[] {
+  public drain(batchSize: number): EnrichedEvent[] {
     const currentSize = this.getSize();
     if (currentSize === 0) {
       return [];
@@ -143,7 +143,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
    * 
    * @returns Current buffer size (number of events)
    */
-  getSize(): number {
+  public getSize(): number {
     return this.buffer.length - this.bufferHead;
   }
 
@@ -152,7 +152,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
    * 
    * @returns Maximum number of events buffer can hold
    */
-  getCapacity(): number {
+  public getCapacity(): number {
     return this.maxSize;
   }
 
@@ -161,7 +161,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
    * 
    * @returns true if buffer is full, false otherwise
    */
-  isFull(): boolean {
+  public isFull(): boolean {
     return this.getSize() >= this.maxSize;
   }
 
@@ -170,7 +170,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
    * 
    * @returns MetricsResponseDto containing buffer metrics and statistics
    */
-  getMetrics(): MetricsResponseDto {
+  public getMetrics(): MetricsResponseDto {
     const currentTime = Date.now();
     const uptimeSeconds = (currentTime - this.metrics.startTime) / 1000;
     const currentSize = this.getSize();
@@ -274,7 +274,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
         }
 
         // Validate event before loading
-        if (this.isValidEvent(event)) {
+        if (this.isValid(event)) {
           this.buffer.push(event);
           loadedCount++;
         } else {
@@ -434,7 +434,7 @@ export class EventBufferService implements OnModuleInit, OnModuleDestroy {
    * @param event - Event object to validate
    * @returns true if event is valid EnrichedEvent, false otherwise
    */
-  private isValidEvent(event: any): event is EnrichedEvent {
+  private isValid(event: any): event is EnrichedEvent {
     return (
       event &&
       typeof event === 'object' &&

@@ -26,7 +26,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * Signal that the server is ready to receive traffic
    * Called after all modules are initialized and server is listening
    */
-  signalReady() {
+  public signalReady() {
     this.isReady = true;
     this.logger.log('Server signaled as ready');
   }
@@ -35,7 +35,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * Signal that the server is not ready
    * Used to indicate server should not receive traffic
    */
-  signalNotReady() {
+  public signalNotReady() {
     this.isReady = false;
     this.logger.warn('Server signaled as not ready');
   }
@@ -46,7 +46,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * 
    * @param handler - Function to call on shutdown
    */
-  registerShutdownHandler(handler: () => void) {
+  public registerShutdownHandler(handler: () => void) {
     // Simple shutdown handler registration
     process.on('SIGTERM', () => {
       this.isShuttingDown = true;
@@ -63,7 +63,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * 
    * @returns true if server is ready, false otherwise
    */
-  isServerReady(): boolean {
+  public isServerReady(): boolean {
     return this.isReady;
   }
 
@@ -72,7 +72,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * 
    * @returns true if server is shutting down, false otherwise
    */
-  isServerShuttingDown(): boolean {
+  public isServerShuttingDown(): boolean {
     return this.isShuttingDown;
   }
 
@@ -80,7 +80,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * Manually trigger shutdown state
    * Marks server as shutting down and not ready
    */
-  shutdown(): void {
+  public shutdown(): void {
     this.isShuttingDown = true;
     this.isReady = false;
   }
@@ -91,7 +91,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * 
    * @returns Object with HTTP status and message
    */
-  checkHealth() {
+  public checkHealth() {
     if (this.isServerReady()) {
       return { status: HttpStatus.OK, message: MESSAGES.SERVER_IS_READY };
     } else if (this.isServerShuttingDown()) {
@@ -113,7 +113,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * 
    * @returns Object with HTTP status and message
    */
-  checkLiveness() {
+  public checkLiveness() {
     if (!this.isServerShuttingDown()) {
       return {
         status: HttpStatus.OK,
@@ -133,7 +133,7 @@ export class HealthService implements IHealthService, OnModuleDestroy {
    * 
    * @returns Object with HTTP status and message
    */
-  checkReadiness() {
+  public checkReadiness() {
     if (this.isServerReady()) {
       return { status: HttpStatus.OK, message: MESSAGES.SERVER_IS_READY };
     } else {

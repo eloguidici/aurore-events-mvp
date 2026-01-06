@@ -51,7 +51,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
    * Start the batch worker
    * Begins processing batches at configured intervals
    */
-  start() {
+  public start() {
     if (this.isRunning) {
       return;
     }
@@ -63,7 +63,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
     // Process batches at regular intervals
     this.intervalId = setInterval(() => {
-      this.processBatch().catch((error) => {
+      this.process().catch((error) => {
         ErrorLogger.logError(
           this.logger,
           'Batch processing error',
@@ -78,7 +78,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
    * Processes ALL remaining events in buffer before stopping
    * Implements graceful shutdown with timeout protection
    */
-  async stop(): Promise<void> {
+  public async stop(): Promise<void> {
     if (!this.isRunning) {
       return;
     }
@@ -109,7 +109,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       }
 
       try {
-        await this.processBatch();
+        await this.process();
         batchCount++;
         
         // Small delay to allow other operations (like checkpoint) to run
@@ -138,13 +138,13 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
    * Process a batch of events from the buffer
    * Drains buffer, validates events, inserts to database, and handles retries
    */
-  private async processBatch() {
+  private async process() {
     const batchStartTime = Date.now();
     let batch: EnrichedEvent[] = [];
     
     try {
       // Drain buffer
-      batch = this.eventBufferService.drainBatch(this.batchSize);
+      batch = this.eventBufferService.drain(this.batchSize);
 
       if (batch.length === 0) {
         return; // Buffer is empty
@@ -168,7 +168,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
         }));
 
         const insertStartTime = Date.now();
-        const { successful, failed } = await this.eventsService.batchInsert(
+        const { successful, failed } = await this.eventsService.insert(
           eventsToInsert,
         );
         const insertTimeMs = Date.now() - insertStartTime;
@@ -186,10 +186,10 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
           );
 
           // Retry failed events (up to maxRetries)
-          // Note: batchInsert doesn't specify which events failed, so we retry
+          // Note: insert doesn't specify which events failed, so we retry
           // all events that were attempted. This is conservative but safe.
-          // In a production system, batchInsert should return which specific events failed.
-          await this.retryFailedEvents(batch);
+          // In a production system, insert should return which specific events failed.
+          await this.retryFailed(batch);
         }
 
         if (successful > 0) {
@@ -233,7 +233,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
    * 
    * @param failedEvents - Array of events that failed to insert
    */
-  private async retryFailedEvents(failedEvents: EnrichedEvent[]) {
+  private async retryFailed(failedEvents: EnrichedEvent[]) {
     if (failedEvents.length === 0) {
       return;
     }
@@ -318,7 +318,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       // Log error but don't throw - worker should continue
       ErrorLogger.logError(
         this.logger,
-        'Error in retryFailedEvents',
+        'Error in retryFailed',
         error,
         { failedEventsCount: failedEvents.length },
       );

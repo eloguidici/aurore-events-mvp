@@ -25,7 +25,7 @@ export class RetentionService implements OnModuleInit {
    */
   onModuleInit() {
     const job = new CronJob(this.cronSchedule, () => {
-      this.handleCleanup();
+      this.cleanup();
     });
 
     this.schedulerRegistry.addCronJob('retention-cleanup', job);
@@ -40,13 +40,13 @@ export class RetentionService implements OnModuleInit {
    * Daily cleanup job - runs at configured schedule
    * Schedule is required via environment variable (validated at startup)
    */
-  async handleCleanup() {
+  public async cleanup() {
     this.logger.log(
       `Starting retention cleanup (deleting events older than ${this.retentionDays} days)`,
     );
 
     try {
-      const deletedCount = await this.eventsService.deleteOldEvents(
+      const deletedCount = await this.eventsService.cleanup(
         this.retentionDays,
       );
 
@@ -70,10 +70,10 @@ export class RetentionService implements OnModuleInit {
    * @returns Number of events deleted
    * @throws Error if cleanup fails
    */
-  async cleanupNow(): Promise<number> {
+  public async cleanupNow(): Promise<number> {
     this.logger.log('Manual cleanup triggered');
     try {
-      const deletedCount = await this.eventsService.deleteOldEvents(
+      const deletedCount = await this.eventsService.cleanup(
         this.retentionDays,
       );
       this.logger.log(
