@@ -1,8 +1,8 @@
-import { CreateEventDto } from '../dtos/create-event.dto';
-import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
-import { QueryDto } from '../dtos/query-events.dto';
-import { SearchResponseDto } from '../dtos/search-events-response.dto';
-import { BatchInsertResult } from './batch-insert-result.interface';
+import { CreateEventDto } from '../../dtos/create-event.dto';
+import { IngestResponseDto } from '../../dtos/ingest-event-response.dto';
+import { QueryDto } from '../../dtos/query-events.dto';
+import { SearchResponseDto } from '../../dtos/search-events-response.dto';
+import { BatchInsertResult } from '../../repositories/interfaces/batch-insert-result.interface';
 import { EnrichedEvent } from './enriched-event.interface';
 
 /**
@@ -43,3 +43,4 @@ export interface IEventService {
    */
   cleanup(retentionDays: number): Promise<number>;
 }
+

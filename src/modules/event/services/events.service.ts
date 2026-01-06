@@ -13,11 +13,11 @@ import {
   SearchResponseDto,
 } from '../dtos/search-events-response.dto';
 import { BufferSaturatedException } from '../exceptions';
-import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { IEventService } from '../interfaces/event-service.interface';
-import { IEventRepository } from '../repositories/event.repository.interface';
-import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
+import { BatchInsertResult } from '../repositories/interfaces/batch-insert-result.interface';
+import { EnrichedEvent } from './interfaces/enriched-event.interface';
+import { IEventService } from './interfaces/event-service.interface';
+import { IEventRepository } from '../repositories/interfaces/event.repository.interface';
+import { EVENT_REPOSITORY_TOKEN } from '../repositories/interfaces/event.repository.token';
 import { EventBufferService } from './event-buffer.service';
 
 @Injectable()

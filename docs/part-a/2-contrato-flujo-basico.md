@@ -25,10 +25,10 @@ Content-Type: application/json
 **Body (JSON):**
 ```json
 {
-  "timestamp": "2024-01-15T10:30:00Z",  // ISO 8601 o Unix epoch
+  "timestamp": "2024-01-15T10:30:00.000Z",  // ISO 8601 UTC (formato completo con milisegundos)
   "service": "auth-service",            // String, max 100 caracteres
   "message": "User logged in",          // String, requerido
-  "metadata": {                          // Object opcional
+  "metadata": {                          // Object opcional (almacenado como JSONB en PostgreSQL)
     "userId": "123",
     "ipAddress": "192.168.1.1"
   }
@@ -158,8 +158,8 @@ Consulta eventos por servicio y rango de tiempo con paginación y ordenamiento.
 **Query Parameters:**
 ```
 service=auth-service          // Requerido: nombre del servicio
-from=2024-01-15T00:00:00Z    // Requerido: inicio del rango (ISO 8601)
-to=2024-01-15T23:59:59Z      // Requerido: fin del rango (ISO 8601)
+from=2024-01-15T00:00:00.000Z    // Requerido: inicio del rango (ISO 8601 UTC)
+to=2024-01-15T23:59:59.000Z      // Requerido: fin del rango (ISO 8601 UTC)
 page=1                        // Opcional: número de página (default: 1)
 pageSize=10                   // Opcional: items por página (default: 10, max: 100)
 sortField=timestamp           // Opcional: campo para ordenar (timestamp, service, message, ingestedAt, createdAt)

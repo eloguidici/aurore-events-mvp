@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { CommonModule } from '../common/common.module';
 import { EventModule } from '../event/event.module';
 import { BatchWorkerService } from './services/batch-worker.service';
 
@@ -14,7 +15,7 @@ import { BatchWorkerService } from './services/batch-worker.service';
  * stops gracefully when the application shuts down.
  */
 @Module({
-  imports: [EventModule],
+  imports: [EventModule, CommonModule], // CommonModule provides MetricsCollectorService
   providers: [BatchWorkerService],
   exports: [BatchWorkerService],
 })

@@ -7,9 +7,10 @@ import {
 
 import { randomBytes } from 'crypto';
 
+import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
-import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
+import { EnrichedEvent } from '../../event/services/interfaces/enriched-event.interface';
 import { EventBufferService } from '../../event/services/event-buffer.service';
 import { EventService } from '../../event/services/events.service';
 
@@ -23,17 +24,10 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly drainInterval: number; // milliseconds
   private readonly maxRetries: number;
 
-  // Performance metrics
-  private readonly performanceMetrics = {
-    totalBatchesProcessed: 0,
-    totalEventsProcessed: 0,
-    totalInsertTimeMs: 0,
-    averageBatchProcessingTimeMs: 0,
-  };
-
   constructor(
     private readonly eventBufferService: EventBufferService,
     private readonly eventService: EventService,
+    private readonly metricsCollector: MetricsCollectorService,
   ) {
     this.batchSize = envs.batchSize;
     this.drainInterval = envs.drainInterval;
@@ -138,87 +132,115 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Process a batch of events from the buffer
-   * Drains buffer, validates events, inserts to database, and handles retries
+   * 
+   * This method orchestrates the batch processing workflow:
+   * 1. Extracts events from the buffer
+   * 2. Inserts events to the database
+   * 3. Handles retries for failed events
+   * 4. Tracks performance metrics
+   * 
+   * The method handles errors gracefully - if processing fails, it logs the error
+   * but continues running so the next batch can be processed.
    *
    * @private
    */
   private async process() {
     const batchStartTime = Date.now();
     let batch: EnrichedEvent[] = [];
+    let insertTimeMs = 0;
 
     try {
-      // Drain buffer (with validation of batch size to prevent memory issues)
-      const requestedBatchSize = Math.min(
-        this.batchSize,
-        10000, // Hard limit to prevent memory issues
-      );
-      batch = this.eventBufferService.drain(requestedBatchSize);
+      // Extract events from buffer, insert to database, and handle retries
+      const result = await this.executeBatchProcessing();
+      batch = result.batch;
+      insertTimeMs = result.insertTimeMs;
 
       if (batch.length === 0) {
-        return; // Buffer is empty
+        return; // Buffer is empty, nothing to process
       }
 
-      this.logger.debug(`Processing batch of ${batch.length} events`);
-
-      // All events are already validated:
-      // - New events: validated by ValidationPipe before entering buffer
-      // - Checkpoint events: validated when loaded from disk
-      // - Retry events: validated in previous batch before re-enqueue
-      // No need to validate again here
-
-      // Insert events to storage
-      // Pass EnrichedEvent[] directly to preserve eventId
-      if (batch.length > 0) {
-        const insertStartTime = Date.now();
-        const { successful, failed } =
-          await this.eventService.insert(batch);
-        const insertTimeMs = Date.now() - insertStartTime;
-        this.performanceMetrics.totalInsertTimeMs += insertTimeMs;
-
-        if (failed > 0) {
-          ErrorLogger.logWarning(this.logger, 'Failed to insert events', {
-            failedCount: failed,
-            successfulCount: successful,
-            totalAttempted: batch.length,
-          });
-
-          // Retry failed events (up to maxRetries)
-          // Note: insert doesn't specify which events failed, so we retry
-          // all events that were attempted. This is conservative but safe.
-          // In a production system, insert should return which specific events failed.
-          await this.retryFailed(batch);
-        }
-
-        if (successful > 0) {
-          this.logger.debug(`Successfully inserted ${successful} events`);
-        }
-      }
-
-      // Update performance metrics
+      // Record batch processing metrics
       const batchProcessingTimeMs = Date.now() - batchStartTime;
-      this.performanceMetrics.totalBatchesProcessed++;
-      this.performanceMetrics.totalEventsProcessed += batch.length;
-      this.performanceMetrics.averageBatchProcessingTimeMs =
-        (this.performanceMetrics.averageBatchProcessingTimeMs *
-          (this.performanceMetrics.totalBatchesProcessed - 1) +
-          batchProcessingTimeMs) /
-        this.performanceMetrics.totalBatchesProcessed;
-
-      // Log performance metrics periodically (every 100 batches)
-      if (this.performanceMetrics.totalBatchesProcessed % 100 === 0) {
-        this.logger.log(
-          `Performance metrics: avg batch time=${this.performanceMetrics.averageBatchProcessingTimeMs.toFixed(2)}ms, ` +
-            `avg insert=${(this.performanceMetrics.totalInsertTimeMs / this.performanceMetrics.totalBatchesProcessed).toFixed(2)}ms`,
-        );
-      }
+      this.metricsCollector.recordBatchProcessed(
+        batch.length,
+        batchProcessingTimeMs,
+        insertTimeMs,
+      );
     } catch (error) {
-      // Log error with standardized format - worker should continue processing
+      // Log error but continue processing - worker should never crash
       ErrorLogger.logError(this.logger, 'Error processing batch', error, {
         batchSize: batch.length,
       });
       // Worker continues - next batch will be processed
     }
   }
+
+  /**
+   * Execute the core batch processing workflow: extract, insert, and retry
+   * 
+   * This method handles the actual business logic of processing events:
+   * - Drains events from the buffer (up to batchSize)
+   * - Inserts events to the database via EventService
+   * - Handles retries for events that failed to insert
+   * 
+   * Events are already validated before reaching this point:
+   * - New events: validated by ValidationPipe before entering buffer
+   * - Checkpoint events: validated when loaded from disk
+   * - Retry events: validated in previous batch before re-enqueue
+   * 
+   * @returns Object containing batch and insertTimeMs for metrics tracking
+   * @private
+   */
+  private async executeBatchProcessing(): Promise<{
+    batch: EnrichedEvent[];
+    insertTimeMs: number;
+  }> {
+    // Drain buffer (with validation of batch size to prevent memory issues)
+    const requestedBatchSize = Math.min(
+      this.batchSize,
+      10000, // Hard limit to prevent memory issues
+    );
+    const batch = this.eventBufferService.drain(requestedBatchSize);
+
+    if (batch.length === 0) {
+      return { batch, insertTimeMs: 0 }; // Buffer is empty
+    }
+
+    this.logger.debug(`Processing batch of ${batch.length} events`);
+
+    // All events are already validated:
+    // - New events: validated by ValidationPipe before entering buffer
+    // - Checkpoint events: validated when loaded from disk
+    // - Retry events: validated in previous batch before re-enqueue
+    // No need to validate again here
+
+    // Insert events to storage
+    // Pass EnrichedEvent[] directly to preserve eventId
+    const insertStartTime = Date.now();
+    const { successful, failed } = await this.eventService.insert(batch);
+    const insertTimeMs = Date.now() - insertStartTime;
+
+    if (failed > 0) {
+      ErrorLogger.logWarning(this.logger, 'Failed to insert events', {
+        failedCount: failed,
+        successfulCount: successful,
+        totalAttempted: batch.length,
+      });
+
+      // Retry failed events (up to maxRetries)
+      // Note: insert doesn't specify which events failed, so we retry
+      // all events that were attempted. This is conservative but safe.
+      // In a production system, insert should return which specific events failed.
+      await this.retryFailed(batch);
+    }
+
+    if (successful > 0) {
+      this.logger.debug(`Successfully inserted ${successful} events`);
+    }
+
+    return { batch, insertTimeMs };
+  }
+
 
   /**
    * Calculate next retry count for an event

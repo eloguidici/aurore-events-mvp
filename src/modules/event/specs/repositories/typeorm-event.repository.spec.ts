@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { CreateEventDto } from '../dtos/create-event.dto';
-import { Event } from '../entities/event.entity';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { TypeOrmEventRepository } from './typeorm-event.repository';
+import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
+import { CreateEventDto } from '../../dtos/create-event.dto';
+import { Event } from '../../entities/event.entity';
+import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
+import { TypeOrmEventRepository } from '../../repositories/typeorm-event.repository';
 
 describe('TypeOrmEventRepository', () => {
   let repository: TypeOrmEventRepository;
@@ -146,3 +146,4 @@ describe('TypeOrmEventRepository', () => {
     });
   });
 });
+

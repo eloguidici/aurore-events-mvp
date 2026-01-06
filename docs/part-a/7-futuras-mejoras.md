@@ -93,7 +93,7 @@ CREATE INDEX idx_ingested_at ON events(ingested_at);
 ```typescript
 // Comprimir metadata antes de almacenar
 const compressed = compress(JSON.stringify(event.metadata));
-entity.metadataJson = compressed;
+entity.metadata = compressed; // JSONB soporta compresión nativa
 
 // Ahorro: ~50-70% de espacio en disco
 ```
@@ -182,7 +182,7 @@ app.use(helmet()); // Security headers
 ```typescript
 // Encriptar metadata sensible antes de almacenar
 const encrypted = encrypt(JSON.stringify(event.metadata), key);
-entity.metadataJson = encrypted;
+entity.metadata = encrypted; // JSONB permite almacenar datos encriptados
 
 // Usar KMS para gestión de keys
 ```

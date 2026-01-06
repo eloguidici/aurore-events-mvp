@@ -378,7 +378,7 @@ async batchInsert(events: CreateEventDto[]): Promise<BatchInsertResult> {
         timestamp: event.timestamp,
         service: event.service,
         message: event.message,
-        metadataJson: event.metadata ? JSON.stringify(event.metadata) : null,
+        metadata: event.metadata || null, // JSONB - TypeORM serializa automáticamente
         ingestedAt: new Date().toISOString(),
       }));
 

@@ -1,4 +1,4 @@
-import { CircuitState } from '../services/circuit-breaker.service';
+import { CircuitState } from '../circuit-breaker.service';
 
 /**
  * Interface for CircuitBreakerService

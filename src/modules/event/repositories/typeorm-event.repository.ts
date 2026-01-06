@@ -7,9 +7,9 @@ import { CircuitBreakerService } from '../../common/services/circuit-breaker.ser
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
 import { Event } from '../entities/event.entity';
-import { BatchInsertResult } from '../interfaces/batch-insert-result.interface';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { IEventRepository } from './event.repository.interface';
+import { BatchInsertResult } from './interfaces/batch-insert-result.interface';
+import { EnrichedEvent } from '../services/interfaces/enriched-event.interface';
+import { IEventRepository } from './interfaces/event.repository.interface';
 
 /**
  * TypeORM implementation of EventRepository

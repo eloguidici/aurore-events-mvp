@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
-import { EventBufferService } from '../../event/services/event-buffer.service';
-import { EventService } from '../../event/services/events.service';
-import { BatchWorkerService } from './batch-worker.service';
+import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
+import { EnrichedEvent } from '../../../event/services/interfaces/enriched-event.interface';
+import { EventBufferService } from '../../../event/services/event-buffer.service';
+import { EventService } from '../../../event/services/events.service';
+import { BatchWorkerService } from '../../services/batch-worker.service';
 
 // Mock envs before importing the service
-jest.mock('../../config/envs', () => ({
+jest.mock('../../../config/envs', () => ({
   envs: {
     batchSize: 100,
     drainInterval: 1000,
@@ -28,6 +29,11 @@ describe('BatchWorkerService', () => {
     insert: jest.fn(),
   };
 
+  const mockMetricsCollector = {
+    recordBatchProcessed: jest.fn(),
+    getBatchWorkerMetrics: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,6 +45,10 @@ describe('BatchWorkerService', () => {
         {
           provide: EventService,
           useValue: mockEventService,
+        },
+        {
+          provide: MetricsCollectorService,
+          useValue: mockMetricsCollector,
         },
       ],
     }).compile();
@@ -100,6 +110,7 @@ describe('BatchWorkerService', () => {
 
     expect(mockEventBufferService.drain).toHaveBeenCalled();
     expect(mockEventService.insert).toHaveBeenCalled();
+    expect(mockMetricsCollector.recordBatchProcessed).toHaveBeenCalled();
 
     await service.stop();
   });
@@ -175,3 +186,4 @@ describe('BatchWorkerService', () => {
     expect(mockEventBufferService.enqueue).toHaveBeenCalled();
   });
 });
+

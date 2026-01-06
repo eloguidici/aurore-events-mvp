@@ -5,7 +5,9 @@ import { CommonModule } from '../common/common.module';
 import { EventHealthController } from './controllers/event-health.controller';
 import { EventController } from './controllers/events.controller';
 import { Event } from './entities/event.entity';
-import { EVENT_REPOSITORY_TOKEN } from './repositories/event.repository.token';
+import { EVENT_REPOSITORY_TOKEN } from './repositories/interfaces/event.repository.token';
+import { FileMetricsRepository } from './repositories/file-metrics.repository';
+import { METRICS_REPOSITORY_TOKEN } from './repositories/interfaces/metrics.repository.token';
 import { TypeOrmEventRepository } from './repositories/typeorm-event.repository';
 import { BusinessMetricsService } from './services/business-metrics.service';
 import { EventBufferService } from './services/event-buffer.service';
@@ -15,7 +17,7 @@ import { MetricsPersistenceService } from './services/metrics-persistence.servic
 @Module({
   imports: [
     TypeOrmModule.forFeature([Event]),
-    CommonModule, // No longer needs forwardRef - no circular dependency
+    CommonModule, // Provides MetricsCollectorService and other common services
   ],
   controllers: [EventController, EventHealthController],
   providers: [
@@ -27,6 +29,11 @@ import { MetricsPersistenceService } from './services/metrics-persistence.servic
     {
       provide: EVENT_REPOSITORY_TOKEN,
       useClass: TypeOrmEventRepository,
+    },
+    FileMetricsRepository,
+    {
+      provide: METRICS_REPOSITORY_TOKEN,
+      useClass: FileMetricsRepository,
     },
   ],
   exports: [EventBufferService, EventService],

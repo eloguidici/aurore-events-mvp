@@ -1,6 +1,7 @@
 /**
  * Result of batch insert operation
  * Contains count of successful and failed insertions
+ * Used by repositories to report insertion results
  */
 export interface BatchInsertResult {
   /**
@@ -13,3 +14,4 @@ export interface BatchInsertResult {
    */
   failed: number;
 }
+

@@ -8,35 +8,56 @@ import { createWriteStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
 import { MetricsDto } from '../dtos/metrics-response.dto';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { IEventBufferService } from '../interfaces/event-buffer-service.interface';
+import { EnrichedEvent } from './interfaces/enriched-event.interface';
+import { IEventBufferService } from './interfaces/event-buffer-service.interface';
 
 @Injectable()
 export class EventBufferService
   implements IEventBufferService, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(EventBufferService.name);
-  // Use array with head index for O(1) dequeue operations
-  // This avoids O(n) shift() operations when draining batches
+  
+  /**
+   * Buffer array containing all events (both consumed and unconsumed)
+   * Uses a "head index" strategy for efficient operations:
+   * - Events are added with push() at the end (O(1))
+   * - Events are "removed" by moving bufferHead index (O(1) per drain)
+   * - This avoids expensive shift() operations which would be O(n) per element
+   */
   private readonly buffer: EnrichedEvent[] = [];
-  private bufferHead = 0; // Index of first element (for efficient draining)
+  
+  /**
+   * Index pointing to the first valid (not yet consumed) event in the buffer array
+   * 
+   * HOW IT WORKS:
+   * - buffer[0] to buffer[bufferHead-1] are "consumed" events (already drained)
+   * - buffer[bufferHead] to buffer[buffer.length-1] are "active" events (available)
+   * - When draining, we extract from bufferHead and then increment it
+   * - This avoids physically removing elements, keeping operations O(1)
+   * 
+   * Example:
+   *   buffer = [event1, event2, event3, event4, event5]
+   *   bufferHead = 2
+   *   → event1 and event2 are consumed (ignored)
+   *   → event3, event4, event5 are active (getSize() returns 3)
+   * 
+   * Periodically we compact the array when bufferHead > 50% of array length
+   * to free memory from consumed events.
+   */
+  private bufferHead = 0;
   private readonly maxSize: number;
-  private readonly metrics = {
-    totalEnqueued: 0,
-    totalDropped: 0,
-    startTime: Date.now(),
-    lastEnqueueTime: 0,
-    lastDrainTime: 0,
-  };
   private checkpointInterval: NodeJS.Timeout | null = null;
   private readonly checkpointPath: string;
   private readonly checkpointDir: string;
   private readonly checkpointIntervalMs: number;
 
-  constructor() {
+  constructor(
+    private readonly metricsCollector: MetricsCollectorService,
+  ) {
     this.maxSize = envs.bufferMaxSize;
     this.checkpointDir = path.join(process.cwd(), 'checkpoints');
     this.checkpointPath = path.join(
@@ -49,7 +70,15 @@ export class EventBufferService
 
   /**
    * Initialize buffer service on module startup
-   * Creates checkpoint directory, loads existing checkpoint, and starts periodic checkpointing
+   * 
+   * This method is automatically called when the NestJS module initializes.
+   * It performs three critical operations:
+   * 1. Creates the checkpoint directory if it doesn't exist
+   * 2. Loads events from checkpoint if exists (recovery after a crash)
+   * 3. Starts periodic checkpointing to enable recovery from failures
+   * 
+   * A checkpoint is a JSON file that saves the current buffer state to disk,
+   * allowing recovery of events that were in memory if the system restarts unexpectedly.
    */
   async onModuleInit() {
     // Create checkpoint directory
@@ -68,7 +97,14 @@ export class EventBufferService
 
   /**
    * Cleanup on module destruction
-   * Stops periodic checkpointing and saves final checkpoint if buffer has events
+   * 
+   * This method is automatically called when the NestJS module is destroyed (shutdown).
+   * Ensures no events are lost by saving a final checkpoint if there are events in the buffer.
+   * 
+   * Process:
+   * 1. Stops the periodic checkpointing interval
+   * 2. If there are active events in the buffer, saves a final checkpoint before closing
+   * 3. This ensures unprocessed events can be recovered on the next startup
    */
   async onModuleDestroy() {
     // Stop periodic checkpointing
@@ -91,29 +127,57 @@ export class EventBufferService
   }
 
   /**
-   * Enqueue an event to the buffer (non-blocking operation)
-   *
-   * @param event - Enriched event to add to buffer
-   * @returns true if event was enqueued, false if buffer is full
+   * Add an event to the buffer (non-blocking operation)
+   * 
+   * This is the main method for adding events to the buffer. It checks if there's
+   * available space before adding. If the buffer is full, the event is discarded
+   * and the dropped events counter is incremented.
+   * 
+   * @param event - Enriched event (EnrichedEvent) containing all event information
+   *                including metadata, timestamps, service name, etc.
+   * @returns true if the event was successfully added to the buffer,
+   *          false if the buffer is full and the event was discarded
+   * 
+   * @example
+   * ```typescript
+   * const success = bufferService.enqueue(event);
+   * if (!success) {
+   *   logger.warn('Buffer full, event discarded');
+   * }
+   * ```
    */
   public enqueue(event: EnrichedEvent): boolean {
     // Use getSize() to account for bufferHead (efficient draining)
     if (this.getSize() >= this.maxSize) {
-      this.metrics.totalDropped++;
+      this.metricsCollector.recordBufferDrop();
       return false;
     }
 
     this.buffer.push(event);
-    this.metrics.totalEnqueued++;
-    this.metrics.lastEnqueueTime = Date.now();
+    this.metricsCollector.recordBufferEnqueue();
     return true;
   }
 
   /**
-   * Compact buffer array when head exceeds 50% of length
-   * Removes drained events from memory to prevent memory growth
-   *
+   * Compact the buffer array when needed to free memory
+   * 
+   * CONTEXT: This buffer uses a "head index" strategy for efficiency:
+   * - Events are added with push() at the end of the array
+   * - Events are virtually removed by moving bufferHead (index of first valid element)
+   * - This avoids expensive operations like shift() which would be O(n)
+   * 
+   * PROBLEM: If we never physically remove elements, the array grows indefinitely
+   * even though many elements are already "consumed" (bufferHead advanced).
+   * 
+   * SOLUTION: When bufferHead > 50% of array length, we physically remove
+   * the already-consumed elements. This frees memory while maintaining efficiency.
+   * 
    * @private
+   * 
+   * @example
+   * Before: [drained, drained, drained, valid, valid, valid]
+   *                            ↑ bufferHead = 3
+   * After:  [valid, valid, valid] with bufferHead = 0
    */
   private compactBufferIfNeeded(): void {
     if (this.bufferHead > this.buffer.length / 2) {
@@ -124,11 +188,19 @@ export class EventBufferService
 
   /**
    * Serialize events to write stream with error handling
-   * Skips events that fail to serialize (e.g., circular references)
-   *
-   * @param events - Events to serialize
-   * @param writeStream - Stream to write to
-   * @returns Object with counts of successful and failed serializations
+   * 
+   * This method converts events to JSON format and writes them to a file stream.
+   * It handles serialization errors gracefully by skipping problematic events
+   * (e.g., circular references) instead of failing the entire checkpoint operation.
+   * 
+   * Each event is written as a JSON object separated by commas, with proper
+   * formatting for a JSON array structure.
+   * 
+   * @param events - Array of events to serialize to JSON
+   * @param writeStream - Node.js write stream to write the serialized events to
+   * @returns Object containing:
+   *          - serializedCount: number of events successfully serialized
+   *          - failedCount: number of events that failed to serialize
    * @private
    */
   private serializeEventsToStream(
@@ -167,8 +239,18 @@ export class EventBufferService
 
   /**
    * Validate and fix bufferHead if desynchronized
-   * Prevents index out of bounds errors and ensures buffer consistency
-   *
+   * 
+   * bufferHead is an index that points to the first valid (not yet consumed) event
+   * in the buffer array. This method ensures bufferHead is always within valid bounds
+   * to prevent index out of bounds errors.
+   * 
+   * Why this is needed:
+   * - bufferHead should always be between 0 and buffer.length
+   * - If it's negative or >= buffer.length, the buffer state is inconsistent
+   * - This can happen due to bugs or unexpected state changes
+   * 
+   * This is a safety check that ensures the buffer remains in a consistent state.
+   * 
    * @private
    */
   private validateAndFixBufferHead(): void {
@@ -188,11 +270,31 @@ export class EventBufferService
 
   /**
    * Drain events from the buffer
-   * Removes events from buffer and returns them for processing
-   * Uses efficient O(1) per-element removal instead of O(n) shift()
-   *
-   * @param batchSize - Maximum number of events to drain
+   * 
+   * This method extracts events from the buffer for processing. It removes events
+   * from the buffer and returns them as an array. The buffer uses an efficient
+   * "head index" strategy instead of expensive array shift() operations.
+   * 
+   * How it works:
+   * 1. Validates batchSize parameter (must be > 0)
+   * 2. Caps batchSize to prevent excessive memory usage
+   * 3. Extracts events starting from bufferHead (the first valid event)
+   * 4. Updates bufferHead to mark those events as consumed
+   * 5. Periodically compacts the array to free memory
+   * 
+   * This operation is O(n) where n is the batch size, but avoids O(n²) complexity
+   * that would occur if we used shift() repeatedly.
+   * 
+   * @param batchSize - Maximum number of events to extract from the buffer
    * @returns Array of events (up to batchSize), or empty array if buffer is empty
+   * 
+   * @example
+   * ```typescript
+   * const events = bufferService.drain(100); // Get up to 100 events
+   * if (events.length > 0) {
+   *   await processEvents(events);
+   * }
+   * ```
    */
   public drain(batchSize: number): EnrichedEvent[] {
     // Validate batchSize parameter
@@ -238,9 +340,9 @@ export class EventBufferService
     // Compact when head is > 50% of array length to free memory
     this.compactBufferIfNeeded();
 
-    // Update metrics if events were drained
+    // Record drain event if events were extracted
     if (batch.length > 0) {
-      this.metrics.lastDrainTime = Date.now();
+      this.metricsCollector.recordBufferDrain();
     }
 
     return batch;
@@ -248,8 +350,14 @@ export class EventBufferService
 
   /**
    * Get current number of events in buffer
-   *
-   * @returns Current buffer size (number of events)
+   * 
+   * Returns the count of events that are still available for processing.
+   * This accounts for the bufferHead index, which tracks how many events
+   * have already been consumed/drained.
+   * 
+   * Formula: actual size = array length - bufferHead (consumed events)
+   * 
+   * @returns Current number of valid events in buffer (not yet consumed)
    */
   public getSize(): number {
     return this.buffer.length - this.bufferHead;
@@ -275,27 +383,45 @@ export class EventBufferService
 
   /**
    * Get buffer metrics and statistics
-   *
-   * @returns MetricsDto containing buffer metrics and statistics
+   * 
+   * Calculates and returns comprehensive metrics about the buffer's performance
+   * and health status. These metrics are useful for monitoring and alerting.
+   * 
+   * Metrics included:
+   * - Current size and capacity (utilization percentage)
+   * - Total events enqueued and dropped
+   * - Drop rate (percentage of events that couldn't be enqueued)
+   * - Throughput (events per second)
+   * - Health status (healthy/warning/critical based on utilization and drop rate)
+   * - Time since last enqueue/drain operations
+   * - Uptime (how long the buffer service has been running)
+   * 
+   * Health status thresholds:
+   * - critical: utilization >= 90% OR drop rate > 5%
+   * - warning: utilization >= 70% OR drop rate > 1%
+   * - healthy: otherwise
+   * 
+   * @returns MetricsDto object containing all buffer metrics and statistics
    */
   public getMetrics(): MetricsDto {
     const currentTime = Date.now();
-    const uptimeSeconds = (currentTime - this.metrics.startTime) / 1000;
+    const bufferMetrics = this.metricsCollector.getBufferMetrics();
+    const uptimeSeconds = (currentTime - bufferMetrics.startTime) / 1000;
     const currentSize = this.getSize();
     const utilizationPercent = (currentSize / this.maxSize) * 100;
 
     // Calculate drop rate (percentage of events dropped)
     // Drop rate = dropped / (enqueued + dropped) * 100
     const totalAttempted =
-      this.metrics.totalEnqueued + this.metrics.totalDropped;
+      bufferMetrics.totalEnqueued + bufferMetrics.totalDropped;
     const dropRate =
       totalAttempted > 0
-        ? (this.metrics.totalDropped / totalAttempted) * 100
+        ? (bufferMetrics.totalDropped / totalAttempted) * 100
         : 0;
 
     // Calculate throughput (events per second)
     const throughput =
-      uptimeSeconds > 0 ? this.metrics.totalEnqueued / uptimeSeconds : 0;
+      uptimeSeconds > 0 ? bufferMetrics.totalEnqueued / uptimeSeconds : 0;
 
     // Determine health status based on utilization and drop rate
     let healthStatus: 'healthy' | 'warning' | 'critical';
@@ -309,16 +435,17 @@ export class EventBufferService
 
     // Calculate time since last operations
     const timeSinceLastEnqueue =
-      this.metrics.lastEnqueueTime > 0
-        ? (currentTime - this.metrics.lastEnqueueTime) / 1000
+      bufferMetrics.lastEnqueueTime > 0
+        ? (currentTime - bufferMetrics.lastEnqueueTime) / 1000
         : null;
     const timeSinceLastDrain =
-      this.metrics.lastDrainTime > 0
-        ? (currentTime - this.metrics.lastDrainTime) / 1000
+      bufferMetrics.lastDrainTime > 0
+        ? (currentTime - bufferMetrics.lastDrainTime) / 1000
         : null;
 
     return new MetricsDto({
-      ...this.metrics,
+      totalEnqueued: bufferMetrics.totalEnqueued,
+      totalDropped: bufferMetrics.totalDropped,
       currentSize,
       capacity: this.maxSize,
       utilizationPercent,
@@ -333,9 +460,16 @@ export class EventBufferService
 
   /**
    * Ensure checkpoint directory exists
-   * Creates directory if it doesn't exist (recursive)
-   *
-   * @throws Error if directory creation fails
+   * 
+   * This method creates the checkpoint directory if it doesn't exist.
+   * Uses recursive option to create parent directories if needed.
+   * 
+   * The checkpoint directory is where checkpoint files are stored.
+   * If creation fails, the error is logged and re-thrown since the
+   * buffer service cannot function without the checkpoint directory.
+   * 
+   * @throws Error if directory creation fails (permissions, disk full, etc.)
+   * @private
    */
   private async ensureCheckpointDir(): Promise<void> {
     try {
@@ -353,7 +487,25 @@ export class EventBufferService
 
   /**
    * Load checkpoint from disk on startup
-   * Recovers events that were in buffer when system crashed
+   * 
+   * This method attempts to recover events that were saved to disk before a system
+   * crash or unexpected shutdown. It reads the checkpoint file, validates events,
+   * and loads them back into the buffer.
+   * 
+   * Process:
+   * 1. Reads the checkpoint JSON file from disk
+   * 2. Validates that it's a valid array structure
+   * 3. Validates each event before loading (checks required fields and formats)
+   * 4. Loads valid events into the buffer (respects max capacity)
+   * 5. Deletes the checkpoint file after successful load (prevents duplicates)
+   * 
+   * Error handling:
+   * - If checkpoint doesn't exist (ENOENT), this is normal (first run)
+   * - Invalid events are skipped with a warning
+   * - If buffer fills up during loading, loading stops and warns
+   * - Errors are logged but don't prevent service startup
+   * 
+   * @private
    */
   private async loadCheckpoint(): Promise<void> {
     try {
@@ -411,7 +563,10 @@ export class EventBufferService
         this.logger.log(
           `Loaded ${loadedCount} events from checkpoint (recovered from previous crash)`,
         );
-        this.metrics.totalEnqueued += loadedCount;
+        // Record loaded events as enqueued (they were recovered from checkpoint)
+        for (let i = 0; i < loadedCount; i++) {
+          this.metricsCollector.recordBufferEnqueue();
+        }
       }
 
       // Delete checkpoint after loading (prevent duplicates)
@@ -440,11 +595,30 @@ export class EventBufferService
 
   /**
    * Save current buffer state to disk (checkpoint)
-   * Uses streaming to avoid loading all events in memory
-   * Uses atomic write (temp file + rename) to prevent corruption
-   * This allows recovery if system crashes
-   *
-   * @returns Promise that resolves when checkpoint is saved
+   * 
+   * This method saves the current buffer contents to disk as a JSON file, allowing
+   * recovery of events if the system crashes or shuts down unexpectedly.
+   * 
+   * Key features:
+   * 1. Streaming: Uses file streams instead of loading all events in memory at once
+   *    - This is memory-efficient even with large buffers
+   *    - Events are serialized and written one at a time
+   * 
+   * 2. Atomic writes: Uses a temporary file + rename pattern
+   *    - Writes to a .tmp file first
+   *    - Renames to final filename only after successful write
+   *    - Prevents partial/corrupted checkpoints if write fails midway
+   * 
+   * 3. Error handling: Continues gracefully if checkpoint fails
+   *    - Logs errors but doesn't throw (system can continue without checkpoint)
+   *    - Cleans up temp files on error
+   *    - Skips serialization errors for individual events (continues with rest)
+   * 
+   * Only saves active events (from bufferHead to end), ignoring already-drained events.
+   * 
+   * @returns Promise that resolves when checkpoint is successfully saved, or
+   *          resolves immediately if buffer is empty (nothing to save)
+   * @private
    */
   private async saveCheckpoint(): Promise<void> {
     const currentSize = this.getSize();
@@ -518,8 +692,21 @@ export class EventBufferService
 
   /**
    * Start periodic checkpointing
-   * Saves buffer to disk at configured intervals
-   * Interval is configured via CHECKPOINT_INTERVAL_MS environment variable
+   * 
+   * Sets up an interval timer that automatically saves the buffer to disk
+   * at regular intervals. This ensures events are periodically persisted,
+   * reducing data loss in case of unexpected shutdowns.
+   * 
+   * How it works:
+   * - Uses setInterval to schedule periodic saves
+   * - Only saves if there are active events in the buffer (checks getSize() > 0)
+   * - Interval is configured via CHECKPOINT_INTERVAL_MS environment variable
+   * - Errors during checkpoint save are logged but don't stop the interval
+   * 
+   * The interval is stored in this.checkpointInterval and can be stopped
+   * by calling clearInterval() (done automatically in onModuleDestroy).
+   * 
+   * @private
    */
   private startCheckpointing(): void {
     this.checkpointInterval = setInterval(() => {
@@ -543,10 +730,29 @@ export class EventBufferService
 
   /**
    * Validate event structure before loading from checkpoint
-   * Ensures event has all required fields with correct types and valid format
-   *
-   * @param event - Event object to validate
-   * @returns true if event is valid EnrichedEvent, false otherwise
+   * 
+   * This method performs type checking and format validation on events loaded
+   * from checkpoint files. It ensures events have the correct structure and
+   * data types before allowing them into the buffer.
+   * 
+   * Validation checks:
+   * 1. Event is an object (not null, not primitive)
+   * 2. Required fields exist with correct types:
+   *    - eventId: string (must match pattern evt_[12 hex chars])
+   *    - timestamp: string (must be parseable as Date)
+   *    - service: string
+   *    - message: string
+   *    - ingestedAt: string (must be parseable as Date)
+   * 3. eventId format: must match regex /^evt_[0-9a-f]{12}$/i
+   * 4. Timestamps are valid dates (not NaN)
+   * 
+   * This is a TypeScript type guard, so if it returns true, TypeScript knows
+   * the event is a valid EnrichedEvent.
+   * 
+   * @param event - Event object to validate (can be any type)
+   * @returns true if event is a valid EnrichedEvent with correct structure and format,
+   *          false otherwise
+   * @private
    */
   private isValid(event: any): event is EnrichedEvent {
     // Early return: check basic structure

@@ -1,4 +1,4 @@
-import { EnrichedEvent } from '../../event/interfaces/enriched-event.interface';
+import { EnrichedEvent } from '../../../event/services/interfaces/enriched-event.interface';
 
 /**
  * Result of batch validation

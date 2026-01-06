@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs/promises';
 
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { EventBufferService } from './event-buffer.service';
+import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
+import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface'; 
+import { EventBufferService } from '../../services/event-buffer.service';
 
 // Mock envs before importing the service
-jest.mock('../../config/envs', () => ({
+jest.mock('../../../config/envs', () => ({
   envs: {
     bufferMaxSize: 1000,
     checkpointIntervalMs: 60000,
@@ -40,13 +41,32 @@ jest.mock('fs', () => {
 
 describe('EventBufferService', () => {
   let service: EventBufferService;
+  let metricsCollector: MetricsCollectorService;
+
+  const mockMetricsCollector = {
+    recordBufferEnqueue: jest.fn(),
+    recordBufferDrop: jest.fn(),
+    recordBufferDrain: jest.fn(),
+    getBufferMetrics: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [EventBufferService],
+      providers: [
+        EventBufferService,
+        {
+          provide: MetricsCollectorService,
+          useValue: mockMetricsCollector,
+        },
+      ],
     }).compile();
 
     service = module.get<EventBufferService>(EventBufferService);
+    metricsCollector = module.get<MetricsCollectorService>(
+      MetricsCollectorService,
+    );
+
+    jest.clearAllMocks();
 
     // Mock fs methods
     (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
@@ -81,6 +101,7 @@ describe('EventBufferService', () => {
 
       expect(result).toBe(true);
       expect(service.getSize()).toBe(1);
+      expect(mockMetricsCollector.recordBufferEnqueue).toHaveBeenCalled();
     });
 
     it('should return false when buffer is full', () => {
@@ -106,6 +127,7 @@ describe('EventBufferService', () => {
 
       expect(result).toBe(false);
       expect(service.getSize()).toBe(1);
+      expect(mockMetricsCollector.recordBufferDrop).toHaveBeenCalled();
 
       // Restore original maxSize
       Object.defineProperty(service, 'maxSize', {
@@ -138,6 +160,7 @@ describe('EventBufferService', () => {
       expect(drained.length).toBe(1);
       expect(drained[0].eventId).toBe('evt_123');
       expect(service.getSize()).toBe(0);
+      expect(mockMetricsCollector.recordBufferDrain).toHaveBeenCalled();
     });
 
     it('should drain only up to batchSize', () => {
@@ -181,7 +204,15 @@ describe('EventBufferService', () => {
   });
 
   describe('getMetrics', () => {
-    it('should return metrics', () => {
+    it('should return metrics from MetricsCollectorService', () => {
+      mockMetricsCollector.getBufferMetrics.mockReturnValue({
+        totalEnqueued: 100,
+        totalDropped: 5,
+        startTime: Date.now() - 3600000, // 1 hour ago
+        lastEnqueueTime: Date.now() - 1000,
+        lastDrainTime: Date.now() - 500,
+      });
+
       const metrics = service.getMetrics();
 
       expect(metrics).toBeDefined();
@@ -189,8 +220,9 @@ describe('EventBufferService', () => {
       expect(metrics).toHaveProperty('buffer_capacity');
       expect(metrics).toHaveProperty('buffer_utilization_percent');
       expect(metrics).toHaveProperty('metrics');
-      expect(metrics.metrics).toHaveProperty('total_enqueued');
-      expect(metrics.metrics).toHaveProperty('total_dropped');
+      expect(metrics.metrics.total_enqueued).toBe(100);
+      expect(metrics.metrics.total_dropped).toBe(5);
+      expect(mockMetricsCollector.getBufferMetrics).toHaveBeenCalled();
     });
   });
 
@@ -228,3 +260,4 @@ describe('EventBufferService', () => {
     });
   });
 });
+

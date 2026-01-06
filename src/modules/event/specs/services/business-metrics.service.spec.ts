@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { Event } from '../entities/event.entity';
-import { BusinessMetricsService } from './business-metrics.service';
+import { Event } from '../../entities/event.entity';
+import { BusinessMetricsService } from '../../services/business-metrics.service';
 
 describe('BusinessMetricsService', () => {
   let service: BusinessMetricsService;
@@ -56,3 +56,4 @@ describe('BusinessMetricsService', () => {
     expect(service['cacheTimestamp']).toBe(0);
   });
 });
+

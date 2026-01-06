@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { CreateEventDto } from '../dtos/create-event.dto';
-import { QueryDto } from '../dtos/query-events.dto';
-import { BufferSaturatedException } from '../exceptions';
-import { EnrichedEvent } from '../interfaces/enriched-event.interface';
-import { EVENT_REPOSITORY_TOKEN } from '../repositories/event.repository.token';
-import { EventBufferService } from './event-buffer.service';
-import { EventService } from './events.service';
+import { CreateEventDto } from '../../dtos/create-event.dto';
+import { QueryDto } from '../../dtos/query-events.dto';
+import { BufferSaturatedException } from '../../exceptions';
+import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
+import { EVENT_REPOSITORY_TOKEN } from '../../repositories/interfaces/event.repository.token';
+import { EventBufferService } from '../../services/event-buffer.service';
+import { EventService } from '../../services/events.service';
 
 describe('EventService', () => {
   let service: EventService;
@@ -159,3 +159,4 @@ describe('EventService', () => {
     });
   });
 });
+

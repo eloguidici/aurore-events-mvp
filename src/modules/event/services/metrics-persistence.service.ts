@@ -1,35 +1,15 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
-import { IMetricsPersistenceService } from '../interfaces/metrics-persistence-service.interface';
+import { IMetricsPersistenceService } from './interfaces/metrics-persistence-service.interface';
+import {
+  IMetricsRepository,
+  MetricsSnapshot,
+} from '../repositories/interfaces/metrics.repository.interface';
+import { METRICS_REPOSITORY_TOKEN } from '../repositories/interfaces/metrics.repository.token';
 import { EventBufferService } from './event-buffer.service';
-
-interface MetricsSnapshot {
-  timestamp: string;
-  buffer: {
-    size: number;
-    capacity: number;
-    utilization_percent: string;
-    total_enqueued: number;
-    total_dropped: number;
-    drop_rate_percent: string;
-    throughput_events_per_second: string;
-  };
-  circuitBreaker: {
-    state: string;
-    failureCount: number;
-    successCount: number;
-  };
-}
 
 /**
  * Service for persisting metrics to disk
@@ -40,30 +20,29 @@ export class MetricsPersistenceService
   implements IMetricsPersistenceService, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(MetricsPersistenceService.name);
-  private readonly metricsDir: string;
-  private readonly metricsFile: string;
   private persistenceInterval: NodeJS.Timeout | null = null;
   private readonly PERSISTENCE_INTERVAL_MS = 60000; // 1 minute
 
   constructor(
     private readonly eventBufferService: EventBufferService,
     private readonly circuitBreaker: CircuitBreakerService,
-  ) {
-    this.metricsDir = path.join(process.cwd(), 'metrics');
-    this.metricsFile = path.join(this.metricsDir, 'metrics-history.jsonl');
-  }
+    @Inject(METRICS_REPOSITORY_TOKEN)
+    private readonly metricsRepository: IMetricsRepository,
+  ) {}
 
   async onModuleInit() {
-    // Create metrics directory
+    // Initialize repository (creates directory if needed)
     try {
-      await fs.mkdir(this.metricsDir, { recursive: true });
+      if ('initialize' in this.metricsRepository && typeof this.metricsRepository.initialize === 'function') {
+        await (this.metricsRepository as any).initialize();
+      }
     } catch (error) {
       ErrorLogger.logError(
         this.logger,
-        'Failed to create metrics directory',
+        'Failed to initialize metrics repository',
         error,
-        { metricsDir: this.metricsDir },
       );
+      // Continue - repository might handle initialization internally
     }
 
     // Start periodic persistence
@@ -97,72 +76,68 @@ export class MetricsPersistenceService
   }
 
   /**
-   * Save current metrics snapshot to disk
+   * Build metrics snapshot from current system state
+   *
+   * @returns MetricsSnapshot with current metrics
+   * @private
+   */
+  private buildMetricsSnapshot(): MetricsSnapshot {
+    const bufferMetrics = this.eventBufferService.getMetrics();
+    const circuitMetrics = this.circuitBreaker.getMetrics();
+
+    return {
+      timestamp: new Date().toISOString(), // UTC timestamp (ISO 8601, ends with 'Z')
+      buffer: {
+        size: bufferMetrics.buffer_size,
+        capacity: bufferMetrics.buffer_capacity,
+        utilization_percent: bufferMetrics.buffer_utilization_percent,
+        total_enqueued: bufferMetrics.metrics.total_enqueued,
+        total_dropped: bufferMetrics.metrics.total_dropped,
+        drop_rate_percent: bufferMetrics.metrics.drop_rate_percent,
+        throughput_events_per_second:
+          bufferMetrics.metrics.throughput_events_per_second,
+      },
+      circuitBreaker: {
+        state: circuitMetrics.state,
+        failureCount: circuitMetrics.failureCount,
+        successCount: circuitMetrics.successCount,
+      },
+    };
+  }
+
+  /**
+   * Save current metrics snapshot using repository
+   * Delegates persistence to the metrics repository
    */
   private async saveMetrics(): Promise<void> {
     try {
-      const bufferMetrics = this.eventBufferService.getMetrics();
-      const circuitMetrics = this.circuitBreaker.getMetrics();
-
-      const snapshot: MetricsSnapshot = {
-        timestamp: new Date().toISOString(), // UTC timestamp (ISO 8601, ends with 'Z')
-        buffer: {
-          size: bufferMetrics.buffer_size,
-          capacity: bufferMetrics.buffer_capacity,
-          utilization_percent: bufferMetrics.buffer_utilization_percent,
-          total_enqueued: bufferMetrics.metrics.total_enqueued,
-          total_dropped: bufferMetrics.metrics.total_dropped,
-          drop_rate_percent: bufferMetrics.metrics.drop_rate_percent,
-          throughput_events_per_second:
-            bufferMetrics.metrics.throughput_events_per_second,
-        },
-        circuitBreaker: {
-          state: circuitMetrics.state,
-          failureCount: circuitMetrics.failureCount,
-          successCount: circuitMetrics.successCount,
-        },
-      };
-
-      // Append to JSONL file (one JSON object per line)
-      const line = JSON.stringify(snapshot) + '\n';
-      await fs.appendFile(this.metricsFile, line, 'utf-8');
-
+      const snapshot = this.buildMetricsSnapshot();
+      await this.metricsRepository.save(snapshot);
       this.logger.debug('Metrics snapshot saved');
     } catch (error) {
-      ErrorLogger.logError(this.logger, 'Failed to save metrics', error, {
-        metricsFile: this.metricsFile,
-      });
+      ErrorLogger.logError(this.logger, 'Failed to save metrics', error);
+      // Don't throw - service should continue even if metrics persistence fails
     }
   }
 
   /**
    * Get metrics history (last N entries)
+   * Delegates to metrics repository
+   *
+   * @param limit - Maximum number of entries to return (default: from envs)
+   * @returns Array of metrics snapshots
    */
   public async getMetricsHistory(
     limit: number = envs.metricsHistoryDefaultLimit,
   ): Promise<MetricsSnapshot[]> {
     try {
-      const content = await fs.readFile(this.metricsFile, 'utf-8');
-      const lines = content
-        .trim()
-        .split('\n')
-        .filter((line) => line.trim());
-      const snapshots = lines
-        .slice(-limit)
-        .map((line) => JSON.parse(line) as MetricsSnapshot);
-      return snapshots;
+      return await this.metricsRepository.getHistory(limit);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return []; // File doesn't exist yet
-      }
       ErrorLogger.logError(
         this.logger,
-        'Failed to read metrics history',
+        'Failed to get metrics history',
         error,
-        {
-          metricsFile: this.metricsFile,
-          limit,
-        },
+        { limit },
       );
       return [];
     }

@@ -183,7 +183,7 @@ POST /events
 Content-Type: application/json
 
 {
-  "timestamp": "2024-01-15T10:30:00Z",
+  "timestamp": "2024-01-15T10:30:00.000Z",
   "service": "auth-service",
   "message": "User login successful",
   "metadata": {
@@ -213,7 +213,7 @@ Content-Type: application/json
 ### Query Events
 
 ```bash
-GET /events?service=auth-service&from=2024-01-15T00:00:00Z&to=2024-01-15T23:59:59Z&limit=50&offset=0
+GET /events?service=auth-service&from=2024-01-15T00:00:00.000Z&to=2024-01-15T23:59:59.000Z&page=1&pageSize=50
 ```
 
 **Response (200):**
@@ -222,13 +222,16 @@ GET /events?service=auth-service&from=2024-01-15T00:00:00Z&to=2024-01-15T23:59:5
   "events": [
     {
       "id": "evt_abc123",
-      "timestamp": "2024-01-15T10:30:00Z",
+      "eventId": "evt_abc123",
+      "timestamp": "2024-01-15T10:30:00.000Z",
       "service": "auth-service",
       "message": "User login successful",
       "metadata": {
         "user_id": "12345",
         "ip_address": "192.168.1.1"
-      }
+      },
+      "ingestedAt": "2024-01-15T10:30:01.000Z",
+      "createdAt": "2024-01-15T10:30:01.000Z"
     }
   ],
   "pagination": {

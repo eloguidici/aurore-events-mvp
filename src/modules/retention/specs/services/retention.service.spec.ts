@@ -1,8 +1,8 @@
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { EventService } from '../../event/services/events.service';
-import { RetentionService } from './retention.service';
+import { EventService } from '../../../event/services/events.service';
+import { RetentionService } from '../../services/retention.service';
 
 describe('RetentionService', () => {
   let service: RetentionService;
@@ -62,3 +62,4 @@ describe('RetentionService', () => {
     });
   });
 });
+

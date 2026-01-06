@@ -70,7 +70,9 @@
 
 **Características clave:**
 - **Repository Pattern:** Interfaz `IEventRepository` con implementación `TypeOrmEventRepository`
-- Tabla: `events` (id, timestamp, service, message, metadata_json, ingested_at, created_at)
+- Tabla: `events` (id, event_id, timestamp, service, message, metadata [JSONB], ingested_at, created_at)
+  - **Timezone**: Todas las fechas en UTC
+  - **Metadata**: Tipo JSONB nativo de PostgreSQL para consultas JSON eficientes
 - Índice compuesto: `(service, timestamp)` para optimización de consultas
 - Transacciones atómicas para batch inserts eficientes
 - **Circuit Breaker:** Protege operaciones de DB (CLOSED → OPEN → HALF_OPEN)

@@ -177,8 +177,6 @@ export function ApiQueryEvents() {
       description: 'Page number for pagination (minimum: 1, maximum: 10000, default: 1)',
       example: 1,
       type: Number,
-      minimum: 1,
-      maximum: 10000,
     }),
     ApiQuery({
       name: 'pageSize',

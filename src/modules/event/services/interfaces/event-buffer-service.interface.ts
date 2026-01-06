@@ -1,4 +1,4 @@
-import { MetricsDto } from '../dtos/metrics-response.dto';
+import { MetricsDto } from '../../dtos/metrics-response.dto';
 import { EnrichedEvent } from './enriched-event.interface';
 
 /**
@@ -37,3 +37,4 @@ export interface IEventBufferService {
    */
   getMetrics(): MetricsDto;
 }
+

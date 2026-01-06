@@ -5,7 +5,7 @@ import { CronJob } from 'cron';
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { envs } from '../../config/envs';
 import { EventService } from '../../event/services/events.service';
-import { IRetentionService } from '../interfaces/retention-service.interface';
+import { IRetentionService } from './interfaces/retention-service.interface';
 
 @Injectable()
 export class RetentionService implements IRetentionService, OnModuleInit {

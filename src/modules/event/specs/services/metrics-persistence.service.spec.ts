@@ -1,14 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import * as fs from 'fs/promises';
 
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { Event } from '../entities/event.entity';
-import { EventBufferService } from './event-buffer.service';
-import { MetricsPersistenceService } from './metrics-persistence.service';
-
-// Mock fs module
-jest.mock('fs/promises');
+import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
+import { Event } from '../../entities/event.entity';
+import { MetricsSnapshot } from '../../repositories/interfaces/metrics.repository.interface';
+import { METRICS_REPOSITORY_TOKEN } from '../../repositories/interfaces/metrics.repository.token';
+import { EventBufferService } from '../../services/event-buffer.service';
+import { MetricsPersistenceService } from '../../services/metrics-persistence.service';
 
 describe('MetricsPersistenceService', () => {
   let service: MetricsPersistenceService;
@@ -40,6 +38,12 @@ describe('MetricsPersistenceService', () => {
     execute: jest.fn(),
   };
 
+  const mockMetricsRepository = {
+    save: jest.fn().mockResolvedValue(undefined),
+    getHistory: jest.fn().mockResolvedValue([]),
+    initialize: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -56,15 +60,14 @@ describe('MetricsPersistenceService', () => {
           provide: CircuitBreakerService,
           useValue: mockCircuitBreakerService,
         },
+        {
+          provide: METRICS_REPOSITORY_TOKEN,
+          useValue: mockMetricsRepository,
+        },
       ],
     }).compile();
 
     service = module.get<MetricsPersistenceService>(MetricsPersistenceService);
-
-    // Mock fs methods
-    (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
-    (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
-    (fs.readFile as jest.Mock).mockRejectedValue({ code: 'ENOENT' }); // File doesn't exist by default
 
     jest.clearAllMocks();
   });
@@ -81,16 +84,17 @@ describe('MetricsPersistenceService', () => {
 
   describe('getMetricsHistory', () => {
     it('should return empty array when no history exists', async () => {
-      // File doesn't exist - should return empty array
-      (fs.readFile as jest.Mock).mockRejectedValue({ code: 'ENOENT' });
+      // Repository returns empty array when no history exists
+      mockMetricsRepository.getHistory.mockResolvedValue([]);
 
       const result = await service.getMetricsHistory();
 
       expect(result).toEqual([]);
+      expect(mockMetricsRepository.getHistory).toHaveBeenCalled();
     });
 
     it('should return metrics history', async () => {
-      const mockSnapshot = {
+      const mockSnapshot: MetricsSnapshot = {
         timestamp: new Date().toISOString(),
         buffer: {
           size: 10,
@@ -108,18 +112,17 @@ describe('MetricsPersistenceService', () => {
         },
       };
 
-      // JSONL format - one JSON object per line
-      (fs.readFile as jest.Mock).mockResolvedValue(
-        JSON.stringify(mockSnapshot) + '\n',
-      );
+      mockMetricsRepository.getHistory.mockResolvedValue([mockSnapshot]);
 
       const result = await service.getMetricsHistory();
 
       expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toEqual(mockSnapshot);
+      expect(mockMetricsRepository.getHistory).toHaveBeenCalled();
     });
 
     it('should respect limit parameter', async () => {
-      const mockSnapshot = {
+      const mockSnapshot: MetricsSnapshot = {
         timestamp: new Date().toISOString(),
         buffer: {
           size: 10,
@@ -137,15 +140,15 @@ describe('MetricsPersistenceService', () => {
         },
       };
 
-      // JSONL format - create 100 lines
-      const lines = Array(100)
-        .fill(null)
-        .map(() => JSON.stringify(mockSnapshot));
-      (fs.readFile as jest.Mock).mockResolvedValue(lines.join('\n'));
+      // Repository returns limited results
+      const limitedSnapshots = Array(10).fill(mockSnapshot);
+      mockMetricsRepository.getHistory.mockResolvedValue(limitedSnapshots);
 
       const result = await service.getMetricsHistory(10);
 
       expect(result.length).toBeLessThanOrEqual(10);
+      expect(mockMetricsRepository.getHistory).toHaveBeenCalledWith(10);
     });
   });
 });
+

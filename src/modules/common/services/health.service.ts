@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { MESSAGES } from '../constants/constants';
-import { IHealthService } from '../interfaces/health.interface';
+import { IHealthService } from './interfaces/health.interface';
 
 @Injectable()
 export class HealthService implements IHealthService, OnModuleDestroy {

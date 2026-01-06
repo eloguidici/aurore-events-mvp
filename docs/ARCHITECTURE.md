@@ -28,6 +28,8 @@ El sistema está diseñado con una arquitectura modular basada en **NestJS**, si
 - **Procesamiento por Lotes**: Escritura eficiente a base de datos mediante batching
 - **Circuit Breaker**: Protección contra fallos en cascada de la base de datos
 - **Separación de Concerns**: Controladores, servicios, repositorios y entidades claramente separados
+- **Timezone UTC**: Todas las fechas y timestamps se almacenan y procesan en UTC para consistencia global
+- **JSONB nativo**: Metadata almacenada como JSONB de PostgreSQL para consultas JSON eficientes y validación automática
 
 ---
 
@@ -148,15 +150,21 @@ Responsable de la ingesta, almacenamiento y consulta de eventos.
 - **Responsabilidad**: Definición de la entidad de base de datos
 - **Campos**:
   - `id` (UUID, Primary Key)
-  - `timestamp` (text) - Timestamp del evento
+  - `eventId` (varchar 20, unique) - ID único del evento generado por el sistema
+  - `timestamp` (text) - Timestamp del evento en formato ISO 8601 UTC (e.g., '2024-01-15T10:30:00.000Z')
   - `service` (varchar 100) - Nombre del servicio
   - `message` (text) - Mensaje del evento
-  - `metadataJson` (text, nullable) - Metadata en formato JSON
-  - `ingestedAt` (text) - Timestamp de ingesta
-  - `createdAt` (Date) - Timestamp de creación en BD
+  - `metadata` (jsonb, nullable) - Metadata en formato JSONB nativo de PostgreSQL (permite consultas JSON nativas)
+  - `ingestedAt` (text) - Timestamp de ingesta en formato ISO 8601 UTC
+  - `createdAt` (timestamp with time zone) - Timestamp de creación en BD (UTC)
+- **Nota sobre Timezone**: Todas las fechas y timestamps se almacenan y procesan en UTC
+- **Nota sobre Metadata**: Usa JSONB nativo de PostgreSQL para consultas JSON eficientes y validación automática
 - **Índices**:
   - Compuesto: `[service, timestamp]` - Para consultas por servicio y tiempo
+  - Compuesto: `[service, createdAt]` - Para métricas de negocio
   - Simple: `[timestamp]` - Para operaciones de retención
+  - Simple: `[createdAt]` - Para métricas de negocio
+  - Simple: `[eventId]` - Para búsquedas por eventId
 
 #### DTOs (Data Transfer Objects)
 

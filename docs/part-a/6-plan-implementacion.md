@@ -63,7 +63,7 @@ export class Event {
   id: string;
 
   @Column({ type: 'text' })
-  timestamp: string;
+  timestamp: string; // ISO 8601 format in UTC (e.g., '2024-01-15T10:30:00.000Z')
 
   @Column({ type: 'varchar', length: 100 })
   service: string;

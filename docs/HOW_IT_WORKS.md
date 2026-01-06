@@ -248,13 +248,15 @@ async batchInsert(events: CreateEventDto[]) {
     // TRANSACCIÓN ATÓMICA (todo o nada)
     await this.eventRepository.manager.transaction(async (manager) => {
       // Convertir DTOs a entidades
+      // TypeORM maneja automáticamente la serialización de JSONB
       const eventEntities = events.map(event => {
         const entity = new Event();
-        entity.timestamp = event.timestamp;
+        entity.eventId = event.eventId; // ID único generado por el sistema
+        entity.timestamp = event.timestamp; // ISO 8601 UTC
         entity.service = event.service;
         entity.message = event.message;
-        entity.metadataJson = JSON.stringify(event.metadata);
-        entity.ingestedAt = new Date().toISOString();
+        entity.metadata = event.metadata || null; // JSONB - TypeORM serializa automáticamente
+        entity.ingestedAt = event.ingestedAt; // ISO 8601 UTC
         return entity;
       });
       
@@ -274,14 +276,32 @@ async batchInsert(events: CreateEventDto[]) {
 
 ```sql
 CREATE TABLE events (
-  id TEXT PRIMARY KEY,
-  timestamp TEXT NOT NULL,
-  service TEXT NOT NULL,
+  id UUID PRIMARY KEY,
+  event_id VARCHAR(20) UNIQUE NOT NULL,
+  timestamp TEXT NOT NULL,  -- ISO 8601 format in UTC (e.g., '2024-01-15T10:30:00.000Z')
+  service VARCHAR(100) NOT NULL,
   message TEXT NOT NULL,
-  metadata_json TEXT,
-  ingested_at TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  metadata JSONB,  -- Native PostgreSQL JSONB type (enables JSON queries)
+  ingested_at TEXT NOT NULL,  -- ISO 8601 format in UTC
+  created_at TIMESTAMPTZ DEFAULT now()  -- UTC timestamp with time zone
 );
+
+-- Índices para optimizar consultas
+CREATE INDEX idx_events_service_timestamp ON events (service, timestamp);
+CREATE INDEX idx_events_service_created_at ON events (service, created_at);
+CREATE INDEX idx_events_timestamp ON events (timestamp);
+CREATE INDEX idx_events_created_at ON events (created_at);
+CREATE INDEX idx_events_event_id ON events (event_id);
+CREATE INDEX idx_events_metadata_gin ON events USING GIN (metadata);  -- GIN index for JSONB queries
+```
+
+**Notas importantes:**
+- **Timezone**: Todas las fechas se almacenan en UTC. PostgreSQL está configurado con `timezone: 'UTC'` y el contenedor Docker usa `TZ=UTC`.
+- **Metadata JSONB**: Usa el tipo JSONB nativo de PostgreSQL que permite:
+  - Consultas JSON nativas: `WHERE metadata->>'userId' = '123'`
+  - Índices GIN para búsquedas eficientes en JSON
+  - Validación automática de JSON
+  - Mejor rendimiento que almacenar JSON como texto
 
 -- Índice compuesto para consultas rápidas
 CREATE INDEX idx_service_timestamp ON events(service, timestamp);
