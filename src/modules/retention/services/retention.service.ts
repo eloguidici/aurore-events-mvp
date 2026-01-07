@@ -2,10 +2,12 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
-import { ErrorLogger } from '../../common/utils/error-logger';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { RetentionConfig } from '../../config/interfaces/retention-config.interface';
-import { EventService } from '../../event/services/events.service';
+import { IEventService } from '../../event/services/interfaces/event-service.interface';
+import { EVENT_SERVICE_TOKEN } from '../../event/services/interfaces/event-service.token';
 import { IRetentionService } from './interfaces/retention-service.interface';
 
 @Injectable()
@@ -15,8 +17,11 @@ export class RetentionService implements IRetentionService, OnModuleInit {
   private readonly cronSchedule: string;
 
   constructor(
-    private readonly eventService: EventService,
+    @Inject(EVENT_SERVICE_TOKEN)
+    private readonly eventService: IEventService,
     private readonly schedulerRegistry: SchedulerRegistry,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.RETENTION)
     retentionConfig: RetentionConfig,
   ) {
@@ -58,7 +63,7 @@ export class RetentionService implements IRetentionService, OnModuleInit {
         `Retention cleanup completed: ${deletedCount} events deleted`,
       );
     } catch (error) {
-      ErrorLogger.logError(this.logger, 'Retention cleanup failed', error, {
+      this.errorLogger.logError(this.logger, 'Retention cleanup failed', error, {
         retentionDays: this.retentionDays,
       });
       // Continue - next day's run will catch remaining old events
@@ -80,7 +85,7 @@ export class RetentionService implements IRetentionService, OnModuleInit {
       );
       return deletedCount;
     } catch (error) {
-      ErrorLogger.logError(this.logger, 'Manual cleanup failed', error, {
+      this.errorLogger.logError(this.logger, 'Manual cleanup failed', error, {
         retentionDays: this.retentionDays,
       });
       throw error;

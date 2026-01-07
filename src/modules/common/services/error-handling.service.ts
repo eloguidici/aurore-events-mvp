@@ -1,13 +1,17 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
-import { HealthService } from './health.service';
+import { IHealthService } from './interfaces/health.interface';
+import { HEALTH_SERVICE_TOKEN } from './interfaces/health-service.token';
 
 @Injectable()
 export class ErrorHandlingService implements OnModuleInit {
   private readonly logger = new Logger(ErrorHandlingService.name);
   private isInitialized = false;
 
-  constructor(private readonly healthService: HealthService) {}
+  constructor(
+    @Inject(HEALTH_SERVICE_TOKEN)
+    private readonly healthService: IHealthService,
+  ) {}
 
   onModuleInit() {
     if (this.isInitialized) {

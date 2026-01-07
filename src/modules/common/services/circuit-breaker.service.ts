@@ -3,7 +3,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { CircuitBreakerConfig } from '../../config/interfaces/circuit-breaker-config.interface';
 import { ICircuitBreakerService } from './interfaces/circuit-breaker-service.interface';
-import { ErrorLogger } from '../utils/error-logger';
+import { IErrorLoggerService } from './interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from './interfaces/error-logger-service.token';
 
 /**
  * Circuit breaker states
@@ -30,6 +31,8 @@ export class CircuitBreakerService implements ICircuitBreakerService {
   constructor(
     @Inject(CONFIG_TOKENS.CIRCUIT_BREAKER)
     config: CircuitBreakerConfig,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
   ) {
     // Configuration injected via ConfigModule
     this.config = config;
@@ -106,7 +109,7 @@ export class CircuitBreakerService implements ICircuitBreakerService {
       // If we fail in HALF_OPEN, immediately go back to OPEN
       this.state = CircuitState.OPEN;
       this.successCount = 0;
-      ErrorLogger.logWarning(
+      this.errorLogger.logWarning(
         this.logger,
         'Circuit breaker: Moving back to OPEN state (service still failing)',
         {
@@ -117,7 +120,7 @@ export class CircuitBreakerService implements ICircuitBreakerService {
     } else if (this.failureCount >= this.config.failureThreshold) {
       // If we exceed threshold, open circuit
       this.state = CircuitState.OPEN;
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Circuit breaker: Moving to OPEN state',
         new Error('Failure threshold exceeded'),

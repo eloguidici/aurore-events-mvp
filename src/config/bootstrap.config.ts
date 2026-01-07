@@ -2,6 +2,10 @@ import { INestApplication } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
 import { HealthService } from '../modules/common/services/health.service';
+// Note: Using envs directly here is acceptable because:
+// 1. Bootstrap code runs before DI is fully available
+// 2. envs is validated and centralized (validated in envs.ts)
+// 3. This is standard practice for NestJS bootstrap code
 import { envs } from '../modules/config/envs';
 import { configureApp } from './app.config';
 import { setupSwagger } from './swagger.config';

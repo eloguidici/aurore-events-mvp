@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 
-import { ErrorLogger } from '../../common/utils/error-logger';
-import { Sanitizer } from '../../common/utils/sanitizer';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
+import { ISanitizerService } from '../../common/services/interfaces/sanitizer-service.interface';
+import { SANITIZER_SERVICE_TOKEN } from '../../common/services/interfaces/sanitizer-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { ServiceConfig } from '../../config/interfaces/service-config.interface';
 import { QueryConfig } from '../../config/interfaces/query-config.interface';
@@ -20,7 +22,8 @@ import { EnrichedEvent } from './interfaces/enriched-event.interface';
 import { IEventService } from './interfaces/event-service.interface';
 import { IEventRepository } from '../repositories/interfaces/event.repository.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/interfaces/event.repository.token';
-import { EventBufferService } from './event-buffer.service';
+import { IEventBufferService } from './interfaces/event-buffer-service.interface';
+import { EVENT_BUFFER_SERVICE_TOKEN } from './interfaces/event-buffer-service.token';
 
 @Injectable()
 export class EventService implements IEventService {
@@ -29,7 +32,12 @@ export class EventService implements IEventService {
   constructor(
     @Inject(EVENT_REPOSITORY_TOKEN)
     private readonly eventRepository: IEventRepository,
-    private readonly eventBufferService: EventBufferService,
+    @Inject(EVENT_BUFFER_SERVICE_TOKEN)
+    private readonly eventBufferService: IEventBufferService,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
+    @Inject(SANITIZER_SERVICE_TOKEN)
+    private readonly sanitizer: ISanitizerService,
     @Inject(CONFIG_TOKENS.SERVICE)
     private readonly serviceConfig: ServiceConfig,
     @Inject(CONFIG_TOKENS.QUERY)
@@ -77,10 +85,10 @@ export class EventService implements IEventService {
    */
   private enrich(createEventDto: CreateEventDto): EnrichedEvent {
     // Sanitize input to prevent XSS and injection attacks
-    const sanitizedService = Sanitizer.sanitizeString(createEventDto.service);
-    const sanitizedMessage = Sanitizer.sanitizeString(createEventDto.message);
+    const sanitizedService = this.sanitizer.sanitizeString(createEventDto.service);
+    const sanitizedMessage = this.sanitizer.sanitizeString(createEventDto.message);
     const sanitizedMetadata = createEventDto.metadata
-      ? Sanitizer.sanitizeObject(createEventDto.metadata)
+      ? this.sanitizer.sanitizeObject(createEventDto.metadata)
       : null;
 
     // Validate and normalize timestamp
@@ -215,11 +223,11 @@ export class EventService implements IEventService {
       });
     } catch (error) {
       // Log error with standardized format and context
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Error querying events',
         error,
-        ErrorLogger.createContext(undefined, service, {
+        this.errorLogger.createContext(undefined, service, {
           from,
           to,
           page,

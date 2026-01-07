@@ -4,13 +4,19 @@ import { Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { Inject } from '@nestjs/common';
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { HealthService } from '../../common/services/health.service';
-import { envs } from '../../config/envs';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { createRateLimitingConfig } from '../../config/config-factory';
+import { RateLimitingConfig } from '../../config/interfaces/rate-limiting-config.interface';
 import { BusinessMetricsDto } from '../dtos/business-metrics-response.dto';
 import { Event } from '../entities/event.entity';
 import { BusinessMetricsService } from '../services/business-metrics.service';
 import { EventBufferService } from '../services/event-buffer.service';
+
+// Get rate limiting config for decorators (static values needed at compile time)
+const rateLimitConfig = createRateLimitingConfig();
 
 @ApiTags('Event Health')
 @Controller('health')
@@ -22,11 +28,13 @@ export class EventHealthController {
     private readonly businessMetricsService: BusinessMetricsService,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+    @Inject(CONFIG_TOKENS.RATE_LIMITING)
+    private readonly rateLimitConfig: RateLimitingConfig,
   ) {}
 
   @Get('database')
   @Throttle({
-    default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs },
+    default: { limit: rateLimitConfig.healthLimit, ttl: rateLimitConfig.ttlMs },
   })
   @ApiOperation({ summary: 'Check database connectivity and health' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Database is healthy' })
@@ -69,7 +77,7 @@ export class EventHealthController {
 
   @Get('buffer')
   @Throttle({
-    default: { limit: envs.throttleHealthLimit, ttl: envs.throttleTtlMs },
+    default: { limit: rateLimitConfig.healthLimit, ttl: rateLimitConfig.ttlMs },
   })
   @ApiOperation({ summary: 'Check buffer health and metrics' })
   @ApiResponse({
@@ -98,8 +106,8 @@ export class EventHealthController {
   @Get('detailed')
   @Throttle({
     default: {
-      limit: Math.floor(envs.throttleHealthLimit / 2),
-      ttl: envs.throttleTtlMs,
+      limit: Math.floor(rateLimitConfig.healthLimit / 2),
+      ttl: rateLimitConfig.ttlMs,
     },
   })
   @ApiOperation({ summary: 'Get detailed health status of all components' })
@@ -138,8 +146,8 @@ export class EventHealthController {
   @Get('business')
   @Throttle({
     default: {
-      limit: Math.floor(envs.throttleHealthLimit / 2),
-      ttl: envs.throttleTtlMs,
+      limit: Math.floor(rateLimitConfig.healthLimit / 2),
+      ttl: rateLimitConfig.ttlMs,
     },
   })
   @ApiOperation({

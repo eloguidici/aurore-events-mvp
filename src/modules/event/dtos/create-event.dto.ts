@@ -12,7 +12,12 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 
-import { envs } from '../../config/envs';
+import { createServiceConfig } from '../../config/config-factory';
+import { createValidationConfig } from '../../config/config-factory';
+
+// Get config for decorators (static values needed at compile time)
+const serviceConfig = createServiceConfig();
+const validationConfig = createValidationConfig();
 
 /**
  * Custom validator for parseable timestamp
@@ -131,7 +136,7 @@ export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterfa
 
     try {
       // Validate size
-      const maxSizeKB = args.constraints[0] || envs.metadataMaxSizeKB;
+      const maxSizeKB = args.constraints[0] || validationConfig.metadataMaxSizeKB;
       const metadataStr = JSON.stringify(metadata);
       const sizeKB = Buffer.byteLength(metadataStr, 'utf8') / 1024;
       if (sizeKB > maxSizeKB) {
@@ -160,7 +165,7 @@ export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterfa
    * Default error message for validation failure
    */
   defaultMessage(args: ValidationArguments) {
-    const maxSizeKB = args.constraints[0] || envs.metadataMaxSizeKB;
+    const maxSizeKB = args.constraints[0] || validationConfig.metadataMaxSizeKB;
     return `metadata must not exceed ${maxSizeKB}KB, 5 levels of nesting, or 100 total keys`;
   }
 }
@@ -196,7 +201,7 @@ export function IsMetadataSizeValid(
   validationOptions?: ValidationOptions,
 ) {
   return function (object: object, propertyName: string) {
-    const maxSize = maxSizeKB || envs.metadataMaxSizeKB;
+    const maxSize = maxSizeKB || validationConfig.metadataMaxSizeKB;
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -222,29 +227,29 @@ export class CreateEventDto {
   @ApiProperty({
     description: 'Service name that generated the event',
     example: 'user-service',
-    maxLength: envs.serviceNameMaxLength,
+    maxLength: serviceConfig.nameMaxLength,
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(envs.serviceNameMaxLength, {
-    message: `service name must be at most ${envs.serviceNameMaxLength} characters`,
+  @MaxLength(serviceConfig.nameMaxLength, {
+    message: `service name must be at most ${serviceConfig.nameMaxLength} characters`,
   })
   service: string;
 
   @ApiProperty({
     description: 'Event message describing what happened',
     example: 'User logged in successfully',
-    maxLength: envs.messageMaxLength,
+    maxLength: validationConfig.messageMaxLength,
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(envs.messageMaxLength, {
-    message: `message must be at most ${envs.messageMaxLength} characters`,
+  @MaxLength(validationConfig.messageMaxLength, {
+    message: `message must be at most ${validationConfig.messageMaxLength} characters`,
   })
   message: string;
 
   @ApiPropertyOptional({
-    description: `Additional metadata as key-value pairs (max ${envs.metadataMaxSizeKB}KB)`,
+    description: `Additional metadata as key-value pairs (max ${validationConfig.metadataMaxSizeKB}KB)`,
     example: { userId: '123', ipAddress: '192.168.1.1' },
     type: Object,
   })

@@ -1,7 +1,9 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { ErrorLogger } from '../../common/utils/error-logger';
+import { ICircuitBreakerService } from '../../common/services/interfaces/circuit-breaker-service.interface';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../common/services/interfaces/circuit-breaker-service.token';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { MetricsConfig } from '../../config/interfaces/metrics-config.interface';
 import { IMetricsPersistenceService } from './interfaces/metrics-persistence-service.interface';
@@ -10,7 +12,8 @@ import {
   MetricsSnapshot,
 } from '../repositories/interfaces/metrics.repository.interface';
 import { METRICS_REPOSITORY_TOKEN } from '../repositories/interfaces/metrics.repository.token';
-import { EventBufferService } from './event-buffer.service';
+import { IEventBufferService } from './interfaces/event-buffer-service.interface';
+import { EVENT_BUFFER_SERVICE_TOKEN } from './interfaces/event-buffer-service.token';
 
 /**
  * Service for persisting metrics to disk
@@ -22,13 +25,16 @@ export class MetricsPersistenceService
 {
   private readonly logger = new Logger(MetricsPersistenceService.name);
   private persistenceInterval: NodeJS.Timeout | null = null;
-  private readonly PERSISTENCE_INTERVAL_MS = 60000; // 1 minute
 
   constructor(
-    private readonly eventBufferService: EventBufferService,
-    private readonly circuitBreaker: CircuitBreakerService,
+    @Inject(EVENT_BUFFER_SERVICE_TOKEN)
+    private readonly eventBufferService: IEventBufferService,
+    @Inject(CIRCUIT_BREAKER_SERVICE_TOKEN)
+    private readonly circuitBreaker: ICircuitBreakerService,
     @Inject(METRICS_REPOSITORY_TOKEN)
     private readonly metricsRepository: IMetricsRepository,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.METRICS)
     private readonly metricsConfig: MetricsConfig,
   ) {}
@@ -40,7 +46,7 @@ export class MetricsPersistenceService
         await (this.metricsRepository as any).initialize();
       }
     } catch (error) {
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Failed to initialize metrics repository',
         error,
@@ -69,12 +75,12 @@ export class MetricsPersistenceService
   private startPersistence(): void {
     this.persistenceInterval = setInterval(() => {
       this.saveMetrics().catch((error) => {
-        ErrorLogger.logError(this.logger, 'Error saving metrics', error);
+        this.errorLogger.logError(this.logger, 'Error saving metrics', error);
       });
-    }, this.PERSISTENCE_INTERVAL_MS);
+    }, this.metricsConfig.persistenceIntervalMs);
 
     this.logger.log(
-      `Metrics persistence started (interval: ${this.PERSISTENCE_INTERVAL_MS}ms)`,
+      `Metrics persistence started (interval: ${this.metricsConfig.persistenceIntervalMs}ms)`,
     );
   }
 
@@ -118,7 +124,7 @@ export class MetricsPersistenceService
       await this.metricsRepository.save(snapshot);
       this.logger.debug('Metrics snapshot saved');
     } catch (error) {
-      ErrorLogger.logError(this.logger, 'Failed to save metrics', error);
+      this.errorLogger.logError(this.logger, 'Failed to save metrics', error);
       // Don't throw - service should continue even if metrics persistence fails
     }
   }
@@ -127,7 +133,7 @@ export class MetricsPersistenceService
    * Get metrics history (last N entries)
    * Delegates to metrics repository
    *
-   * @param limit - Maximum number of entries to return (default: from envs)
+   * @param limit - Maximum number of entries to return (default: from metricsConfig.historyDefaultLimit)
    * @returns Array of metrics snapshots
    */
   public async getMetricsHistory(
@@ -136,7 +142,7 @@ export class MetricsPersistenceService
     try {
       return await this.metricsRepository.getHistory(limit);
     } catch (error) {
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Failed to get metrics history',
         error,

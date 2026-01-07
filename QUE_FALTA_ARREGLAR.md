@@ -19,7 +19,7 @@
 
 ## 🔴 PRIORIDAD CRÍTICA - Arreglar PRIMERO
 
-### 1. Migrar Servicios a ConfigModule ⚠️ **URGENTE**
+### 1. Migrar Servicios a ConfigModule ⚠️ **COMPLETADO**
 
 **✅ TODOS los servicios críticos migrados (7/7 - 100%)**
 
@@ -39,7 +39,37 @@
 
 ---
 
-### 2. DTOs y Decoradores que usan `envs` ⚠️
+### 2. Valores Hardcodeados en Servicios ⚠️ **URGENTE**
+
+**Problemas encontrados:**
+
+| Servicio | Problema | Solución |
+|----------|----------|----------|
+| `MetricsPersistenceService` | `PERSISTENCE_INTERVAL_MS = 60000` hardcodeado | Ya tiene `metricsConfig.persistenceIntervalMs` inyectado, solo falta usarlo |
+| `BusinessMetricsService` | `CACHE_TTL_MS = 60000` hardcodeado | Inyectar `MetricsConfig` y usar `metricsConfig.cacheTtlMs` |
+
+**Impacto:** 🔥 **ALTO** - Configuración no centralizada
+
+**Esfuerzo:** 1 hora (rápido)
+
+---
+
+### 3. Controllers que usan `envs` ⚠️
+
+**Archivos que usan `envs` para rate limiting:**
+
+| Archivo | Uso |
+|---------|-----|
+| `events.controller.ts` | `throttleGlobalLimit`, `throttleQueryLimit`, `throttleTtlMs` |
+| `event-health.controller.ts` | `throttleHealthLimit`, `throttleTtlMs` |
+
+**Impacto:** 🟡 **MEDIO** - Rate limiting podría beneficiarse de configuración inyectada
+
+**Esfuerzo:** 2-3 horas
+
+---
+
+### 4. DTOs y Decoradores que usan `envs` ⚠️ (OPCIONAL)
 
 **Archivos que usan `envs` en validaciones:**
 
@@ -49,28 +79,18 @@
 | `query-events.dto.ts` | Validaciones con `serviceNameMaxLength`, `maxQueryLimit`, `defaultQueryLimit`, `maxQueryTimeRangeDays` |
 | `max-time-range.decorator.ts` | Validación con `maxQueryTimeRangeDays` |
 
-**Nota:** Estos pueden quedarse usando `envs` directamente ya que son validaciones estáticas, pero idealmente deberían usar configuración inyectada.
+**Nota:** Estos pueden quedarse usando `envs` directamente ya que son validaciones estáticas (decoradores de class-validator), pero idealmente deberían usar configuración inyectada.
 
 **Esfuerzo:** 1 día (opcional)
 
 ---
 
-### 3. Controllers que usan `envs` ⚠️
-
-| Archivo | Uso |
-|---------|-----|
-| `event-health.controller.ts` | Rate limiting con `throttleHealthLimit`, `throttleTtlMs` |
-| `events.controller.ts` | Rate limiting con `throttleGlobalLimit`, `throttleQueryLimit`, `throttleTtlMs` |
-
-**Impacto:** 🟡 **MEDIO** - Rate limiting podría beneficiarse de configuración inyectada
-
-**Esfuerzo:** 1 día
 
 ---
 
 ## 🟡 PRIORIDAD MEDIA - Arreglar DESPUÉS
 
-### 4. Usar Interfaces como Tokens de Inyección
+### 5. Usar Interfaces como Tokens de Inyección
 
 **Problema:** Servicios se inyectan como clases concretas en lugar de interfaces
 
@@ -85,7 +105,7 @@
 
 ---
 
-### 5. Separar BusinessMetricsService del ORM
+### 6. Separar BusinessMetricsService del ORM
 
 **Problema:**
 ```typescript
@@ -100,7 +120,7 @@ private readonly eventRepository: Repository<Event>
 
 ---
 
-### 6. Extraer CheckpointService de EventBufferService
+### 7. Extraer CheckpointService de EventBufferService
 
 **Problema:** `EventBufferService` tiene demasiadas responsabilidades:
 - Gestión del buffer
@@ -114,7 +134,7 @@ private readonly eventRepository: Repository<Event>
 
 ---
 
-### 7. Convertir Utilidades Estáticas en Servicios
+### 8. Convertir Utilidades Estáticas en Servicios
 
 **Utilidades a convertir:**
 - `ErrorLogger` → `ErrorLoggerService`
@@ -126,26 +146,15 @@ private readonly eventRepository: Repository<Event>
 
 ---
 
-### 8. Mover Valores Hardcodeados a Configuración
+### 9. Mover Valores Hardcodeados a Configuración
 
-**Valores encontrados:**
-```typescript
-// BusinessMetricsService
-private readonly CACHE_TTL_MS = 60000; // ❌ Hardcodeado
-
-// MetricsPersistenceService  
-private readonly PERSISTENCE_INTERVAL_MS = 60000; // ❌ Hardcodeado
-```
-
-**Solución:** Agregar a `MetricsConfig` y variables de entorno
-
-**Esfuerzo:** 1 día
+**Nota:** Ya está cubierto en la sección "Valores Hardcodeados en Servicios" (prioridad crítica)
 
 ---
 
 ## 🟢 PRIORIDAD BAJA - Mejoras Incrementales
 
-### 9. Crear Interfaces para Lectura del Buffer
+### 10. Crear Interfaces para Lectura del Buffer
 
 **Problema:** `BatchWorkerService` conoce detalles de implementación
 
@@ -155,7 +164,7 @@ private readonly PERSISTENCE_INTERVAL_MS = 60000; // ❌ Hardcodeado
 
 ---
 
-### 10. Reorganizar Estructura de Módulos
+### 11. Reorganizar Estructura de Módulos
 
 **Solución:** Arquitectura en capas (domain, application, infrastructure)
 
@@ -223,7 +232,9 @@ private readonly PERSISTENCE_INTERVAL_MS = 60000; // ❌ Hardcodeado
 | **Migración Servicios** | 7 | 7 | 0 | ✅ **100%** |
 | **Interfaces como Tokens** | 4 | 0 | 4 | ⚠️ 0% |
 | **Separación ORM** | 1 | 0 | 1 | ⚠️ 0% |
-| **TOTAL CRÍTICO** | **8** | **8** | **0** | ✅ **100%** |
+| **Controllers** | 2 | 0 | 2 | ⚠️ 0% |
+| **Valores Hardcodeados** | 2 | 0 | 2 | ⚠️ 0% |
+| **TOTAL CRÍTICO** | **12** | **8** | **4** | ✅ **67%** |
 
 ---
 
@@ -257,7 +268,10 @@ Migra un servicio a la vez, prueba que funciona, y luego continúa con el siguie
 
 **Todos los servicios ahora usan ConfigModule** ✨
 
-**Próximos pasos opcionales:** Controllers y DTOs (no críticos)
+**Próximos pasos:**
+1. 🔴 Arreglar valores hardcodeados (1 hora - rápido)
+2. 🔴 Migrar controllers a ConfigModule (2-3 horas)
+3. 🟡 DTOs y decoradores (opcional - 1 día)
 
 </div>
 

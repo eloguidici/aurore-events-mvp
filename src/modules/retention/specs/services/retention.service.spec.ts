@@ -1,9 +1,10 @@
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { RetentionConfig } from '../../../config/interfaces/retention-config.interface';
-import { EventService } from '../../../event/services/events.service';
+import { EVENT_SERVICE_TOKEN } from '../../../event/services/interfaces/event-service.token';
 import { RetentionService } from '../../services/retention.service';
 
 describe('RetentionService', () => {
@@ -27,12 +28,20 @@ describe('RetentionService', () => {
       providers: [
         RetentionService,
         {
-          provide: EventService,
+          provide: EVENT_SERVICE_TOKEN,
           useValue: mockEventService,
         },
         {
           provide: SchedulerRegistry,
           useValue: mockSchedulerRegistry,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
         },
         {
           provide: CONFIG_TOKENS.RETENTION,

@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { ErrorLogger } from '../../common/utils/error-logger';
+import { ICircuitBreakerService } from '../../common/services/interfaces/circuit-breaker-service.interface';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../common/services/interfaces/circuit-breaker-service.token';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
 import { Event } from '../entities/event.entity';
@@ -23,8 +25,10 @@ export class TypeOrmEventRepository implements IEventRepository {
   constructor(
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
-    @Inject(CircuitBreakerService)
-    private readonly circuitBreaker: CircuitBreakerService,
+    @Inject(CIRCUIT_BREAKER_SERVICE_TOKEN)
+    private readonly circuitBreaker: ICircuitBreakerService,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.VALIDATION)
     private readonly validationConfig: ValidationConfig,
   ) {}
@@ -88,7 +92,7 @@ export class TypeOrmEventRepository implements IEventRepository {
               // Update failed count for the chunk that failed
               failed += chunk.length;
 
-              ErrorLogger.logError(
+              this.errorLogger.logError(
                 this.logger,
                 isDuplicateError
                   ? 'Failed to insert chunk: duplicate eventId detected'
@@ -119,7 +123,7 @@ export class TypeOrmEventRepository implements IEventRepository {
       return await this.circuitBreaker.execute(operation);
     } catch (error) {
       // Transaction rolled back - all events failed
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Batch insert transaction failed',
         error,

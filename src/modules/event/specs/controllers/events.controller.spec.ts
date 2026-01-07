@@ -1,17 +1,20 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { RateLimitingConfig } from '../../../config/interfaces/rate-limiting-config.interface';
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { QueryDto } from '../../dtos/query-events.dto';
 import { BufferSaturatedException } from '../../exceptions';
-import { EventBufferService } from '../../services/event-buffer.service';
-import { EventService } from '../../services/events.service';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../../services/interfaces/event-buffer-service.token';
+import { EVENT_SERVICE_TOKEN } from '../../services/interfaces/event-service.token';
 import { EventController } from '../../controllers/events.controller';
 
 describe('EventController', () => {
   let controller: EventController;
-  let eventService: EventService;
-  let eventBufferService: EventBufferService;
+  let eventService: any;
+  let eventBufferService: any;
 
   const mockEventService = {
     ingest: jest.fn(),
@@ -22,24 +25,48 @@ describe('EventController', () => {
     getMetrics: jest.fn(),
   };
 
+  const mockRateLimitingConfig: RateLimitingConfig = {
+    ttlMs: 60000,
+    globalLimit: 1000,
+    ipLimit: 100,
+    queryLimit: 50,
+    healthLimit: 10,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventController],
       providers: [
         {
-          provide: EventService,
+          provide: EVENT_SERVICE_TOKEN,
           useValue: mockEventService,
         },
         {
-          provide: EventBufferService,
+          provide: EVENT_BUFFER_SERVICE_TOKEN,
           useValue: mockEventBufferService,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn((eventId?, service?, additional?) => ({
+              ...(eventId && { eventId }),
+              ...(service && { service }),
+              ...additional,
+            })),
+          },
+        },
+        {
+          provide: CONFIG_TOKENS.RATE_LIMITING,
+          useValue: mockRateLimitingConfig,
         },
       ],
     }).compile();
 
     controller = module.get<EventController>(EventController);
-    eventService = module.get<EventService>(EventService);
-    eventBufferService = module.get<EventBufferService>(EventBufferService);
+    eventService = module.get(EVENT_SERVICE_TOKEN);
+    eventBufferService = module.get(EVENT_BUFFER_SERVICE_TOKEN);
 
     jest.clearAllMocks();
   });

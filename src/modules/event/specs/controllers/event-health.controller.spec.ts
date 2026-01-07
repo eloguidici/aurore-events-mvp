@@ -2,19 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
-import { HealthService } from '../../../common/services/health.service';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
+import { HEALTH_SERVICE_TOKEN } from '../../../common/services/interfaces/health-service.token';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { RateLimitingConfig } from '../../../config/interfaces/rate-limiting-config.interface';
 import { Event } from '../../entities/event.entity';
 import { BusinessMetricsService } from '../../services/business-metrics.service';
-import { EventBufferService } from '../../services/event-buffer.service';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../../services/interfaces/event-buffer-service.token';
 import { EventHealthController } from '../../controllers/event-health.controller';
 
 describe('EventHealthController', () => {
   let controller: EventHealthController;
   let eventRepository: Repository<Event>;
-  let healthService: HealthService;
-  let circuitBreaker: CircuitBreakerService;
-  let eventBufferService: EventBufferService;
+  let healthService: any;
+  let circuitBreaker: any;
+  let eventBufferService: any;
   let businessMetricsService: BusinessMetricsService;
 
   const mockEventRepository = {
@@ -38,20 +40,28 @@ describe('EventHealthController', () => {
     getBusinessMetrics: jest.fn(),
   };
 
+  const mockRateLimitingConfig: RateLimitingConfig = {
+    ttlMs: 60000,
+    globalLimit: 1000,
+    ipLimit: 100,
+    queryLimit: 50,
+    healthLimit: 10,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventHealthController],
       providers: [
         {
-          provide: HealthService,
+          provide: HEALTH_SERVICE_TOKEN,
           useValue: mockHealthService,
         },
         {
-          provide: CircuitBreakerService,
+          provide: CIRCUIT_BREAKER_SERVICE_TOKEN,
           useValue: mockCircuitBreaker,
         },
         {
-          provide: EventBufferService,
+          provide: EVENT_BUFFER_SERVICE_TOKEN,
           useValue: mockEventBufferService,
         },
         {
@@ -62,14 +72,18 @@ describe('EventHealthController', () => {
           provide: getRepositoryToken(Event),
           useValue: mockEventRepository,
         },
+        {
+          provide: CONFIG_TOKENS.RATE_LIMITING,
+          useValue: mockRateLimitingConfig,
+        },
       ],
     }).compile();
 
     controller = module.get<EventHealthController>(EventHealthController);
     eventRepository = module.get<Repository<Event>>(getRepositoryToken(Event));
-    healthService = module.get<HealthService>(HealthService);
-    circuitBreaker = module.get<CircuitBreakerService>(CircuitBreakerService);
-    eventBufferService = module.get<EventBufferService>(EventBufferService);
+    healthService = module.get(HEALTH_SERVICE_TOKEN);
+    circuitBreaker = module.get(CIRCUIT_BREAKER_SERVICE_TOKEN);
+    eventBufferService = module.get(EVENT_BUFFER_SERVICE_TOKEN);
     businessMetricsService = module.get<BusinessMetricsService>(
       BusinessMetricsService,
     );

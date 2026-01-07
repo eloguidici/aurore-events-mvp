@@ -1,11 +1,18 @@
 import { Logger } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 
-import { ErrorLogger } from '../../utils/error-logger';
+import { ErrorLoggerService } from '../../services/error-logger.service';
 
-describe('ErrorLogger', () => {
+describe('ErrorLoggerService', () => {
+  let service: ErrorLoggerService;
   let logger: Logger;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [ErrorLoggerService],
+    }).compile();
+
+    service = module.get<ErrorLoggerService>(ErrorLoggerService);
     logger = new Logger('TestLogger');
     jest.clearAllMocks();
   });
@@ -16,7 +23,7 @@ describe('ErrorLogger', () => {
       const error = new Error('Test error message');
       error.stack = 'Error stack trace';
 
-      ErrorLogger.logError(logger, 'Something went wrong', error);
+      service.logError(logger, 'Something went wrong', error);
 
       expect(errorSpy).toHaveBeenCalledWith(
         'Something went wrong',
@@ -31,7 +38,7 @@ describe('ErrorLogger', () => {
     it('should log error with string error', () => {
       const errorSpy = jest.spyOn(logger, 'error');
 
-      ErrorLogger.logError(logger, 'Something went wrong', 'String error');
+      service.logError(logger, 'Something went wrong', 'String error');
 
       expect(errorSpy).toHaveBeenCalledWith(
         'Something went wrong',
@@ -46,7 +53,7 @@ describe('ErrorLogger', () => {
       const errorSpy = jest.spyOn(logger, 'error');
       const unknownError = { code: 'UNKNOWN', message: 'Unknown error' };
 
-      ErrorLogger.logError(logger, 'Something went wrong', unknownError);
+      service.logError(logger, 'Something went wrong', unknownError);
 
       expect(errorSpy).toHaveBeenCalledWith(
         'Something went wrong',
@@ -62,7 +69,7 @@ describe('ErrorLogger', () => {
       const error = new Error('Test error');
       const context = { eventId: 'evt_123', service: 'test-service' };
 
-      ErrorLogger.logError(logger, 'Something went wrong', error, context);
+      service.logError(logger, 'Something went wrong', error, context);
 
       expect(errorSpy).toHaveBeenCalledWith(
         'Something went wrong',
@@ -81,7 +88,7 @@ describe('ErrorLogger', () => {
       error.stack = 'Stack trace';
       const context = { userId: 'user_456', page: 1 };
 
-      ErrorLogger.logError(logger, 'Something went wrong', error, context);
+      service.logError(logger, 'Something went wrong', error, context);
 
       expect(errorSpy).toHaveBeenCalledWith(
         'Something went wrong',
@@ -100,7 +107,7 @@ describe('ErrorLogger', () => {
       const error = new Error('Test error');
       delete (error as any).stack;
 
-      ErrorLogger.logError(logger, 'Something went wrong', error);
+      service.logError(logger, 'Something went wrong', error);
 
       expect(errorSpy).toHaveBeenCalledWith(
         'Something went wrong',
@@ -117,7 +124,7 @@ describe('ErrorLogger', () => {
     it('should log warning with message', () => {
       const warnSpy = jest.spyOn(logger, 'warn');
 
-      ErrorLogger.logWarning(logger, 'Warning message');
+      service.logWarning(logger, 'Warning message');
 
       expect(warnSpy).toHaveBeenCalledWith('Warning message', undefined);
     });
@@ -126,7 +133,7 @@ describe('ErrorLogger', () => {
       const warnSpy = jest.spyOn(logger, 'warn');
       const context = { eventId: 'evt_123', service: 'test-service' };
 
-      ErrorLogger.logWarning(logger, 'Warning message', context);
+      service.logWarning(logger, 'Warning message', context);
 
       expect(warnSpy).toHaveBeenCalledWith('Warning message', context);
     });
@@ -134,7 +141,7 @@ describe('ErrorLogger', () => {
     it('should log warning without context', () => {
       const warnSpy = jest.spyOn(logger, 'warn');
 
-      ErrorLogger.logWarning(logger, 'Warning message');
+      service.logWarning(logger, 'Warning message');
 
       expect(warnSpy).toHaveBeenCalledWith('Warning message', undefined);
     });
@@ -142,29 +149,28 @@ describe('ErrorLogger', () => {
 
   describe('createContext', () => {
     it('should create context with eventId', () => {
-      const context = ErrorLogger.createContext('evt_123');
+      const context = service.createContext('evt_123');
 
       expect(context).toEqual({ eventId: 'evt_123' });
     });
 
     it('should create context with service', () => {
-      const context = ErrorLogger.createContext(undefined, 'test-service');
+      const context = service.createContext(undefined, 'test-service');
 
       expect(context).toEqual({ service: 'test-service' });
     });
 
     it('should create context with eventId and service', () => {
-      const context = ErrorLogger.createContext('evt_123', 'test-service');
+      const context = service.createContext('evt_123', 'test-service');
 
       expect(context).toEqual({ eventId: 'evt_123', service: 'test-service' });
     });
 
     it('should create context with additional fields', () => {
-      const context = ErrorLogger.createContext(
-        'evt_123',
-        'test-service',
-        { userId: 'user_456', page: 1 },
-      );
+      const context = service.createContext('evt_123', 'test-service', {
+        userId: 'user_456',
+        page: 1,
+      });
 
       expect(context).toEqual({
         eventId: 'evt_123',
@@ -175,7 +181,7 @@ describe('ErrorLogger', () => {
     });
 
     it('should create context with only additional fields', () => {
-      const context = ErrorLogger.createContext(undefined, undefined, {
+      const context = service.createContext(undefined, undefined, {
         customField: 'value',
       });
 
@@ -183,13 +189,13 @@ describe('ErrorLogger', () => {
     });
 
     it('should create empty context when no parameters provided', () => {
-      const context = ErrorLogger.createContext();
+      const context = service.createContext();
 
       expect(context).toEqual({});
     });
 
     it('should merge additional context with eventId and service', () => {
-      const context = ErrorLogger.createContext('evt_123', 'test-service', {
+      const context = service.createContext('evt_123', 'test-service', {
         userId: 'user_456',
         service: 'override-service', // Should override
       });
@@ -202,39 +208,16 @@ describe('ErrorLogger', () => {
     });
   });
 
-  describe('createErrorContext (deprecated)', () => {
-    it('should create context same as createContext', () => {
-      const context1 = ErrorLogger.createContext('evt_123', 'test-service');
-      const context2 = ErrorLogger.createErrorContext('evt_123', 'test-service');
-
-      expect(context2).toEqual(context1);
-    });
-
-    it('should support all createContext parameters', () => {
-      const context = ErrorLogger.createErrorContext(
-        'evt_123',
-        'test-service',
-        { userId: 'user_456' },
-      );
-
-      expect(context).toEqual({
-        eventId: 'evt_123',
-        service: 'test-service',
-        userId: 'user_456',
-      });
-    });
-  });
-
   describe('integration', () => {
     it('should work together with createContext', () => {
       const errorSpy = jest.spyOn(logger, 'error');
       const error = new Error('Test error');
 
-      ErrorLogger.logError(
+      service.logError(
         logger,
         'Something went wrong',
         error,
-        ErrorLogger.createContext('evt_123', 'test-service', { userId: 'user_456' }),
+        service.createContext('evt_123', 'test-service', { userId: 'user_456' }),
       );
 
       expect(errorSpy).toHaveBeenCalledWith(

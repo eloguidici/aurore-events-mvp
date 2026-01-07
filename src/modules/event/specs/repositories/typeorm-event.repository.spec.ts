@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { ValidationConfig } from '../../../config/interfaces/validation-config.interface';
 import { CreateEventDto } from '../../dtos/create-event.dto';
@@ -38,8 +39,16 @@ describe('TypeOrmEventRepository', () => {
           useValue: mockEventRepository,
         },
         {
-          provide: CircuitBreakerService,
+          provide: CIRCUIT_BREAKER_SERVICE_TOKEN,
           useValue: mockCircuitBreaker,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
         },
         {
           provide: CONFIG_TOKENS.VALIDATION,

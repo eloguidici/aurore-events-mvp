@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BatchWorkerConfig } from '../../../config/interfaces/batch-worker-config.interface';
 import { ShutdownConfig } from '../../../config/interfaces/shutdown-config.interface';
 import { EnrichedEvent } from '../../../event/services/interfaces/enriched-event.interface';
-import { EventBufferService } from '../../../event/services/event-buffer.service';
-import { EventService } from '../../../event/services/events.service';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../../../event/services/interfaces/event-buffer-service.token';
+import { EVENT_SERVICE_TOKEN } from '../../../event/services/interfaces/event-service.token';
 import { BatchWorkerService } from '../../services/batch-worker.service';
 
 describe('BatchWorkerService', () => {
@@ -42,16 +43,28 @@ describe('BatchWorkerService', () => {
       providers: [
         BatchWorkerService,
         {
-          provide: EventBufferService,
+          provide: EVENT_BUFFER_SERVICE_TOKEN,
           useValue: mockEventBufferService,
         },
         {
-          provide: EventService,
+          provide: EVENT_SERVICE_TOKEN,
           useValue: mockEventService,
         },
         {
           provide: MetricsCollectorService,
           useValue: mockMetricsCollector,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn((eventId?, service?, additional?) => ({
+              ...(eventId && { eventId }),
+              ...(service && { service }),
+              ...additional,
+            })),
+          },
         },
         {
           provide: CONFIG_TOKENS.BATCH_WORKER,

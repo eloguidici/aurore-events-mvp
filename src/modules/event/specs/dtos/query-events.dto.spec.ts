@@ -1,7 +1,12 @@
 import { validate } from 'class-validator';
 
-import { envs } from '../../../config/envs';
+import { createQueryConfig } from '../../../config/config-factory';
+import { createServiceConfig } from '../../../config/config-factory';
 import { QueryDto } from '../../dtos/query-events.dto';
+
+// Get config for tests
+const serviceConfig = createServiceConfig();
+const queryConfig = createQueryConfig();
 
 describe('QueryDto', () => {
   describe('validation', () => {
@@ -32,7 +37,7 @@ describe('QueryDto', () => {
 
     it('should fail validation when service exceeds max length', async () => {
       const dto = new QueryDto();
-      dto.service = 'a'.repeat(envs.serviceNameMaxLength + 1);
+      dto.service = 'a'.repeat(serviceConfig.nameMaxLength + 1);
       dto.from = '2024-01-01T00:00:00.000Z';
       dto.to = '2024-01-31T23:59:59.000Z';
 
@@ -124,7 +129,7 @@ describe('QueryDto', () => {
       dto.service = 'test-service';
       dto.from = '2024-01-01T00:00:00.000Z';
       dto.to = '2024-01-31T23:59:59.000Z';
-      dto.pageSize = envs.maxQueryLimit + 1;
+      dto.pageSize = queryConfig.maxLimit + 1;
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);

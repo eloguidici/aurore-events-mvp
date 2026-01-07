@@ -10,10 +10,11 @@ import * as path from 'path';
 
 import { Inject } from '@nestjs/common';
 import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { BufferConfig } from '../../config/interfaces/buffer-config.interface';
 import { CheckpointConfig } from '../../config/interfaces/checkpoint-config.interface';
-import { ErrorLogger } from '../../common/utils/error-logger';
 import { MetricsDto } from '../dtos/metrics-response.dto';
 import { EnrichedEvent } from './interfaces/enriched-event.interface';
 import { IEventBufferService } from './interfaces/event-buffer-service.interface';
@@ -60,6 +61,8 @@ export class EventBufferService
 
   constructor(
     private readonly metricsCollector: MetricsCollectorService,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.BUFFER)
     bufferConfig: BufferConfig,
     @Inject(CONFIG_TOKENS.CHECKPOINT)
@@ -228,7 +231,7 @@ export class EventBufferService
         // If stringify fails (e.g., circular reference), log and skip this event
         // This should be extremely rare as sanitizer should prevent it
         failedCount++;
-        ErrorLogger.logError(
+        this.errorLogger.logError(
           this.logger,
           'Failed to serialize event for checkpoint, skipping',
           error,
@@ -483,7 +486,7 @@ export class EventBufferService
     try {
       await fs.mkdir(this.checkpointDir, { recursive: true });
     } catch (error) {
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Failed to create checkpoint directory',
         error,
@@ -521,7 +524,7 @@ export class EventBufferService
       const events: EnrichedEvent[] = JSON.parse(data);
 
       if (!Array.isArray(events)) {
-        ErrorLogger.logWarning(
+        this.errorLogger.logWarning(
           this.logger,
           'Checkpoint file is not a valid array, ignoring',
           { checkpointPath: this.checkpointPath },
@@ -534,7 +537,7 @@ export class EventBufferService
       let invalidCount = 0;
       for (const event of events) {
         if (this.getSize() >= this.maxSize) {
-          ErrorLogger.logWarning(
+          this.errorLogger.logWarning(
             this.logger,
             'Buffer full while loading checkpoint, stopping',
             {
@@ -552,10 +555,10 @@ export class EventBufferService
         } else {
           invalidCount++;
           const eventId = (event as any)?.eventId || 'unknown';
-          ErrorLogger.logWarning(
+          this.errorLogger.logWarning(
             this.logger,
             'Invalid event in checkpoint, skipping',
-            ErrorLogger.createContext(eventId, undefined),
+            this.errorLogger.createContext(eventId, undefined),
           );
         }
       }
@@ -582,7 +585,7 @@ export class EventBufferService
         await fs.unlink(this.checkpointPath);
         this.logger.debug('Checkpoint file deleted after successful load');
       } catch (error) {
-        ErrorLogger.logWarning(
+        this.errorLogger.logWarning(
           this.logger,
           'Failed to delete checkpoint file',
           { checkpointPath: this.checkpointPath },
@@ -593,7 +596,7 @@ export class EventBufferService
         // No checkpoint found (first run or already processed) - this is normal
         this.logger.debug('No checkpoint file found (normal on first run)');
       } else {
-        ErrorLogger.logError(this.logger, 'Failed to load checkpoint', error, {
+        this.errorLogger.logError(this.logger, 'Failed to load checkpoint', error, {
           checkpointPath: this.checkpointPath,
         });
         // Don't throw error - continue without checkpoint
@@ -685,7 +688,7 @@ export class EventBufferService
         // Ignore cleanup errors
       }
 
-      ErrorLogger.logError(this.logger, 'Failed to save checkpoint', error, {
+      this.errorLogger.logError(this.logger, 'Failed to save checkpoint', error, {
         checkpointPath: this.checkpointPath,
         eventsCount: events.length,
       });
@@ -721,7 +724,7 @@ export class EventBufferService
       // Use getSize() to check for active events (ignores already-drained events)
       if (this.getSize() > 0) {
         this.saveCheckpoint().catch((error) => {
-          ErrorLogger.logError(
+          this.errorLogger.logError(
             this.logger,
             'Error in checkpoint interval',
             error,

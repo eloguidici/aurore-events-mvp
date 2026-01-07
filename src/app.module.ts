@@ -11,6 +11,10 @@ import { CommonModule } from './modules/common/common.module';
 import { IpThrottlerGuard } from './modules/common/guards/ip-throttler.guard';
 import { CorrelationIdMiddleware } from './modules/common/middleware/correlation-id.middleware';
 import { ConfigModule as AppConfigModule } from './modules/config';
+// Note: Using envs directly here is acceptable because:
+// 1. Module configuration runs before DI is fully available
+// 2. envs is validated and centralized (validated in envs.ts)
+// 3. This is standard practice for NestJS module configuration
 import { envs } from './modules/config/envs';
 import { Event } from './modules/event/entities/event.entity';
 import { EventModule } from './modules/event/event.module';

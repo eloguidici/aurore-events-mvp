@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { MetricsConfig } from '../../../config/interfaces/metrics-config.interface';
 import { Event } from '../../entities/event.entity';
 import { MetricsSnapshot } from '../../repositories/interfaces/metrics.repository.interface';
 import { METRICS_REPOSITORY_TOKEN } from '../../repositories/interfaces/metrics.repository.token';
-import { EventBufferService } from '../../services/event-buffer.service';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../../services/interfaces/event-buffer-service.token';
 import { MetricsPersistenceService } from '../../services/metrics-persistence.service';
 
 describe('MetricsPersistenceService', () => {
@@ -61,12 +62,20 @@ describe('MetricsPersistenceService', () => {
           useValue: mockEventRepository,
         },
         {
-          provide: EventBufferService,
+          provide: EVENT_BUFFER_SERVICE_TOKEN,
           useValue: mockEventBufferService,
         },
         {
-          provide: CircuitBreakerService,
+          provide: CIRCUIT_BREAKER_SERVICE_TOKEN,
           useValue: mockCircuitBreakerService,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
         },
         {
           provide: METRICS_REPOSITORY_TOKEN,

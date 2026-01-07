@@ -1,14 +1,10 @@
 import { validate } from 'class-validator';
 
-import { envs } from '../../../config/envs';
+import { createQueryConfig } from '../../../config/config-factory';
 import { IsMaxTimeRange, IsMaxTimeRangeConstraint } from '../../decorators/max-time-range.decorator';
 
-// Mock envs
-jest.mock('../../../config/envs', () => ({
-  envs: {
-    maxQueryTimeRangeDays: 30,
-  },
-}));
+// Get config for tests
+const queryConfig = createQueryConfig();
 
 class TestDto {
   from: string;
@@ -224,7 +220,7 @@ describe('IsMaxTimeRange', () => {
         targetName: 'TestDto',
       } as any);
 
-      expect(message).toContain('30 days'); // From mocked envs
+      expect(message).toContain(`${queryConfig.maxTimeRangeDays} days`);
     });
   });
 

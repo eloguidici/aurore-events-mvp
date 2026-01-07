@@ -14,20 +14,25 @@ import { IsMaxTimeRange } from '../../common/decorators/max-time-range.decorator
 import { IsSortField } from '../../common/decorators/sort-field.decorator';
 import { IsSortOrder } from '../../common/decorators/sort-order.decorator';
 import { IsValidTimeRange } from '../../common/decorators/valid-time-range.decorator';
-import { envs } from '../../config/envs';
+import { createQueryConfig } from '../../config/config-factory';
+import { createServiceConfig } from '../../config/config-factory';
 import { ALLOWED_SORT_FIELDS } from '../constants/query.constants';
 import { IsParseableTimestamp } from './create-event.dto';
+
+// Get config for decorators (static values needed at compile time)
+const serviceConfig = createServiceConfig();
+const queryConfig = createQueryConfig();
 
 export class QueryDto {
   @ApiProperty({
     description: 'Service name to filter events',
     example: 'user-service',
-    maxLength: envs.serviceNameMaxLength,
+    maxLength: serviceConfig.nameMaxLength,
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(envs.serviceNameMaxLength, {
-    message: `service name must be at most ${envs.serviceNameMaxLength} characters`,
+  @MaxLength(serviceConfig.nameMaxLength, {
+    message: `service name must be at most ${serviceConfig.nameMaxLength} characters`,
   })
   service: string;
 
@@ -55,7 +60,7 @@ export class QueryDto {
     message: "'from' timestamp must be before 'to' timestamp",
   })
   @IsMaxTimeRange(undefined, {
-    message: `Time range between 'from' and 'to' must not exceed ${envs.maxQueryTimeRangeDays} days`,
+    message: `Time range between 'from' and 'to' must not exceed ${queryConfig.maxTimeRangeDays} days`,
   })
   to: string; // ISO 8601 timestamp (UTC)
 
@@ -75,15 +80,15 @@ export class QueryDto {
   @IsOptional()
   @IsInt({ message: 'pageSize must be an integer number' })
   @Min(1, { message: 'pageSize must not be less than 1' })
-  @Max(envs.maxQueryLimit, {
-    message: `pageSize must not exceed ${envs.maxQueryLimit}`,
+  @Max(queryConfig.maxLimit, {
+    message: `pageSize must not exceed ${queryConfig.maxLimit}`,
   })
   @Type(() => Number)
-  @Transform(({ value }) => value ?? envs.defaultQueryLimit)
+  @Transform(({ value }) => value ?? queryConfig.defaultLimit)
   @ApiPropertyOptional({
-    description: `The number of items per page for pagination (default: ${envs.defaultQueryLimit}, max: ${envs.maxQueryLimit})`,
-    example: envs.defaultQueryLimit,
-    maximum: envs.maxQueryLimit,
+    description: `The number of items per page for pagination (default: ${queryConfig.defaultLimit}, max: ${queryConfig.maxLimit})`,
+    example: queryConfig.defaultLimit,
+    maximum: queryConfig.maxLimit,
   })
   pageSize?: number;
 

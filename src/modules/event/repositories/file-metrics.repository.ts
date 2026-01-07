@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import { ErrorLogger } from '../../common/utils/error-logger';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import {
   IMetricsRepository,
   MetricsSnapshot,
@@ -19,7 +20,10 @@ export class FileMetricsRepository implements IMetricsRepository {
   private readonly metricsDir: string;
   private readonly metricsFile: string;
 
-  constructor() {
+  constructor(
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
+  ) {
     this.metricsDir = path.join(process.cwd(), 'metrics');
     this.metricsFile = path.join(this.metricsDir, 'metrics-history.jsonl');
   }
@@ -32,7 +36,7 @@ export class FileMetricsRepository implements IMetricsRepository {
     try {
       await fs.mkdir(this.metricsDir, { recursive: true });
     } catch (error) {
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Failed to create metrics directory',
         error,
@@ -56,7 +60,7 @@ export class FileMetricsRepository implements IMetricsRepository {
       await fs.appendFile(this.metricsFile, line, 'utf-8');
       this.logger.debug('Metrics snapshot saved to file');
     } catch (error) {
-      ErrorLogger.logError(this.logger, 'Failed to save metrics snapshot', error, {
+      this.errorLogger.logError(this.logger, 'Failed to save metrics snapshot', error, {
         metricsFile: this.metricsFile,
       });
       throw error;
@@ -86,7 +90,7 @@ export class FileMetricsRepository implements IMetricsRepository {
         // File doesn't exist yet - return empty array
         return [];
       }
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Failed to read metrics history',
         error,

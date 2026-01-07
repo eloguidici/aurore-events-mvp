@@ -1,9 +1,15 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
-import { ErrorLogger } from '../../common/utils/error-logger';
-import { Event } from '../entities/event.entity';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { MetricsConfig } from '../../config/interfaces/metrics-config.interface';
+import {
+  HourlyCountRow,
+  IBusinessMetricsRepository,
+  ServiceCountRow,
+} from '../repositories/interfaces/business-metrics.repository.interface';
+import { BUSINESS_METRICS_REPOSITORY_TOKEN } from '../repositories/interfaces/business-metrics.repository.token';
 
 /**
  * Business metrics interface
@@ -19,24 +25,6 @@ export interface BusinessMetrics {
 }
 
 /**
- * Type for service count query result
- * PostgreSQL COUNT() returns as string
- */
-interface ServiceCountRow {
-  service: string;
-  count: string;
-}
-
-/**
- * Type for hourly count query result
- * PostgreSQL TO_CHAR returns as string
- */
-interface HourlyCountRow {
-  hour: string;
-  count: string;
-}
-
-/**
  * Service for tracking business metrics
  * Provides insights into event patterns, service usage, and trends
  */
@@ -45,11 +33,14 @@ export class BusinessMetricsService implements OnModuleInit {
   private readonly logger = new Logger(BusinessMetricsService.name);
   private metricsCache: BusinessMetrics | null = null;
   private cacheTimestamp: number = 0;
-  private readonly CACHE_TTL_MS = 60000; // Cache for 1 minute
 
   constructor(
-    @InjectRepository(Event)
-    private readonly eventRepository: Repository<Event>,
+    @Inject(BUSINESS_METRICS_REPOSITORY_TOKEN)
+    private readonly businessMetricsRepository: IBusinessMetricsRepository,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
+    @Inject(CONFIG_TOKENS.METRICS)
+    private readonly metricsConfig: MetricsConfig,
   ) {}
 
   /**
@@ -78,21 +69,6 @@ export class BusinessMetricsService implements OnModuleInit {
   }
 
   /**
-   * Get raw service count data for further processing
-   *
-   * @returns Array of service count rows
-   * @private
-   */
-  private async getServiceCountRows(): Promise<ServiceCountRow[]> {
-    return (await this.eventRepository
-      .createQueryBuilder('event')
-      .select('event.service', 'service')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('event.service')
-      .getRawMany()) as ServiceCountRow[];
-  }
-
-  /**
    * Get event counts for different time ranges
    *
    * @param last24Hours - Date representing 24 hours ago
@@ -104,18 +80,10 @@ export class BusinessMetricsService implements OnModuleInit {
     eventsLast24Hours: number;
     eventsLastHour: number;
   }> {
-    const [eventsLast24Hours, eventsLastHour] = await Promise.all([
-      this.eventRepository
-        .createQueryBuilder('event')
-        .where('event."createdAt" >= :last24Hours', { last24Hours })
-        .getCount(),
-      this.eventRepository
-        .createQueryBuilder('event')
-        .where('event."createdAt" >= :lastHour', { lastHour })
-        .getCount(),
-    ]);
-
-    return { eventsLast24Hours, eventsLastHour };
+    return await this.businessMetricsRepository.getEventsByTimeRange(
+      last24Hours,
+      lastHour,
+    );
   }
 
   /**
@@ -149,14 +117,8 @@ export class BusinessMetricsService implements OnModuleInit {
   private async getEventsByHour(
     last24Hours: Date,
   ): Promise<Array<{ hour: string; count: number }>> {
-    const eventsByHourRaw = (await this.eventRepository
-      .createQueryBuilder('event')
-      .select('TO_CHAR(event."createdAt", \'YYYY-MM-DD HH24:00\')', 'hour')
-      .addSelect('COUNT(*)', 'count')
-      .where('event."createdAt" >= :last24Hours', { last24Hours })
-      .groupBy('hour')
-      .orderBy('hour', 'ASC')
-      .getRawMany()) as HourlyCountRow[];
+    const eventsByHourRaw =
+      await this.businessMetricsRepository.getEventsByHour(last24Hours);
 
     return eventsByHourRaw.map((row) => ({
       hour: row.hour,
@@ -174,7 +136,7 @@ export class BusinessMetricsService implements OnModuleInit {
     // Return cached metrics if still valid
     if (
       this.metricsCache &&
-      Date.now() - this.cacheTimestamp < this.CACHE_TTL_MS
+      Date.now() - this.cacheTimestamp < this.metricsConfig.cacheTtlMs
     ) {
       return this.metricsCache;
     }
@@ -193,8 +155,8 @@ export class BusinessMetricsService implements OnModuleInit {
         timeRangeCounts,
         eventsByHour,
       ] = await Promise.all([
-        this.eventRepository.count(),
-        this.getServiceCountRows(),
+        this.businessMetricsRepository.getTotalEventsCount(),
+        this.businessMetricsRepository.getEventsByService(),
         this.getTimeRangeCounts(last24Hours, lastHour),
         this.getEventsByHour(last24Hours),
       ]);
@@ -223,7 +185,7 @@ export class BusinessMetricsService implements OnModuleInit {
 
       return this.metricsCache;
     } catch (error) {
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Failed to calculate business metrics',
         error,

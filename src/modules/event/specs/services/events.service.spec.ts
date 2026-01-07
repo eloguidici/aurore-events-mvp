@@ -3,12 +3,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { ServiceConfig } from '../../../config/interfaces/service-config.interface';
 import { QueryConfig } from '../../../config/interfaces/query-config.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
+import { SANITIZER_SERVICE_TOKEN } from '../../../common/services/interfaces/sanitizer-service.token';
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { QueryDto } from '../../dtos/query-events.dto';
 import { BufferSaturatedException } from '../../exceptions';
 import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../../repositories/interfaces/event.repository.token';
-import { EventBufferService } from '../../services/event-buffer.service';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../../services/interfaces/event-buffer-service.token';
 import { EventService } from '../../services/events.service';
 
 describe('EventService', () => {
@@ -44,8 +46,27 @@ describe('EventService', () => {
           useValue: mockEventRepository,
         },
         {
-          provide: EventBufferService,
+          provide: EVENT_BUFFER_SERVICE_TOKEN,
           useValue: mockEventBufferService,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn((eventId?, service?, additional?) => ({
+              ...(eventId && { eventId }),
+              ...(service && { service }),
+              ...additional,
+            })),
+          },
+        },
+        {
+          provide: SANITIZER_SERVICE_TOKEN,
+          useValue: {
+            sanitizeString: jest.fn((str) => str),
+            sanitizeObject: jest.fn((obj) => obj),
+          },
         },
         {
           provide: CONFIG_TOKENS.SERVICE,

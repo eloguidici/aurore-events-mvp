@@ -1,11 +1,16 @@
 import { validate } from 'class-validator';
 
-import { envs } from '../../../config/envs';
+import { createServiceConfig } from '../../../config/config-factory';
+import { createValidationConfig } from '../../../config/config-factory';
 import {
   CreateEventDto,
   IsMetadataSizeValidConstraint,
   IsParseableTimestampConstraint,
 } from '../../dtos/create-event.dto';
+
+// Get config for tests
+const serviceConfig = createServiceConfig();
+const validationConfig = createValidationConfig();
 
 describe('CreateEventDto', () => {
   describe('validation', () => {
@@ -54,7 +59,7 @@ describe('CreateEventDto', () => {
     it('should fail validation when service exceeds max length', async () => {
       const dto = new CreateEventDto();
       dto.timestamp = '2024-01-15T10:30:00.000Z';
-      dto.service = 'a'.repeat(envs.serviceNameMaxLength + 1);
+      dto.service = 'a'.repeat(serviceConfig.nameMaxLength + 1);
       dto.message = 'Test message';
 
       const errors = await validate(dto);
@@ -76,7 +81,7 @@ describe('CreateEventDto', () => {
       const dto = new CreateEventDto();
       dto.timestamp = '2024-01-15T10:30:00.000Z';
       dto.service = 'test-service';
-      dto.message = 'a'.repeat(envs.messageMaxLength + 1);
+      dto.message = 'a'.repeat(validationConfig.messageMaxLength + 1);
 
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
@@ -155,7 +160,7 @@ describe('IsMetadataSizeValidConstraint', () => {
   it('should validate metadata within size limit', () => {
     const metadata = { userId: '123', ipAddress: '192.168.1.1' };
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -167,7 +172,7 @@ describe('IsMetadataSizeValidConstraint', () => {
 
   it('should validate null/undefined metadata (optional field)', () => {
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -180,7 +185,7 @@ describe('IsMetadataSizeValidConstraint', () => {
 
   it('should reject non-object metadata', () => {
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -200,7 +205,7 @@ describe('IsMetadataSizeValidConstraint', () => {
     largeMetadata.data = largeString;
 
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -220,7 +225,7 @@ describe('IsMetadataSizeValidConstraint', () => {
     }
 
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -238,7 +243,7 @@ describe('IsMetadataSizeValidConstraint', () => {
     }
 
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -253,7 +258,7 @@ describe('IsMetadataSizeValidConstraint', () => {
     circularMetadata.self = circularMetadata;
 
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},
@@ -266,7 +271,7 @@ describe('IsMetadataSizeValidConstraint', () => {
 
   it('should return appropriate error message', () => {
     const args = {
-      constraints: [envs.metadataMaxSizeKB],
+      constraints: [validationConfig.metadataMaxSizeKB],
       value: undefined,
       targetName: '',
       object: {},

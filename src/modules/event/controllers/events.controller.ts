@@ -14,20 +14,29 @@ import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 
-import { ErrorLogger } from '../../common/utils/error-logger';
-import { envs } from '../../config/envs';
+import { Inject } from '@nestjs/common';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { createRateLimitingConfig } from '../../config/config-factory';
+import { RateLimitingConfig } from '../../config/interfaces/rate-limiting-config.interface';
 import { CreateEventDto } from '../dtos/create-event.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { MetricsDto } from '../dtos/metrics-response.dto';
 import { QueryDto } from '../dtos/query-events.dto';
 import { SearchResponseDto } from '../dtos/search-events-response.dto';
-import { EventBufferService } from '../services/event-buffer.service';
-import { EventService } from '../services/events.service';
+import { IEventBufferService } from '../services/interfaces/event-buffer-service.interface';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../services/interfaces/event-buffer-service.token';
+import { IEventService } from '../services/interfaces/event-service.interface';
+import { EVENT_SERVICE_TOKEN } from '../services/interfaces/event-service.token';
 import {
   ApiGetMetrics,
   ApiIngestEvent,
   ApiQueryEvents,
 } from './decorators/swagger.decorators';
+
+// Get rate limiting config for decorators (static values needed at compile time)
+const rateLimitConfig = createRateLimitingConfig();
 
 @ApiTags('Events')
 @Controller()
@@ -35,14 +44,20 @@ export class EventController {
   private readonly logger = new Logger(EventController.name);
 
   constructor(
-    private readonly eventService: EventService,
-    private readonly eventBufferService: EventBufferService,
+    @Inject(EVENT_SERVICE_TOKEN)
+    private readonly eventService: IEventService,
+    @Inject(EVENT_BUFFER_SERVICE_TOKEN)
+    private readonly eventBufferService: IEventBufferService,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
+    @Inject(CONFIG_TOKENS.RATE_LIMITING)
+    private readonly rateLimitConfig: RateLimitingConfig,
   ) {}
 
   @Post('events')
   @HttpCode(HttpStatus.ACCEPTED)
   @Throttle({
-    default: { limit: envs.throttleGlobalLimit, ttl: envs.throttleTtlMs },
+    default: { limit: rateLimitConfig.globalLimit, ttl: rateLimitConfig.ttlMs },
   })
   @ApiIngestEvent()
   /**
@@ -70,7 +85,7 @@ export class EventController {
       if (error instanceof HttpException) {
         // Specific log for backpressure
         if (error.getStatus() === HttpStatus.TOO_MANY_REQUESTS) {
-          ErrorLogger.logWarning(
+          this.errorLogger.logWarning(
             this.logger,
             'Buffer is full, rejecting event (backpressure)',
             {
@@ -82,11 +97,11 @@ export class EventController {
         throw error;
       }
       // Log unexpected error and convert to HttpException
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Unexpected error ingesting event',
         error,
-        ErrorLogger.createContext(undefined, createEventDto.service, {
+        this.errorLogger.createContext(undefined, createEventDto.service, {
           correlationId: req.correlationId || 'unknown',
         }),
       );
@@ -103,7 +118,7 @@ export class EventController {
 
   @Get('events')
   @Throttle({
-    default: { limit: envs.throttleQueryLimit, ttl: envs.throttleTtlMs },
+    default: { limit: rateLimitConfig.queryLimit, ttl: rateLimitConfig.ttlMs },
   })
   @ApiQueryEvents()
   /**
@@ -136,11 +151,11 @@ export class EventController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Query error',
         error,
-        ErrorLogger.createContext(undefined, queryDto.service, {
+        this.errorLogger.createContext(undefined, queryDto.service, {
           from: queryDto.from,
           to: queryDto.to,
           correlationId: req.correlationId || 'unknown',
@@ -173,7 +188,7 @@ export class EventController {
         throw error;
       }
       // Log unexpected error and convert to HttpException
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Unexpected error getting metrics',
         error,

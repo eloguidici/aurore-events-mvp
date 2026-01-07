@@ -9,13 +9,16 @@ import { randomBytes } from 'crypto';
 
 import { Inject } from '@nestjs/common';
 import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
+import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { BatchWorkerConfig } from '../../config/interfaces/batch-worker-config.interface';
 import { ShutdownConfig } from '../../config/interfaces/shutdown-config.interface';
-import { ErrorLogger } from '../../common/utils/error-logger';
 import { EnrichedEvent } from '../../event/services/interfaces/enriched-event.interface';
-import { EventBufferService } from '../../event/services/event-buffer.service';
-import { EventService } from '../../event/services/events.service';
+import { IEventBufferService } from '../../event/services/interfaces/event-buffer-service.interface';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../../event/services/interfaces/event-buffer-service.token';
+import { IEventService } from '../../event/services/interfaces/event-service.interface';
+import { EVENT_SERVICE_TOKEN } from '../../event/services/interfaces/event-service.token';
 
 @Injectable()
 export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -29,9 +32,13 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly shutdownTimeoutMs: number;
 
   constructor(
-    private readonly eventBufferService: EventBufferService,
-    private readonly eventService: EventService,
+    @Inject(EVENT_BUFFER_SERVICE_TOKEN)
+    private readonly eventBufferService: IEventBufferService,
+    @Inject(EVENT_SERVICE_TOKEN)
+    private readonly eventService: IEventService,
     private readonly metricsCollector: MetricsCollectorService,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.BATCH_WORKER)
     batchWorkerConfig: BatchWorkerConfig,
     @Inject(CONFIG_TOKENS.SHUTDOWN)
@@ -78,7 +85,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     // Process batches at regular intervals
     this.intervalId = setInterval(() => {
       this.process().catch((error) => {
-        ErrorLogger.logError(this.logger, 'Batch processing error', error);
+        this.errorLogger.logError(this.logger, 'Batch processing error', error);
       });
     }, this.drainInterval);
   }
@@ -106,7 +113,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     while (this.eventBufferService.getSize() > 0) {
       // Check timeout to prevent infinite loop
       if (Date.now() - startTime > this.shutdownTimeoutMs) {
-        ErrorLogger.logWarning(this.logger, 'Shutdown timeout reached', {
+        this.errorLogger.logWarning(this.logger, 'Shutdown timeout reached', {
           timeoutMs: this.shutdownTimeoutMs,
           remainingEvents: this.eventBufferService.getSize(),
         });
@@ -120,7 +127,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
         // Small delay to allow other operations (like checkpoint) to run
         await new Promise((resolve) => setImmediate(resolve));
       } catch (error) {
-        ErrorLogger.logError(
+        this.errorLogger.logError(
           this.logger,
           'Error processing batch during shutdown',
           error,
@@ -177,7 +184,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (error) {
       // Log error but continue processing - worker should never crash
-      ErrorLogger.logError(this.logger, 'Error processing batch', error, {
+      this.errorLogger.logError(this.logger, 'Error processing batch', error, {
         batchSize: batch.length,
       });
       // Worker continues - next batch will be processed
@@ -230,7 +237,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     const insertTimeMs = Date.now() - insertStartTime;
 
     if (failed > 0) {
-      ErrorLogger.logWarning(this.logger, 'Failed to insert events', {
+      this.errorLogger.logWarning(this.logger, 'Failed to insert events', {
         failedCount: failed,
         successfulCount: successful,
         totalAttempted: batch.length,
@@ -337,10 +344,10 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       );
       return true;
     } else {
-      ErrorLogger.logWarning(
+      this.errorLogger.logWarning(
         this.logger,
         'Failed to re-enqueue event for retry: buffer full',
-        ErrorLogger.createContext(originalEventId, retryEvent.service, {
+        this.errorLogger.createContext(originalEventId, retryEvent.service, {
           retryCount: retryEvent.retryCount,
         }),
       );
@@ -356,11 +363,11 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
    * @private
    */
   private handleMaxRetriesReached(event: EnrichedEvent): void {
-    ErrorLogger.logError(
+    this.errorLogger.logError(
       this.logger,
       `Event permanently failed after ${this.maxRetries} retries`,
       new Error('Max retries exceeded'),
-      ErrorLogger.createContext(event.eventId, event.service, {
+      this.errorLogger.createContext(event.eventId, event.service, {
         timestamp: event.timestamp,
         maxRetries: this.maxRetries,
       }),
@@ -413,11 +420,11 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
           // Log error for individual event retry but continue with next event
           const retryCount = (event.retryCount || 0) + 1;
-          ErrorLogger.logError(
+          this.errorLogger.logError(
             this.logger,
             'Error processing retry for event',
             error,
-            ErrorLogger.createContext(event.eventId, event.service, {
+            this.errorLogger.createContext(event.eventId, event.service, {
               retryCount,
             }),
           );
@@ -426,7 +433,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
       // Log summary
       if (enqueuedCount > 0 || droppedCount > 0 || maxRetriesReachedCount > 0) {
-        ErrorLogger.logWarning(this.logger, 'Retry summary', {
+        this.errorLogger.logWarning(this.logger, 'Retry summary', {
           enqueuedCount,
           droppedCount,
           maxRetriesReachedCount,
@@ -434,7 +441,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
       }
     } catch (error) {
       // Log error but don't throw - worker should continue
-      ErrorLogger.logError(this.logger, 'Error in retryFailed', error, {
+      this.errorLogger.logError(this.logger, 'Error in retryFailed', error, {
         failedEventsCount: failedEvents.length,
       });
     }

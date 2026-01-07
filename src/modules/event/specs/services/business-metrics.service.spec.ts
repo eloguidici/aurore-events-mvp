@@ -1,15 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { Event } from '../../entities/event.entity';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { MetricsConfig } from '../../../config/interfaces/metrics-config.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
+import { BUSINESS_METRICS_REPOSITORY_TOKEN } from '../../repositories/interfaces/business-metrics.repository.token';
 import { BusinessMetricsService } from '../../services/business-metrics.service';
 
 describe('BusinessMetricsService', () => {
   let service: BusinessMetricsService;
 
-  const mockRepository = {
-    count: jest.fn(),
-    createQueryBuilder: jest.fn(),
+  const mockBusinessMetricsRepository = {
+    getTotalEventsCount: jest.fn(),
+    getEventsByService: jest.fn(),
+    getEventsByTimeRange: jest.fn(),
+    getEventsByHour: jest.fn(),
+  };
+
+  const mockMetricsConfig: MetricsConfig = {
+    historyDefaultLimit: 100,
+    cacheTtlMs: 60000,
+    persistenceIntervalMs: 60000,
   };
 
   beforeEach(async () => {
@@ -17,8 +27,20 @@ describe('BusinessMetricsService', () => {
       providers: [
         BusinessMetricsService,
         {
-          provide: getRepositoryToken(Event),
-          useValue: mockRepository,
+          provide: BUSINESS_METRICS_REPOSITORY_TOKEN,
+          useValue: mockBusinessMetricsRepository,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
+        },
+        {
+          provide: CONFIG_TOKENS.METRICS,
+          useValue: mockMetricsConfig,
         },
       ],
     }).compile();
@@ -31,16 +53,13 @@ describe('BusinessMetricsService', () => {
   });
 
   it('should return empty metrics when no events exist', async () => {
-    mockRepository.count.mockResolvedValue(0);
-    mockRepository.createQueryBuilder.mockReturnValue({
-      select: jest.fn().mockReturnThis(),
-      addSelect: jest.fn().mockReturnThis(),
-      groupBy: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn().mockResolvedValue([]),
-      getCount: jest.fn().mockResolvedValue(0),
+    mockBusinessMetricsRepository.getTotalEventsCount.mockResolvedValue(0);
+    mockBusinessMetricsRepository.getEventsByService.mockResolvedValue([]);
+    mockBusinessMetricsRepository.getEventsByTimeRange.mockResolvedValue({
+      eventsLast24Hours: 0,
+      eventsLastHour: 0,
     });
+    mockBusinessMetricsRepository.getEventsByHour.mockResolvedValue([]);
 
     const metrics = await service.getBusinessMetrics();
 

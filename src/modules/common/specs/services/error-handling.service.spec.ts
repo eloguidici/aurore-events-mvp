@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { HealthService } from '../../services/health.service';
+import { HEALTH_SERVICE_TOKEN } from '../../services/interfaces/health-service.token';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 
 describe('ErrorHandlingService', () => {
   let service: ErrorHandlingService;
-  let healthService: HealthService;
+  let healthService: any;
 
   const mockHealthService = {
     signalNotReady: jest.fn(),
@@ -16,14 +16,14 @@ describe('ErrorHandlingService', () => {
       providers: [
         ErrorHandlingService,
         {
-          provide: HealthService,
+          provide: HEALTH_SERVICE_TOKEN,
           useValue: mockHealthService,
         },
       ],
     }).compile();
 
     service = module.get<ErrorHandlingService>(ErrorHandlingService);
-    healthService = module.get<HealthService>(HealthService);
+    healthService = module.get(HEALTH_SERVICE_TOKEN);
 
     // Clear all process listeners to avoid interference between tests
     process.removeAllListeners('uncaughtException');
