@@ -47,7 +47,9 @@ See [Installation](#installation) section for detailed steps.
 - **Decoupled Design**: 100% of services use interfaces for complete decoupling
 - **Comprehensive Testing**: Full test coverage with 37 test files
 
-**📖 For detailed architecture documentation**, including class responsibilities, design patterns, data flow diagrams, and decoupling strategy, see: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+**📖 For detailed architecture documentation**, including class responsibilities, design patterns, data flow diagrams, and decoupling strategy, see:
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Complete architecture documentation
+- [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) - Detailed system operation and data flow explanation
 
 ## Prerequisites
 
@@ -91,9 +93,13 @@ npm run build
 - The `.env` file is **REQUIRED** - the application will fail without it
 - All environment variables in `.env` are **REQUIRED** - no defaults are provided
 
+**📖 Need help?** See [`docs/QUICK_START.md`](docs/QUICK_START.md) for a simplified 2-3 command setup, or [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) for detailed Docker and PostgreSQL configuration.
+
 ## Configuration
 
 **⚠️ IMPORTANT**: All environment variables are **REQUIRED**. The application will fail to start if any are missing.
+
+**📖 For detailed configuration guidance**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
 
 Create a `.env` file from `env.example`:
 
@@ -374,12 +380,16 @@ npm run load-test:parallel 15 20000 60
 - **Batch Size**: 5,000 events per batch (configurable via `BATCH_SIZE`)
 - **Database**: PostgreSQL 16 with connection pooling (max 20 connections)
 
+**📖 For load testing documentation**, see [`scripts/README.md`](scripts/README.md) and [`scripts/README_PARALLEL.md`](scripts/README_PARALLEL.md).
+
 ## Error Handling
 
 - **Invalid Events**: Logged and dropped (never break pipeline)
 - **Buffer Full**: Returns 429/503 (soft backpressure)
 - **Storage Failures**: Retry with exponential backoff (up to 3 retries)
 - **Worker Crashes**: Auto-restart via process manager
+
+**📖 For detailed error handling strategies and resilience patterns**, see [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Retention
 
@@ -430,6 +440,8 @@ docker-compose exec postgres psql -U admin -d aurore_events
 docker-compose ps
 ```
 
+**📖 For detailed Docker setup and troubleshooting**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
+
 ## Documentation
 
 The project includes comprehensive documentation in the `docs/` folder:
@@ -446,8 +458,18 @@ The project includes comprehensive documentation in the `docs/` folder:
 
 ### Exercise Documentation (Aurore Labs Assignment)
 - **`docs/part-a/`** - Part A: Design and MVP system architecture (7 documents)
+  - [`docs/part-a/1-arquitectura-general-mvp.md`](docs/part-a/1-arquitectura-general-mvp.md) - General MVP architecture
+  - [`docs/part-a/2-contrato-flujo-basico.md`](docs/part-a/2-contrato-flujo-basico.md) - Basic flow contract
+  - [`docs/part-a/3-codigo-gestion-eventos.md`](docs/part-a/3-codigo-gestion-eventos.md) - Event management code
+  - [`docs/part-a/4-decisiones-clave.md`](docs/part-a/4-decisiones-clave.md) - Key decisions
+  - [`docs/part-a/5-mantenibilidad-equipo-junior.md`](docs/part-a/5-mantenibilidad-equipo-junior.md) - Maintainability for junior team
+  - [`docs/part-a/6-plan-implementacion.md`](docs/part-a/6-plan-implementacion.md) - Implementation plan
+  - [`docs/part-a/7-futuras-mejoras.md`](docs/part-a/7-futuras-mejoras.md) - Future improvements
 - **`docs/part-b/`** - Part B: Mentoring and code review (with executable examples)
+  - [`docs/part-b/README.md`](docs/part-b/README.md) - Part B overview
+  - [`docs/part-b/MENTORING_CODE_REVIEW.md`](docs/part-b/MENTORING_CODE_REVIEW.md) - Code review examples
 - **`docs/part-c/`** - Part C: Estimation and planning
+  - [`docs/part-c/ESTIMACION_PLANIFICACION.md`](docs/part-c/ESTIMACION_PLANIFICACION.md) - Estimation and planning details
 - **`docs/Practical Test - Aurore Labs - Emiliano L.pdf`** - Original assignment document
 
 ### Scripts Documentation
