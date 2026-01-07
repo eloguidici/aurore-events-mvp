@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { MetricsConfig } from '../../../config/interfaces/metrics-config.interface';
 import { Event } from '../../entities/event.entity';
 import { MetricsSnapshot } from '../../repositories/interfaces/metrics.repository.interface';
 import { METRICS_REPOSITORY_TOKEN } from '../../repositories/interfaces/metrics.repository.token';
@@ -44,6 +46,12 @@ describe('MetricsPersistenceService', () => {
     initialize: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockMetricsConfig: MetricsConfig = {
+    historyDefaultLimit: 100,
+    cacheTtlMs: 60000,
+    persistenceIntervalMs: 60000,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -63,6 +71,10 @@ describe('MetricsPersistenceService', () => {
         {
           provide: METRICS_REPOSITORY_TOKEN,
           useValue: mockMetricsRepository,
+        },
+        {
+          provide: CONFIG_TOKENS.METRICS,
+          useValue: mockMetricsConfig,
         },
       ],
     }).compile();

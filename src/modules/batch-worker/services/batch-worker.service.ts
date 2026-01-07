@@ -7,9 +7,12 @@ import {
 
 import { randomBytes } from 'crypto';
 
+import { Inject } from '@nestjs/common';
 import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { BatchWorkerConfig } from '../../config/interfaces/batch-worker-config.interface';
+import { ShutdownConfig } from '../../config/interfaces/shutdown-config.interface';
 import { ErrorLogger } from '../../common/utils/error-logger';
-import { envs } from '../../config/envs';
 import { EnrichedEvent } from '../../event/services/interfaces/enriched-event.interface';
 import { EventBufferService } from '../../event/services/event-buffer.service';
 import { EventService } from '../../event/services/events.service';
@@ -23,15 +26,22 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly batchSize: number;
   private readonly drainInterval: number; // milliseconds
   private readonly maxRetries: number;
+  private readonly shutdownTimeoutMs: number;
 
   constructor(
     private readonly eventBufferService: EventBufferService,
     private readonly eventService: EventService,
     private readonly metricsCollector: MetricsCollectorService,
+    @Inject(CONFIG_TOKENS.BATCH_WORKER)
+    batchWorkerConfig: BatchWorkerConfig,
+    @Inject(CONFIG_TOKENS.SHUTDOWN)
+    shutdownConfig: ShutdownConfig,
   ) {
-    this.batchSize = envs.batchSize;
-    this.drainInterval = envs.drainInterval;
-    this.maxRetries = envs.maxRetries;
+    // Configuration injected via ConfigModule
+    this.batchSize = batchWorkerConfig.batchSize;
+    this.drainInterval = batchWorkerConfig.drainInterval;
+    this.maxRetries = batchWorkerConfig.maxRetries;
+    this.shutdownTimeoutMs = shutdownConfig.timeoutMs;
   }
 
   /**
@@ -90,15 +100,14 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Process ALL remaining events in buffer before stopping
-    const SHUTDOWN_TIMEOUT_MS = envs.shutdownTimeoutMs;
     const startTime = Date.now();
     let batchCount = 0;
 
     while (this.eventBufferService.getSize() > 0) {
       // Check timeout to prevent infinite loop
-      if (Date.now() - startTime > SHUTDOWN_TIMEOUT_MS) {
+      if (Date.now() - startTime > this.shutdownTimeoutMs) {
         ErrorLogger.logWarning(this.logger, 'Shutdown timeout reached', {
-          timeoutMs: SHUTDOWN_TIMEOUT_MS,
+          timeoutMs: this.shutdownTimeoutMs,
           remainingEvents: this.eventBufferService.getSize(),
         });
         break;

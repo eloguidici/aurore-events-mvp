@@ -1,22 +1,27 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { CircuitBreakerConfig } from '../../config/interfaces/circuit-breaker-config.interface';
 import { CircuitBreakerService, CircuitState } from './circuit-breaker.service';
-
-// Mock envs
-jest.mock('../../config/envs', () => ({
-  envs: {
-    circuitBreakerFailureThreshold: 3,
-    circuitBreakerSuccessThreshold: 2,
-    circuitBreakerTimeoutMs: 1000,
-  },
-}));
 
 describe('CircuitBreakerService', () => {
   let service: CircuitBreakerService;
 
+  const mockConfig: CircuitBreakerConfig = {
+    failureThreshold: 3,
+    successThreshold: 2,
+    timeoutMs: 1000,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [CircuitBreakerService],
+      providers: [
+        CircuitBreakerService,
+        {
+          provide: CONFIG_TOKENS.CIRCUIT_BREAKER,
+          useValue: mockConfig,
+        },
+      ],
     }).compile();
 
     service = module.get<CircuitBreakerService>(CircuitBreakerService);

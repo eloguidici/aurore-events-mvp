@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { envs } from '../../config/envs';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { CircuitBreakerConfig } from '../../config/interfaces/circuit-breaker-config.interface';
 import { ICircuitBreakerService } from './interfaces/circuit-breaker-service.interface';
 import { ErrorLogger } from '../utils/error-logger';
 
@@ -11,15 +12,6 @@ export enum CircuitState {
   CLOSED = 'CLOSED', // Normal operation
   OPEN = 'OPEN', // Circuit is open, rejecting requests
   HALF_OPEN = 'HALF_OPEN', // Testing if service recovered
-}
-
-/**
- * Circuit breaker configuration
- */
-interface CircuitBreakerConfig {
-  failureThreshold: number; // Number of failures before opening circuit
-  successThreshold: number; // Number of successes in HALF_OPEN to close circuit
-  timeout: number; // Time in ms to wait before trying HALF_OPEN
 }
 
 /**
@@ -35,13 +27,12 @@ export class CircuitBreakerService implements ICircuitBreakerService {
   private lastFailureTime: number | null = null;
   private readonly config: CircuitBreakerConfig;
 
-  constructor() {
-    // Configuration from environment variables
-    this.config = {
-      failureThreshold: envs.circuitBreakerFailureThreshold,
-      successThreshold: envs.circuitBreakerSuccessThreshold,
-      timeout: envs.circuitBreakerTimeoutMs,
-    };
+  constructor(
+    @Inject(CONFIG_TOKENS.CIRCUIT_BREAKER)
+    config: CircuitBreakerConfig,
+  ) {
+    // Configuration injected via ConfigModule
+    this.config = config;
   }
 
   /**
@@ -57,7 +48,7 @@ export class CircuitBreakerService implements ICircuitBreakerService {
       // Check if timeout has passed to try HALF_OPEN
       if (
         this.lastFailureTime &&
-        Date.now() - this.lastFailureTime >= this.config.timeout
+        Date.now() - this.lastFailureTime >= this.config.timeoutMs
       ) {
         this.state = CircuitState.HALF_OPEN;
         this.successCount = 0;

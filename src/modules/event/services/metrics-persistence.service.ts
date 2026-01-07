@@ -2,7 +2,8 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
-import { envs } from '../../config/envs';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { MetricsConfig } from '../../config/interfaces/metrics-config.interface';
 import { IMetricsPersistenceService } from './interfaces/metrics-persistence-service.interface';
 import {
   IMetricsRepository,
@@ -28,6 +29,8 @@ export class MetricsPersistenceService
     private readonly circuitBreaker: CircuitBreakerService,
     @Inject(METRICS_REPOSITORY_TOKEN)
     private readonly metricsRepository: IMetricsRepository,
+    @Inject(CONFIG_TOKENS.METRICS)
+    private readonly metricsConfig: MetricsConfig,
   ) {}
 
   async onModuleInit() {
@@ -128,7 +131,7 @@ export class MetricsPersistenceService
    * @returns Array of metrics snapshots
    */
   public async getMetricsHistory(
-    limit: number = envs.metricsHistoryDefaultLimit,
+    limit: number = this.metricsConfig.historyDefaultLimit,
   ): Promise<MetricsSnapshot[]> {
     try {
       return await this.metricsRepository.getHistory(limit);

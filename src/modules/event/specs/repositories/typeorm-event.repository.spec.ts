@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { CircuitBreakerService } from '../../../common/services/circuit-breaker.service';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { ValidationConfig } from '../../../config/interfaces/validation-config.interface';
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { Event } from '../../entities/event.entity';
 import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
@@ -21,6 +23,12 @@ describe('TypeOrmEventRepository', () => {
     execute: jest.fn(),
   };
 
+  const mockValidationConfig: ValidationConfig = {
+    messageMaxLength: 1000,
+    metadataMaxSizeKB: 100,
+    batchChunkSize: 500,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -32,6 +40,10 @@ describe('TypeOrmEventRepository', () => {
         {
           provide: CircuitBreakerService,
           useValue: mockCircuitBreaker,
+        },
+        {
+          provide: CONFIG_TOKENS.VALIDATION,
+          useValue: mockValidationConfig,
         },
       ],
     }).compile();

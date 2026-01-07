@@ -5,7 +5,8 @@ import { Repository } from 'typeorm';
 
 import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
 import { ErrorLogger } from '../../common/utils/error-logger';
-import { envs } from '../../config/envs';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
 import { Event } from '../entities/event.entity';
 import { BatchInsertResult } from './interfaces/batch-insert-result.interface';
 import { EnrichedEvent } from '../services/interfaces/enriched-event.interface';
@@ -24,6 +25,8 @@ export class TypeOrmEventRepository implements IEventRepository {
     private readonly eventRepository: Repository<Event>,
     @Inject(CircuitBreakerService)
     private readonly circuitBreaker: CircuitBreakerService,
+    @Inject(CONFIG_TOKENS.VALIDATION)
+    private readonly validationConfig: ValidationConfig,
   ) {}
 
   /**
@@ -62,7 +65,7 @@ export class TypeOrmEventRepository implements IEventRepository {
           });
 
           // Insert in chunks to avoid database limits and improve reliability
-          const chunkSize = envs.batchChunkSize;
+          const chunkSize = this.validationConfig.batchChunkSize;
           for (let i = 0; i < values.length; i += chunkSize) {
             const chunk = values.slice(i, i + chunkSize);
 

@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { ServiceConfig } from '../../../config/interfaces/service-config.interface';
+import { QueryConfig } from '../../../config/interfaces/query-config.interface';
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { QueryDto } from '../../dtos/query-events.dto';
 import { BufferSaturatedException } from '../../exceptions';
@@ -21,6 +24,17 @@ describe('EventService', () => {
     enqueue: jest.fn(),
   };
 
+  const mockServiceConfig: ServiceConfig = {
+    nameMaxLength: 255,
+    retryAfterSeconds: 60,
+  };
+
+  const mockQueryConfig: QueryConfig = {
+    defaultLimit: 10,
+    maxLimit: 1000,
+    maxTimeRangeDays: 30,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -32,6 +46,14 @@ describe('EventService', () => {
         {
           provide: EventBufferService,
           useValue: mockEventBufferService,
+        },
+        {
+          provide: CONFIG_TOKENS.SERVICE,
+          useValue: mockServiceConfig,
+        },
+        {
+          provide: CONFIG_TOKENS.QUERY,
+          useValue: mockQueryConfig,
         },
       ],
     }).compile();

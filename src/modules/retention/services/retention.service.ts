@@ -1,9 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
 import { ErrorLogger } from '../../common/utils/error-logger';
-import { envs } from '../../config/envs';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { RetentionConfig } from '../../config/interfaces/retention-config.interface';
 import { EventService } from '../../event/services/events.service';
 import { IRetentionService } from './interfaces/retention-service.interface';
 
@@ -16,9 +17,12 @@ export class RetentionService implements IRetentionService, OnModuleInit {
   constructor(
     private readonly eventService: EventService,
     private readonly schedulerRegistry: SchedulerRegistry,
+    @Inject(CONFIG_TOKENS.RETENTION)
+    retentionConfig: RetentionConfig,
   ) {
-    this.retentionDays = envs.retentionDays;
-    this.cronSchedule = envs.retentionCronSchedule;
+    // Configuration injected via ConfigModule
+    this.retentionDays = retentionConfig.days;
+    this.cronSchedule = retentionConfig.cronSchedule;
   }
 
   /**

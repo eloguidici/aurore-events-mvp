@@ -1,6 +1,8 @@
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { RetentionConfig } from '../../../config/interfaces/retention-config.interface';
 import { EventService } from '../../../event/services/events.service';
 import { RetentionService } from '../../services/retention.service';
 
@@ -15,6 +17,11 @@ describe('RetentionService', () => {
     addCronJob: jest.fn(),
   };
 
+  const mockRetentionConfig: RetentionConfig = {
+    days: 30,
+    cronSchedule: '0 0 * * *',
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -26,6 +33,10 @@ describe('RetentionService', () => {
         {
           provide: SchedulerRegistry,
           useValue: mockSchedulerRegistry,
+        },
+        {
+          provide: CONFIG_TOKENS.RETENTION,
+          useValue: mockRetentionConfig,
         },
       ],
     }).compile();

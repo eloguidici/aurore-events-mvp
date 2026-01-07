@@ -1,20 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { BatchWorkerConfig } from '../../../config/interfaces/batch-worker-config.interface';
+import { ShutdownConfig } from '../../../config/interfaces/shutdown-config.interface';
 import { EnrichedEvent } from '../../../event/services/interfaces/enriched-event.interface';
 import { EventBufferService } from '../../../event/services/event-buffer.service';
 import { EventService } from '../../../event/services/events.service';
 import { BatchWorkerService } from '../../services/batch-worker.service';
-
-// Mock envs before importing the service
-jest.mock('../../../config/envs', () => ({
-  envs: {
-    batchSize: 100,
-    drainInterval: 1000,
-    maxRetries: 3,
-    shutdownTimeoutMs: 5000,
-  },
-}));
 
 describe('BatchWorkerService', () => {
   let service: BatchWorkerService;
@@ -34,6 +27,16 @@ describe('BatchWorkerService', () => {
     getBatchWorkerMetrics: jest.fn(),
   };
 
+  const mockBatchWorkerConfig: BatchWorkerConfig = {
+    batchSize: 100,
+    drainInterval: 1000,
+    maxRetries: 3,
+  };
+
+  const mockShutdownConfig: ShutdownConfig = {
+    timeoutMs: 5000,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -49,6 +52,14 @@ describe('BatchWorkerService', () => {
         {
           provide: MetricsCollectorService,
           useValue: mockMetricsCollector,
+        },
+        {
+          provide: CONFIG_TOKENS.BATCH_WORKER,
+          useValue: mockBatchWorkerConfig,
+        },
+        {
+          provide: CONFIG_TOKENS.SHUTDOWN,
+          useValue: mockShutdownConfig,
         },
       ],
     }).compile();

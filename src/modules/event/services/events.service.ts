@@ -3,7 +3,9 @@ import { randomBytes } from 'crypto';
 
 import { ErrorLogger } from '../../common/utils/error-logger';
 import { Sanitizer } from '../../common/utils/sanitizer';
-import { envs } from '../../config/envs';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { ServiceConfig } from '../../config/interfaces/service-config.interface';
+import { QueryConfig } from '../../config/interfaces/query-config.interface';
 import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
 import { CreateEventDto } from '../dtos/create-event.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
@@ -28,6 +30,10 @@ export class EventService implements IEventService {
     @Inject(EVENT_REPOSITORY_TOKEN)
     private readonly eventRepository: IEventRepository,
     private readonly eventBufferService: EventBufferService,
+    @Inject(CONFIG_TOKENS.SERVICE)
+    private readonly serviceConfig: ServiceConfig,
+    @Inject(CONFIG_TOKENS.QUERY)
+    private readonly queryConfig: QueryConfig,
   ) {}
 
   /**
@@ -115,7 +121,7 @@ export class EventService implements IEventService {
     if (!enqueued) {
       // Buffer is full - apply backpressure
       // enqueue() already checked capacity, so if it returns false, buffer is definitely full
-      throw new BufferSaturatedException(envs.retryAfterSeconds);
+      throw new BufferSaturatedException(this.serviceConfig.retryAfterSeconds);
     }
 
     return new IngestResponseDto({
@@ -165,7 +171,7 @@ export class EventService implements IEventService {
 
     try {
       // Calculate pagination with validation
-      const limit = Math.min(pageSize, envs.maxQueryLimit);
+      const limit = Math.min(pageSize, this.queryConfig.maxLimit);
       const maxOffset = 10000 * limit; // Prevent excessive offsets (max page 10000)
       const calculatedOffset = (page - 1) * limit;
       const offset = Math.min(calculatedOffset, maxOffset);

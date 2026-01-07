@@ -2,16 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs/promises';
 
 import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { BufferConfig } from '../../../config/interfaces/buffer-config.interface';
+import { CheckpointConfig } from '../../../config/interfaces/checkpoint-config.interface';
 import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface'; 
 import { EventBufferService } from '../../services/event-buffer.service';
-
-// Mock envs before importing the service
-jest.mock('../../../config/envs', () => ({
-  envs: {
-    bufferMaxSize: 1000,
-    checkpointIntervalMs: 60000,
-  },
-}));
 
 // Mock fs module
 jest.mock('fs/promises');
@@ -50,6 +45,14 @@ describe('EventBufferService', () => {
     getBufferMetrics: jest.fn(),
   };
 
+  const mockBufferConfig: BufferConfig = {
+    maxSize: 1000,
+  };
+
+  const mockCheckpointConfig: CheckpointConfig = {
+    intervalMs: 60000,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -57,6 +60,14 @@ describe('EventBufferService', () => {
         {
           provide: MetricsCollectorService,
           useValue: mockMetricsCollector,
+        },
+        {
+          provide: CONFIG_TOKENS.BUFFER,
+          useValue: mockBufferConfig,
+        },
+        {
+          provide: CONFIG_TOKENS.CHECKPOINT,
+          useValue: mockCheckpointConfig,
         },
       ],
     }).compile();

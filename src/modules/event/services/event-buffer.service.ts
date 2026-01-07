@@ -8,9 +8,12 @@ import { createWriteStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+import { Inject } from '@nestjs/common';
 import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { BufferConfig } from '../../config/interfaces/buffer-config.interface';
+import { CheckpointConfig } from '../../config/interfaces/checkpoint-config.interface';
 import { ErrorLogger } from '../../common/utils/error-logger';
-import { envs } from '../../config/envs';
 import { MetricsDto } from '../dtos/metrics-response.dto';
 import { EnrichedEvent } from './interfaces/enriched-event.interface';
 import { IEventBufferService } from './interfaces/event-buffer-service.interface';
@@ -57,15 +60,20 @@ export class EventBufferService
 
   constructor(
     private readonly metricsCollector: MetricsCollectorService,
+    @Inject(CONFIG_TOKENS.BUFFER)
+    bufferConfig: BufferConfig,
+    @Inject(CONFIG_TOKENS.CHECKPOINT)
+    checkpointConfig: CheckpointConfig,
   ) {
-    this.maxSize = envs.bufferMaxSize;
+    // Configuration injected via ConfigModule
+    this.maxSize = bufferConfig.maxSize;
     this.checkpointDir = path.join(process.cwd(), 'checkpoints');
     this.checkpointPath = path.join(
       this.checkpointDir,
       'buffer-checkpoint.json',
     );
-    // Checkpoint interval is required via environment variable (validated at startup)
-    this.checkpointIntervalMs = envs.checkpointIntervalMs;
+    // Checkpoint interval injected via ConfigModule
+    this.checkpointIntervalMs = checkpointConfig.intervalMs;
   }
 
   /**
