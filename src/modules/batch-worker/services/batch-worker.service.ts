@@ -8,8 +8,9 @@ import {
 import { randomBytes } from 'crypto';
 
 import { Inject } from '@nestjs/common';
-import { MetricsCollectorService } from '../../common/services/metrics-collector.service';
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { IMetricsCollectorService } from '../../common/services/interfaces/metrics-collector-service.interface';
+import { METRICS_COLLECTOR_SERVICE_TOKEN } from '../../common/services/interfaces/metrics-collector-service.token';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { BatchWorkerConfig } from '../../config/interfaces/batch-worker-config.interface';
@@ -36,7 +37,8 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly eventBufferService: IEventBufferService,
     @Inject(EVENT_SERVICE_TOKEN)
     private readonly eventService: IEventService,
-    private readonly metricsCollector: MetricsCollectorService,
+    @Inject(METRICS_COLLECTOR_SERVICE_TOKEN)
+    private readonly metricsCollector: IMetricsCollectorService,
     @Inject(ERROR_LOGGER_SERVICE_TOKEN)
     private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.BATCH_WORKER)

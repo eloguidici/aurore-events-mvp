@@ -44,7 +44,6 @@ cp env.example .env
 Luego edita `.env` y configura todas las variables. Para PostgreSQL, asegúrate de tener:
 
 ```env
-DB_TYPE=postgres
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=admin
@@ -52,6 +51,7 @@ DB_PASSWORD=admin
 DB_DATABASE=aurore_events
 DB_SYNCHRONIZE=true
 DB_LOGGING=false
+DB_POOL_MAX=20
 BATCH_CHUNK_SIZE=1000
 ```
 
@@ -67,10 +67,9 @@ Crea un archivo `.env` basado en `env.example`:
 cp env.example .env
 ```
 
-Y asegúrate de tener estas líneas:
+Y asegúrate de tener estas líneas (ver `env.example` para la lista completa):
 
 ```env
-DB_TYPE=postgres
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=admin
@@ -78,6 +77,7 @@ DB_PASSWORD=admin
 DB_DATABASE=aurore_events
 DB_SYNCHRONIZE=true
 DB_LOGGING=false
+DB_POOL_MAX=20
 BATCH_CHUNK_SIZE=1000
 ```
 
@@ -134,6 +134,7 @@ docker-compose up -d
 
 ## 📚 Más Información
 
-- Ver `DOCKER_SETUP.md` para detalles avanzados
-- Ver `doc/ANALISIS_MIGRACION_POSTGRESQL.md` para análisis técnico
+- Ver `docs/DOCKER_SETUP.md` para detalles avanzados
+- Ver `docs/ARCHITECTURE.md` para arquitectura completa del sistema
+- Ver `docs/HOW_IT_WORKS.md` para explicación detallada del funcionamiento
 

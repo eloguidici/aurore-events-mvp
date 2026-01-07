@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { IMetricsCollectorService } from './interfaces/metrics-collector-service.interface';
+
 /**
  * Centralized metrics collection service
  * Separates metrics tracking from business logic
@@ -8,7 +10,7 @@ import { Injectable, Logger } from '@nestjs/common';
  * This service aggregates and exposes all metrics, keeping business logic clean.
  */
 @Injectable()
-export class MetricsCollectorService {
+export class MetricsCollectorService implements IMetricsCollectorService {
   private readonly logger = new Logger(MetricsCollectorService.name);
 
   // Buffer metrics - tracks buffer operations

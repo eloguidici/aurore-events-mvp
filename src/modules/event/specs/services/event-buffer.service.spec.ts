@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs/promises';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
-import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
+import { METRICS_COLLECTOR_SERVICE_TOKEN } from '../../../common/services/interfaces/metrics-collector-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BufferConfig } from '../../../config/interfaces/buffer-config.interface';
 import { CheckpointConfig } from '../../../config/interfaces/checkpoint-config.interface';
@@ -37,7 +37,7 @@ jest.mock('fs', () => {
 
 describe('EventBufferService', () => {
   let service: EventBufferService;
-  let metricsCollector: MetricsCollectorService;
+  let metricsCollector: any;
 
   const mockMetricsCollector = {
     recordBufferEnqueue: jest.fn(),
@@ -59,7 +59,7 @@ describe('EventBufferService', () => {
       providers: [
         EventBufferService,
         {
-          provide: MetricsCollectorService,
+          provide: METRICS_COLLECTOR_SERVICE_TOKEN,
           useValue: mockMetricsCollector,
         },
         {
@@ -82,9 +82,7 @@ describe('EventBufferService', () => {
     }).compile();
 
     service = module.get<EventBufferService>(EventBufferService);
-    metricsCollector = module.get<MetricsCollectorService>(
-      MetricsCollectorService,
-    );
+    metricsCollector = module.get(METRICS_COLLECTOR_SERVICE_TOKEN);
 
     jest.clearAllMocks();
 

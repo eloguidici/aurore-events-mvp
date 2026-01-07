@@ -37,18 +37,33 @@ El proyecto implementa una estrategia de testing completa que incluye:
 
 | Módulo | Archivo de Test | Cobertura |
 |--------|----------------|-----------|
+| **Root** | | |
+| | `app.controller.spec.ts` | AppController - health checks (health, liveness, readiness) |
 | **Event Module** | | |
 | | `events.service.spec.ts` | EventService - lógica de negocio |
 | | `event-buffer.service.spec.ts` | EventBufferService - buffer y checkpoints |
 | | `business-metrics.service.spec.ts` | BusinessMetricsService - cálculos de métricas |
 | | `metrics-persistence.service.spec.ts` | MetricsPersistenceService - persistencia |
 | | `typeorm-event.repository.spec.ts` | TypeOrmEventRepository - acceso a datos |
+| | `typeorm-business-metrics.repository.spec.ts` | TypeOrmBusinessMetricsRepository - métricas de negocio |
+| | `file-metrics.repository.spec.ts` | FileMetricsRepository - persistencia de métricas |
+| | `events.controller.spec.ts` | EventController - endpoints de ingesta y consulta |
+| | `event-health.controller.spec.ts` | EventHealthController - endpoints de health |
 | **Batch Worker** | `batch-worker.service.spec.ts` | BatchWorkerService - procesamiento por lotes |
 | **Retention** | `retention.service.spec.ts` | RetentionService - limpieza automática |
 | **Common Module** | | |
 | | `circuit-breaker.service.spec.ts` | CircuitBreakerService - protección contra fallos |
-| | `sanitizer.spec.ts` | Sanitizer - sanitización de inputs |
+| | `sanitizer.service.spec.ts` | SanitizerService - sanitización de inputs |
+| | `error-handling.service.spec.ts` | ErrorHandlingService - manejo de errores |
+| | `error-logger.service.spec.ts` | ErrorLoggerService - logging de errores |
+| | `health.service.spec.ts` | HealthService - estado de salud |
+| | `metrics-collector.service.spec.ts` | MetricsCollectorService - recolección de métricas |
+| | `ip-throttler.guard.spec.ts` | IpThrottlerGuard - rate limiting |
+| | `correlation-id.middleware.spec.ts` | CorrelationIdMiddleware - correlation IDs |
+| | `tracing.spec.ts` | Tracing - utilidades de tracing |
+| | `type-guards.spec.ts` | Type Guards - validación de tipos |
 | **Config** | `envs.spec.ts` | Validación de variables de entorno |
+| | `config-factory.spec.ts` | Config Factory - creación de objetos de configuración |
 
 ### Tests E2E Disponibles
 
@@ -228,6 +243,43 @@ El proyecto implementa una estrategia de testing completa que incluye:
 
 ---
 
+### Root Module Tests
+
+#### `app.controller.spec.ts`
+**Cubre**: `AppController`
+
+**Casos de prueba**:
+- ✅ `healthCheck()` - Retorna estado cuando servidor está listo
+- ✅ `healthCheck()` - Lanza excepción cuando servidor no está listo
+- ✅ `healthCheck()` - Lanza excepción cuando servidor está apagándose
+- ✅ `livenessCheck()` - Retorna estado cuando servidor está vivo
+- ✅ `livenessCheck()` - Lanza excepción cuando servidor está apagándose
+- ✅ `readinessCheck()` - Retorna estado cuando servidor está listo
+- ✅ `readinessCheck()` - Lanza excepción cuando servidor no está listo
+- ✅ Manejo de errores inesperados con logging
+- ✅ Re-lanzamiento de HttpException sin modificar
+
+**Mocks utilizados**:
+- `HealthService` - Mock del servicio de salud
+- `IErrorLoggerService` - Mock del logger de errores
+
+### Event Module Tests (Adicionales)
+
+#### `typeorm-business-metrics.repository.spec.ts`
+**Cubre**: `TypeOrmBusinessMetricsRepository`
+
+**Casos de prueba**:
+- ✅ `getTotalEventsCount()` - Conteo total de eventos
+- ✅ `getEventsByService()` - Agrupación de eventos por servicio
+- ✅ `getEventsByTimeRange()` - Conteos por rango de tiempo
+- ✅ `getEventsByHour()` - Agrupación de eventos por hora
+- ✅ Manejo de errores y logging
+- ✅ Retorno de arrays vacíos cuando no hay datos
+
+**Mocks utilizados**:
+- `Repository<Event>` - Mock de TypeORM Repository
+- `IErrorLoggerService` - Mock del logger de errores
+
 ### Config Tests
 
 #### `envs.spec.ts`
@@ -243,6 +295,26 @@ El proyecto implementa una estrategia de testing completa que incluye:
 **Características especiales**:
 - Tests de esquemas Zod
 - Validación de todos los grupos de configuración
+
+#### `config-factory.spec.ts`
+**Cubre**: Funciones factory de configuración
+
+**Casos de prueba**:
+- ✅ `createServerConfig()` - Creación de configuración de servidor
+- ✅ `createDatabaseConfig()` - Creación de configuración de base de datos
+- ✅ `createBatchWorkerConfig()` - Creación de configuración de batch worker
+- ✅ `createBufferConfig()` - Creación de configuración de buffer
+- ✅ `createRetentionConfig()` - Creación de configuración de retención
+- ✅ `createQueryConfig()` - Creación de configuración de consultas
+- ✅ `createServiceConfig()` - Creación de configuración de servicio
+- ✅ `createValidationConfig()` - Creación de configuración de validación
+- ✅ `createCheckpointConfig()` - Creación de configuración de checkpoint
+- ✅ `createCircuitBreakerConfig()` - Creación de configuración de circuit breaker
+- ✅ `createShutdownConfig()` - Creación de configuración de shutdown
+- ✅ `createMetricsConfig()` - Creación de configuración de métricas con valores por defecto
+- ✅ `createRateLimitingConfig()` - Creación de configuración de rate limiting
+- ✅ Validación de tipos de retorno
+- ✅ Verificación de valores por defecto en métricas
 
 ---
 
@@ -464,6 +536,45 @@ describe('ServiceName', () => {
    - Abrir `coverage/index.html` en el navegador
 
 3. **Agregar tests para métodos sin cubrir**
+
+---
+
+## Resumen de Cobertura
+
+### Estadísticas de Tests
+
+- **Total de archivos de test**: 37
+- **Tests unitarios**: ~200+ casos de prueba
+- **Tests E2E**: 4 suites completas
+- **Cobertura objetivo**: 80%+ para servicios, 70%+ para controladores
+
+### Archivos con Tests
+
+**Controladores** (3):
+- ✅ `app.controller.spec.ts` - Health checks (health, liveness, readiness)
+- ✅ `events.controller.spec.ts` - Ingesta y consulta
+- ✅ `event-health.controller.spec.ts` - Health endpoints
+
+**Servicios** (12):
+- ✅ Todos los servicios tienen tests completos
+
+**Repositorios** (3):
+- ✅ `typeorm-event.repository.spec.ts`
+- ✅ `typeorm-business-metrics.repository.spec.ts`
+- ✅ `file-metrics.repository.spec.ts`
+
+**DTOs** (6):
+- ✅ Todos los DTOs tienen tests de validación
+
+**Decoradores** (4):
+- ✅ Todos los decoradores personalizados tienen tests
+
+**Guards, Middleware, Utils** (5):
+- ✅ Todos tienen tests completos
+
+**Config** (2):
+- ✅ `envs.spec.ts`
+- ✅ `config-factory.spec.ts`
 
 ---
 

@@ -539,7 +539,84 @@ WHERE timestamp < '2023-12-16T00:00:00Z';
 
 ## 📈 Métricas y Monitoreo
 
-### Health Check: `GET /health`
+### Health Check Global: `GET /health`
+
+```json
+{
+  "message": "SERVER_IS_READY"
+}
+```
+
+### Health Checks Específicos: `GET /health/*`
+
+#### Buffer: `GET /health/buffer`
+```json
+{
+  "status": "healthy",
+  "buffer": {
+    "size": 1250,
+    "capacity": 10000,
+    "utilization_percent": "12.50"
+  },
+  "metrics": {
+    "total_enqueued": 50000,
+    "total_dropped": 0,
+    "drop_rate_percent": "0.00",
+    "throughput_events_per_second": 83.33
+  }
+}
+```
+
+#### Database: `GET /health/database`
+```json
+{
+  "status": "healthy",
+  "database": "connected",
+  "circuitBreaker": {
+    "state": "CLOSED",
+    "failures": 0,
+    "successes": 1000,
+    "lastFailureTime": null
+  }
+}
+```
+
+#### Business Metrics: `GET /health/business`
+```json
+{
+  "totalEvents": 123456,
+  "eventsByService": {
+    "user-service": 50000,
+    "auth-service": 30000,
+    "payment-service": 20000
+  },
+  "eventsLast24Hours": 5000,
+  "eventsLastHour": 250,
+  "averageEventsPerMinute": 3.47,
+  "topServices": [
+    { "service": "user-service", "count": 50000 },
+    { "service": "auth-service", "count": 30000 }
+  ],
+  "eventsByHour": [
+    { "hour": "2024-01-15 10:00", "count": 150 },
+    { "hour": "2024-01-15 11:00", "count": 200 }
+  ]
+}
+```
+
+#### Detailed Health: `GET /health/detailed`
+```json
+{
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "server": { "status": "ready", "message": "SERVER_IS_READY" },
+  "database": { "status": "healthy", "database": "connected" },
+  "buffer": { "status": "healthy", "buffer": {...} },
+  "circuitBreaker": { "state": "CLOSED", ... },
+  "business": { "totalEvents": 123456, ... }
+}
+```
+
+### Métricas del Buffer: `GET /metrics`
 
 ```json
 {
@@ -549,8 +626,13 @@ WHERE timestamp < '2023-12-16T00:00:00Z';
   "buffer_utilization_percent": "12.50",
   "metrics": {
     "total_enqueued": 50000,
-    "total_dropped": 0
-  }
+    "total_dropped": 0,
+    "drop_rate_percent": "0.00",
+    "throughput_events_per_second": 83.33
+  },
+  "last_enqueue_time": "2024-01-15T10:30:00.123Z",
+  "last_drain_time": "2024-01-15T10:29:55.456Z",
+  "uptime_seconds": 3600
 }
 ```
 
@@ -558,20 +640,64 @@ Esto te permite monitorear:
 - Cuántos eventos están esperando en el buffer
 - Si el buffer se está llenando (riesgo de backpressure)
 - Cuántos eventos se han procesado
+- Estado detallado del buffer y métricas de rendimiento
+- Estado del circuit breaker
+- Métricas de negocio (eventos por servicio, tendencias)
 
 ---
 
 ## 🔧 Configuración
 
-Todo es configurable via variables de entorno:
+Todo es configurable via variables de entorno (todas son REQUERIDAS):
 
 ```env
-BUFFER_MAX_SIZE=10000      # Capacidad del buffer
-BATCH_SIZE=500             # Eventos por batch
+# Server
+PORT=3000
+HOST=localhost
+NODE_ENV=development
+
+# Database (PostgreSQL)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=admin
+DB_PASSWORD=admin
+DB_DATABASE=aurore_events
+DB_SYNCHRONIZE=true
+DB_LOGGING=false
+DB_POOL_MAX=20
+
+# Buffer
+BUFFER_MAX_SIZE=50000      # Capacidad del buffer
+CHECKPOINT_INTERVAL_MS=5000
+
+# Batch Worker
+BATCH_SIZE=5000            # Eventos por batch
 DRAIN_INTERVAL=1000        # Intervalo de procesamiento (ms)
 MAX_RETRIES=3              # Reintentos máximos
+
+# Retention
 RETENTION_DAYS=30          # Días de retención
+RETENTION_CRON_SCHEDULE=0 2 * * *
+
+# Rate Limiting
+THROTTLE_TTL_MS=60000
+THROTTLE_GLOBAL_LIMIT=300000
+THROTTLE_IP_LIMIT=10000
+THROTTLE_QUERY_LIMIT=200
+THROTTLE_HEALTH_LIMIT=60
+
+# Circuit Breaker
+CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+CIRCUIT_BREAKER_SUCCESS_THRESHOLD=2
+CIRCUIT_BREAKER_TIMEOUT_MS=30000
+
+# Query
+DEFAULT_QUERY_LIMIT=100
+MAX_QUERY_LIMIT=1000
+MAX_QUERY_TIME_RANGE_DAYS=30
 ```
+
+Ver `env.example` para la lista completa de variables requeridas.
 
 ---
 

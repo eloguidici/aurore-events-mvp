@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
+import { METRICS_COLLECTOR_SERVICE_TOKEN } from '../../../common/services/interfaces/metrics-collector-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BatchWorkerConfig } from '../../../config/interfaces/batch-worker-config.interface';
 import { ShutdownConfig } from '../../../config/interfaces/shutdown-config.interface';
@@ -51,7 +51,7 @@ describe('BatchWorkerService', () => {
           useValue: mockEventService,
         },
         {
-          provide: MetricsCollectorService,
+          provide: METRICS_COLLECTOR_SERVICE_TOKEN,
           useValue: mockMetricsCollector,
         },
         {

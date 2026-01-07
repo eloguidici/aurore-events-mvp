@@ -34,6 +34,8 @@ See [Installation](#installation) section for detailed steps.
 - **Rate Limiting**: Per-IP rate limiting to prevent abuse
 - **Observability**: Correlation IDs for request tracking, business metrics
 - **Circuit Breaker**: Automatic protection against database failures
+- **100% Decoupled Architecture**: All services use interfaces for complete decoupling
+- **Comprehensive Testing**: 37 test files with 200+ test cases covering all components
 
 ## Architecture
 
@@ -42,8 +44,10 @@ See [Installation](#installation) section for detailed steps.
 - **Batch Worker**: Background processor for batch writes
 - **Storage Layer**: PostgreSQL database with indexed queries
 - **Retention Job**: Daily automated cleanup
+- **Decoupled Design**: 100% of services use interfaces for complete decoupling
+- **Comprehensive Testing**: Full test coverage with 37 test files
 
-**📖 For detailed architecture documentation**, including class responsibilities, design patterns, and data flow diagrams, see: [`doc/ARCHITECTURE.md`](doc/ARCHITECTURE.md)
+**📖 For detailed architecture documentation**, including class responsibilities, design patterns, data flow diagrams, and decoupling strategy, see: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ## Prerequisites
 

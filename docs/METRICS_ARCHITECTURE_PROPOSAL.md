@@ -1,8 +1,10 @@
-# Propuesta: Arquitectura de Métricas Menos Invasiva
+# Arquitectura de Métricas Centralizada - Implementada ✅
 
-## Problema Actual
+> **Estado**: Esta refactorización ha sido completamente implementada. El sistema ahora usa `MetricsCollectorService` de forma centralizada.
 
-La lógica de métricas está **muy acoplada** a la lógica de negocio:
+## Problema Original (Resuelto)
+
+La lógica de métricas estaba **muy acoplada** a la lógica de negocio:
 
 1. **EventBufferService**: Mantiene objeto `metrics` privado y lo actualiza manualmente
 2. **BatchWorkerService**: Mantiene `performanceMetrics` privado con llamadas explícitas a `updatePerformanceMetrics()`
@@ -173,13 +175,15 @@ public getMetrics(): MetricsDto {
 }
 ```
 
-## Próximos Pasos
+## Estado de Implementación
 
-1. ✅ Crear `MetricsCollectorService` (ya creado)
-2. ⏳ Refactorizar `EventBufferService` para usar el servicio
-3. ⏳ Refactorizar `BatchWorkerService` para usar el servicio
-4. ⏳ Actualizar tests para mockear el servicio de métricas
-5. ⏳ Actualizar `MetricsPersistenceService` para obtener métricas del servicio centralizado
+1. ✅ Crear `MetricsCollectorService` (completado)
+2. ✅ Refactorizar `EventBufferService` para usar el servicio (completado)
+3. ✅ Refactorizar `BatchWorkerService` para usar el servicio (completado)
+4. ✅ Actualizar tests para mockear el servicio de métricas (completado)
+5. ✅ Actualizar `MetricsPersistenceService` para obtener métricas del servicio centralizado (completado)
+
+**Nota**: Esta refactorización ha sido completamente implementada. El sistema ahora usa `MetricsCollectorService` de forma centralizada en todos los servicios que requieren métricas.
 
 ## Consideraciones Adicionales
 

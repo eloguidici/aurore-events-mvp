@@ -8,6 +8,7 @@ import { ErrorHandlingService } from './services/error-handling.service';
 import { HEALTH_SERVICE_TOKEN } from './services/interfaces/health-service.token';
 import { HealthService } from './services/health.service';
 import { MetricsCollectorService } from './services/metrics-collector.service';
+import { METRICS_COLLECTOR_SERVICE_TOKEN } from './services/interfaces/metrics-collector-service.token';
 import { SANITIZER_SERVICE_TOKEN } from './services/interfaces/sanitizer-service.token';
 import { SanitizerService } from './services/sanitizer.service';
 
@@ -25,6 +26,10 @@ import { SanitizerService } from './services/sanitizer.service';
       useClass: CircuitBreakerService,
     },
     MetricsCollectorService,
+    {
+      provide: METRICS_COLLECTOR_SERVICE_TOKEN,
+      useClass: MetricsCollectorService,
+    },
     ErrorLoggerService,
     {
       provide: ERROR_LOGGER_SERVICE_TOKEN,
@@ -42,6 +47,7 @@ import { SanitizerService } from './services/sanitizer.service';
     CircuitBreakerService,
     CIRCUIT_BREAKER_SERVICE_TOKEN,
     MetricsCollectorService,
+    METRICS_COLLECTOR_SERVICE_TOKEN,
     ErrorLoggerService,
     ERROR_LOGGER_SERVICE_TOKEN,
     SanitizerService,
