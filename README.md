@@ -111,6 +111,7 @@ DB_PASSWORD=admin
 DB_DATABASE=aurore_events
 DB_SYNCHRONIZE=true
 DB_LOGGING=false
+DB_POOL_MAX=20
 
 # Batch Worker Configuration (REQUIRED)
 BATCH_SIZE=5000
@@ -137,9 +138,21 @@ RETRY_AFTER_SECONDS=5
 MESSAGE_MAX_LENGTH=2000
 METADATA_MAX_SIZE_KB=16
 BATCH_CHUNK_SIZE=1000
+
+# Rate Limiting Configuration (REQUIRED)
+THROTTLE_TTL_MS=60000
+THROTTLE_GLOBAL_LIMIT=300000
+THROTTLE_IP_LIMIT=10000
+THROTTLE_QUERY_LIMIT=200
+THROTTLE_HEALTH_LIMIT=60
+
+# Circuit Breaker Configuration (REQUIRED)
+CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+CIRCUIT_BREAKER_SUCCESS_THRESHOLD=2
+CIRCUIT_BREAKER_TIMEOUT_MS=30000
 ```
 
-See `env.example` for the complete list of required variables.
+**Note:** This is a subset of the most important variables. See `env.example` for the complete list of all required variables, including additional configuration for shutdown, metrics, and query limits.
 
 ## Running the Application
 
@@ -350,8 +363,8 @@ npm run load-test:parallel 15 20000 60
 ```
 
 **📖 For detailed testing documentation**, including unit test coverage, testing strategy, and best practices, see:
-- [`doc/TESTING.md`](doc/TESTING.md) - Complete testing documentation
-- [`doc/GUIA_PRUEBAS_AURORE.md`](doc/GUIA_PRUEBAS_AURORE.md) - Load testing guide (Spanish)
+- [`docs/TESTING.md`](docs/TESTING.md) - Complete testing documentation
+- [`docs/TESTING_GUIDE.md`](docs/TESTING_GUIDE.md) - Step-by-step testing guide with examples
 
 ## Performance
 
@@ -419,32 +432,25 @@ docker-compose ps
 
 ## Documentation
 
-The project includes comprehensive documentation in the `doc/` folder:
+The project includes comprehensive documentation in the `docs/` folder:
 
 ### Core Documentation
-- **`ARCHITECTURE.md`** - Complete architecture documentation, class responsibilities, design patterns, and data flow diagrams
-- **`TESTING.md`** - Testing strategy, unit test coverage, E2E tests, and testing best practices
-- **`HOW_IT_WORKS.md`** - Detailed explanation of system operation and data flow
+- **`docs/ARCHITECTURE.md`** - Complete architecture documentation, class responsibilities, design patterns, and data flow diagrams
+- **`docs/TESTING.md`** - Testing strategy, unit test coverage, E2E tests, and testing best practices
+- **`docs/HOW_IT_WORKS.md`** - Detailed explanation of system operation and data flow
 
 ### Quick Start & Setup
-- **`QUICK_START.md`** - Quick start guide (2-3 commands to get started)
-- **`DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
-- **`TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
+- **`docs/QUICK_START.md`** - Quick start guide (2-3 commands to get started)
+- **`docs/DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
+- **`docs/TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
 
-### Exercise Documentation (Aurore Labs)
-- **`part-a/`** - Part A: Design and MVP system architecture (7 documents)
-- **`part-b/`** - Part B: Mentoring and code review (with executable examples)
-- **`part-c/`** - Part C: Estimation and planning
+### Exercise Documentation (Aurore Labs Assignment)
+- **`docs/part-a/`** - Part A: Design and MVP system architecture (7 documents)
+- **`docs/part-b/`** - Part B: Mentoring and code review (with executable examples)
+- **`docs/part-c/`** - Part C: Estimation and planning
+- **`docs/Practical Test - Aurore Labs - Emiliano L.pdf`** - Original assignment document
 
 ### Scripts Documentation
-- **`scripts/README.md`** - Load testing documentation
-- **`scripts/README_PARALLEL.md`** - Parallel load testing guide
-
-## Quick Start Guide
-
-For a complete step-by-step guide on how to test the system, see:
-- **`doc/TESTING_GUIDE.md`** - Complete testing guide with examples
-- **`doc/TESTING.md`** - Testing strategy and best practices
 - **`scripts/README.md`** - Load testing documentation
 - **`scripts/README_PARALLEL.md`** - Parallel load testing guide
 

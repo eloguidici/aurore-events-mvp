@@ -14,6 +14,8 @@ Este documento describe la arquitectura del sistema, los módulos principales, l
 - [Flujo de Datos](#flujo-de-datos)
 - [Patrones de Diseño](#patrones-de-diseño)
 
+**📊 Para ver diagramas detallados del flujo completo de datos** (ingesta, procesamiento, consultas y retención), ver: [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md#-diagrama-completo-del-flujo-de-datos)
+
 ---
 
 ## Visión General

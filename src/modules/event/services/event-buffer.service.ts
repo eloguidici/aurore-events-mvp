@@ -415,60 +415,88 @@ export class EventBufferService
    * - healthy: otherwise
    * 
    * @returns MetricsDto object containing all buffer metrics and statistics
+   * @throws Logs error with context and returns default metrics if calculation fails
    */
   public getMetrics(): MetricsDto {
-    const currentTime = Date.now();
-    const bufferMetrics = this.metricsCollector.getBufferMetrics();
-    const uptimeSeconds = (currentTime - bufferMetrics.startTime) / 1000;
-    const currentSize = this.getSize();
-    const utilizationPercent = (currentSize / this.maxSize) * 100;
+    try {
+      const currentTime = Date.now();
+      const bufferMetrics = this.metricsCollector.getBufferMetrics();
+      const uptimeSeconds = (currentTime - bufferMetrics.startTime) / 1000;
+      const currentSize = this.getSize();
+      const utilizationPercent = (currentSize / this.maxSize) * 100;
 
-    // Calculate drop rate (percentage of events dropped)
-    // Drop rate = dropped / (enqueued + dropped) * 100
-    const totalAttempted =
-      bufferMetrics.totalEnqueued + bufferMetrics.totalDropped;
-    const dropRate =
-      totalAttempted > 0
-        ? (bufferMetrics.totalDropped / totalAttempted) * 100
-        : 0;
+      // Calculate drop rate (percentage of events dropped)
+      // Drop rate = dropped / (enqueued + dropped) * 100
+      const totalAttempted =
+        bufferMetrics.totalEnqueued + bufferMetrics.totalDropped;
+      const dropRate =
+        totalAttempted > 0
+          ? (bufferMetrics.totalDropped / totalAttempted) * 100
+          : 0;
 
-    // Calculate throughput (events per second)
-    const throughput =
-      uptimeSeconds > 0 ? bufferMetrics.totalEnqueued / uptimeSeconds : 0;
+      // Calculate throughput (events per second)
+      const throughput =
+        uptimeSeconds > 0 ? bufferMetrics.totalEnqueued / uptimeSeconds : 0;
 
-    // Determine health status based on utilization and drop rate
-    let healthStatus: 'healthy' | 'warning' | 'critical';
-    if (utilizationPercent >= 90 || dropRate > 5) {
-      healthStatus = 'critical';
-    } else if (utilizationPercent >= 70 || dropRate > 1) {
-      healthStatus = 'warning';
-    } else {
-      healthStatus = 'healthy';
+      // Determine health status based on utilization and drop rate
+      let healthStatus: 'healthy' | 'warning' | 'critical';
+      if (utilizationPercent >= 90 || dropRate > 5) {
+        healthStatus = 'critical';
+      } else if (utilizationPercent >= 70 || dropRate > 1) {
+        healthStatus = 'warning';
+      } else {
+        healthStatus = 'healthy';
+      }
+
+      // Calculate time since last operations
+      const timeSinceLastEnqueue =
+        bufferMetrics.lastEnqueueTime > 0
+          ? (currentTime - bufferMetrics.lastEnqueueTime) / 1000
+          : null;
+      const timeSinceLastDrain =
+        bufferMetrics.lastDrainTime > 0
+          ? (currentTime - bufferMetrics.lastDrainTime) / 1000
+          : null;
+
+      return new MetricsDto({
+        totalEnqueued: bufferMetrics.totalEnqueued,
+        totalDropped: bufferMetrics.totalDropped,
+        currentSize,
+        capacity: this.maxSize,
+        utilizationPercent,
+        dropRate,
+        throughput,
+        healthStatus,
+        uptimeSeconds,
+        timeSinceLastEnqueue,
+        timeSinceLastDrain,
+      });
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error calculating buffer metrics',
+        error,
+        {
+          currentSize: this.getSize(),
+          capacity: this.maxSize,
+        },
+      );
+      // Return default metrics to prevent breaking health checks
+      return new MetricsDto({
+        totalEnqueued: 0,
+        totalDropped: 0,
+        currentSize: this.getSize(),
+        capacity: this.maxSize,
+        utilizationPercent: 0,
+        dropRate: 0,
+        throughput: 0,
+        healthStatus: 'healthy',
+        uptimeSeconds: 0,
+        timeSinceLastEnqueue: null,
+        timeSinceLastDrain: null,
+      });
     }
-
-    // Calculate time since last operations
-    const timeSinceLastEnqueue =
-      bufferMetrics.lastEnqueueTime > 0
-        ? (currentTime - bufferMetrics.lastEnqueueTime) / 1000
-        : null;
-    const timeSinceLastDrain =
-      bufferMetrics.lastDrainTime > 0
-        ? (currentTime - bufferMetrics.lastDrainTime) / 1000
-        : null;
-
-    return new MetricsDto({
-      totalEnqueued: bufferMetrics.totalEnqueued,
-      totalDropped: bufferMetrics.totalDropped,
-      currentSize,
-      capacity: this.maxSize,
-      utilizationPercent,
-      dropRate,
-      throughput,
-      healthStatus,
-      uptimeSeconds,
-      timeSinceLastEnqueue,
-      timeSinceLastDrain,
-    });
   }
 
   /**

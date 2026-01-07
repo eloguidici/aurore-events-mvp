@@ -187,6 +187,7 @@ export class TypeOrmEventRepository implements IEventRepository {
    *
    * @param params - Query parameters
    * @returns Array of Event entities
+   * @throws Logs error with context and re-throws to let caller handle it
    */
   async findByServiceAndTimeRange(params: {
     service: string;
@@ -197,6 +198,9 @@ export class TypeOrmEventRepository implements IEventRepository {
     sortField: string;
     sortOrder: 'ASC' | 'DESC';
   }): Promise<Event[]> {
+    // Extract variables outside try-catch for error logging context
+    const { service, from, to, limit, offset, sortField, sortOrder } = params;
+
     // Execute with circuit breaker protection
     const operation = async () => {
       // Validate sort field to prevent SQL injection (double-check even though DTO validates)
@@ -225,7 +229,26 @@ export class TypeOrmEventRepository implements IEventRepository {
       return await Promise.race([queryPromise, timeoutPromise]);
     };
 
-    return await this.circuitBreaker.execute(operation);
+    try {
+      return await this.circuitBreaker.execute(operation);
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error finding events by service and time range',
+        error,
+        this.errorLogger.createContext(undefined, service, {
+          from,
+          to,
+          limit,
+          offset,
+          sortField,
+          sortOrder,
+        }),
+      );
+      // Re-throw to let caller handle it
+      throw error;
+    }
   }
 
   /**
@@ -234,12 +257,16 @@ export class TypeOrmEventRepository implements IEventRepository {
    *
    * @param params - Query parameters
    * @returns Total count of matching events
+   * @throws Logs error with context and re-throws to let caller handle it
    */
   async countByServiceAndTimeRange(params: {
     service: string;
     from: string;
     to: string;
   }): Promise<number> {
+    // Extract variables outside try-catch for error logging context
+    const { service, from, to } = params;
+
     // Execute with circuit breaker protection
     const operation = async () => {
       return await this.buildServiceAndTimeRangeQuery(
@@ -249,7 +276,22 @@ export class TypeOrmEventRepository implements IEventRepository {
       ).getCount();
     };
 
-    return await this.circuitBreaker.execute(operation);
+    try {
+      return await this.circuitBreaker.execute(operation);
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error counting events by service and time range',
+        error,
+        this.errorLogger.createContext(undefined, service, {
+          from,
+          to,
+        }),
+      );
+      // Re-throw to let caller handle it
+      throw error;
+    }
   }
 
   /**
@@ -259,6 +301,7 @@ export class TypeOrmEventRepository implements IEventRepository {
    *
    * @param params - Query parameters including pagination and sorting
    * @returns Object containing events array and total count
+   * @throws Logs error with context and re-throws to let caller handle it
    */
   async findByServiceAndTimeRangeWithCount(params: {
     service: string;
@@ -269,6 +312,9 @@ export class TypeOrmEventRepository implements IEventRepository {
     sortField: string;
     sortOrder: 'ASC' | 'DESC';
   }): Promise<{ events: Event[]; total: number }> {
+    // Extract variables outside try-catch for error logging context
+    const { service, from, to, limit, offset, sortField, sortOrder } = params;
+
     const operation = async () => {
       // Validate sort field to prevent SQL injection (double-check even though DTO validates)
       const safeSortField = this.validateSortField(params.sortField);
@@ -310,8 +356,27 @@ export class TypeOrmEventRepository implements IEventRepository {
       return { events, total };
     };
 
-    // Execute with circuit breaker protection
-    return await this.circuitBreaker.execute(operation);
+    try {
+      // Execute with circuit breaker protection
+      return await this.circuitBreaker.execute(operation);
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error finding events with count by service and time range',
+        error,
+        this.errorLogger.createContext(undefined, service, {
+          from,
+          to,
+          limit,
+          offset,
+          sortField,
+          sortOrder,
+        }),
+      );
+      // Re-throw to let caller handle it
+      throw error;
+    }
   }
 
   /**
@@ -320,8 +385,12 @@ export class TypeOrmEventRepository implements IEventRepository {
    *
    * @param retentionDays - Number of days to retain events
    * @returns Number of events deleted
+   * @throws Logs error with context and re-throws to let caller handle it
    */
   async deleteOldEvents(retentionDays: number): Promise<number> {
+    // Extract variables outside try-catch for error logging context
+    const days = retentionDays;
+
     const operation = async () => {
       // Calculate cutoff date in UTC
       // All timestamps are stored in UTC, so we use UTC for calculations
@@ -339,7 +408,21 @@ export class TypeOrmEventRepository implements IEventRepository {
       return result.affected || 0;
     };
 
-    // Execute with circuit breaker protection
-    return await this.circuitBreaker.execute(operation);
+    try {
+      // Execute with circuit breaker protection
+      return await this.circuitBreaker.execute(operation);
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error deleting old events',
+        error,
+        this.errorLogger.createContext(undefined, undefined, {
+          retentionDays: days,
+        }),
+      );
+      // Re-throw to let caller handle it
+      throw error;
+    }
   }
 }

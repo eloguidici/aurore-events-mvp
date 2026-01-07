@@ -143,10 +143,30 @@ export class EventService implements IEventService {
    *
    * @param events - Array of enriched events to insert (includes eventId)
    * @returns BatchInsertResult containing count of successful and failed insertions
-   * @throws Logs error but does not throw - returns failed count instead
+   * @throws Logs error with context and re-throws to let caller handle it
    */
   public async insert(events: EnrichedEvent[]): Promise<BatchInsertResult> {
-    return await this.eventRepository.batchInsert(events);
+    // Extract variables outside try-catch for error logging context
+    const eventsCount = events.length;
+    const services = [...new Set(events.map((e) => e.service))];
+
+    try {
+      return await this.eventRepository.batchInsert(events);
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error inserting events to database',
+        error,
+        this.errorLogger.createContext(undefined, undefined, {
+          eventsCount,
+          services: services.slice(0, 5), // Limit to first 5 services for logging
+          totalServices: services.length,
+        }),
+      );
+      // Re-throw to let caller (BatchWorker) handle it
+      throw error;
+    }
   }
 
   /**
@@ -289,8 +309,26 @@ export class EventService implements IEventService {
    *
    * @param retentionDays - Number of days to retain events (events older than this are deleted)
    * @returns Number of events deleted
+   * @throws Logs error with context and re-throws to let caller handle it
    */
   public async cleanup(retentionDays: number): Promise<number> {
-    return await this.eventRepository.deleteOldEvents(retentionDays);
+    // Extract variables outside try-catch for error logging context
+    const days = retentionDays;
+
+    try {
+      return await this.eventRepository.deleteOldEvents(retentionDays);
+    } catch (error) {
+      // Log error with standardized format and context
+      this.errorLogger.logError(
+        this.logger,
+        'Error cleaning up old events',
+        error,
+        this.errorLogger.createContext(undefined, undefined, {
+          retentionDays: days,
+        }),
+      );
+      // Re-throw to let caller (RetentionService) handle it
+      throw error;
+    }
   }
 }
