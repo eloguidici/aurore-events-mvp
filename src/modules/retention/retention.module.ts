@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { CommonModule } from '../common/common.module';
 import { EventModule } from '../event/event.module';
 import { RetentionService } from './services/retention.service';
 
@@ -14,7 +15,7 @@ import { RetentionService } from './services/retention.service';
  * schedules cleanup jobs based on the configured cron schedule.
  */
 @Module({
-  imports: [EventModule],
+  imports: [EventModule, CommonModule],
   providers: [RetentionService],
   exports: [RetentionService],
 })
