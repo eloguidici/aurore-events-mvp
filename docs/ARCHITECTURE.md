@@ -116,7 +116,8 @@ Responsable de la ingesta, almacenamiento y consulta de eventos.
   - Sanitización de inputs
   - Generación de IDs únicos para eventos
   - Validación de rangos de tiempo
-  - Manejo de errores con logging
+  - Manejo de errores consistente con try-catch en todos los métodos que interactúan con recursos externos (`insert()`, `search()`, `cleanup()`)
+  - Logging contextual de errores con `IErrorLoggerService`
 
 ##### `EventBufferService`
 **Archivo**: `services/event-buffer.service.ts`
@@ -132,7 +133,7 @@ Responsable de la ingesta, almacenamiento y consulta de eventos.
   - `enqueue()` - Agrega evento al buffer
   - `drain()` - Extrae eventos del buffer para procesamiento
   - `getSize()` - Retorna tamaño actual del buffer
-  - `getMetrics()` - Retorna métricas de rendimiento
+  - `getMetrics()` - Retorna métricas de rendimiento (con try-catch para manejo de errores)
 
 ##### `BusinessMetricsService`
 **Archivo**: `services/business-metrics.service.ts`
@@ -171,6 +172,8 @@ Responsable de la ingesta, almacenamiento y consulta de eventos.
   - `deleteOldEvents()` - Elimina eventos antiguos para retención
 - **Características**:
   - Uso de índices compuestos para optimizar consultas
+  - Manejo de errores consistente con try-catch en todos los métodos públicos
+  - Logging contextual de errores con información completa de la operación
   - Transacciones para garantizar atomicidad
   - Protección con Circuit Breaker
   - Manejo de errores con retry logic
@@ -188,7 +191,8 @@ Responsable de la ingesta, almacenamiento y consulta de eventos.
 - **Características**:
   - Consultas optimizadas con agregaciones SQL
   - Uso de índices para mejorar rendimiento
-  - Manejo de errores con logging estructurado
+  - Manejo de errores consistente con try-catch en todos los métodos públicos
+  - Logging contextual de errores con información completa de la operación
 
 ##### `FileMetricsRepository`
 **Archivo**: `repositories/file-metrics.repository.ts`
@@ -202,7 +206,8 @@ Responsable de la ingesta, almacenamiento y consulta de eventos.
 - **Características**:
   - Formato JSONL para fácil análisis
   - Escritura asíncrona sin bloquear
-  - Manejo de errores sin afectar el flujo principal
+  - Manejo de errores consistente con try-catch en todos los métodos públicos
+  - Logging contextual de errores con información completa de la operación
 
 #### Entities
 

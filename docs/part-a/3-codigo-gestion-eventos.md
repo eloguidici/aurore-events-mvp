@@ -769,6 +769,51 @@ El código del MVP gestiona eventos de forma:
 ✅ **Eficiente:** Batching reduce carga en base de datos
 ✅ **Observable:** Métricas y logging integrados
 ✅ **Simple:** Código claro, fácil de mantener
+✅ **Consistente:** Manejo de errores uniforme con try-catch en todos los métodos que interactúan con recursos externos
 
 **Principio clave:** Un evento malo nunca rompe todo el sistema.
+
+### Patrón de Manejo de Errores Consistente
+
+Todos los métodos de servicios y repositorios que interactúan con recursos externos (base de datos, archivos, otros servicios) siguen un patrón consistente de manejo de errores:
+
+```typescript
+public async methodName(params: Params): Promise<Result> {
+  // Extract variables outside try-catch for error logging context
+  const { param1, param2 } = params;
+
+  try {
+    // Operación principal
+    return await this.repository.operation(params);
+  } catch (error) {
+    // Log error with standardized format and context
+    this.errorLogger.logError(
+      this.logger,
+      'Error description',
+      error,
+      this.errorLogger.createContext(undefined, service, {
+        param1,
+        param2,
+        // ... contexto adicional
+      }),
+    );
+    // Re-throw to let caller handle it
+    throw error;
+  }
+}
+```
+
+**Ejemplos de métodos con este patrón:**
+- `EventService.insert()` - Logging contextual con número de eventos y servicios
+- `EventService.search()` - Logging contextual con parámetros de búsqueda
+- `EventService.cleanup()` - Logging contextual con días de retención
+- `EventBufferService.getMetrics()` - Logging contextual con estado del buffer
+- Todos los métodos de repositorios (`TypeOrmEventRepository`, `TypeOrmBusinessMetricsRepository`, `FileMetricsRepository`)
+
+**Beneficios:**
+- ✅ Logging contextual completo para debugging
+- ✅ Trazabilidad de errores en todas las capas
+- ✅ Consistencia en el manejo de errores
+- ✅ Observabilidad mejorada
+- ✅ Facilita debugging y troubleshooting
 
