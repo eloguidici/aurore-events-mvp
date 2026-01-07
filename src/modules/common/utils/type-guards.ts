@@ -47,12 +47,14 @@ export function isValidDateString(value: unknown): value is string {
  * @returns true if value is a plain object
  */
 export function isPlainObject(value: unknown): value is Record<string, any> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.prototype.toString.call(value) === '[object Object]'
-  );
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  // Check if the object's prototype is exactly Object.prototype or null
+  // This distinguishes plain objects from class instances
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 
 /**

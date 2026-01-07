@@ -10,6 +10,7 @@ import { BatchWorkerModule } from './modules/batch-worker/batch-worker.module';
 import { CommonModule } from './modules/common/common.module';
 import { IpThrottlerGuard } from './modules/common/guards/ip-throttler.guard';
 import { CorrelationIdMiddleware } from './modules/common/middleware/correlation-id.middleware';
+import { ConfigModule as AppConfigModule } from './modules/config';
 import { envs } from './modules/config/envs';
 import { Event } from './modules/event/entities/event.entity';
 import { EventModule } from './modules/event/event.module';
@@ -20,6 +21,7 @@ import { RetentionModule } from './modules/retention/retention.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    AppConfigModule, // Custom configuration module - provides typed config objects via DI
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
