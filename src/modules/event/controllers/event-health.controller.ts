@@ -5,15 +5,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Inject } from '@nestjs/common';
-import { CircuitBreakerService } from '../../common/services/circuit-breaker.service';
-import { HealthService } from '../../common/services/health.service';
+import { ICircuitBreakerService } from '../../common/services/interfaces/circuit-breaker-service.interface';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../common/services/interfaces/circuit-breaker-service.token';
+import { IHealthService } from '../../common/services/interfaces/health.interface';
+import { HEALTH_SERVICE_TOKEN } from '../../common/services/interfaces/health-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { createRateLimitingConfig } from '../../config/config-factory';
 import { RateLimitingConfig } from '../../config/interfaces/rate-limiting-config.interface';
 import { BusinessMetricsDto } from '../dtos/business-metrics-response.dto';
 import { Event } from '../entities/event.entity';
 import { BusinessMetricsService } from '../services/business-metrics.service';
-import { EventBufferService } from '../services/event-buffer.service';
+import { IEventBufferService } from '../services/interfaces/event-buffer-service.interface';
+import { EVENT_BUFFER_SERVICE_TOKEN } from '../services/interfaces/event-buffer-service.token';
 
 // Get rate limiting config for decorators (static values needed at compile time)
 const rateLimitConfig = createRateLimitingConfig();
@@ -22,9 +25,12 @@ const rateLimitConfig = createRateLimitingConfig();
 @Controller('health')
 export class EventHealthController {
   constructor(
-    private readonly healthService: HealthService,
-    private readonly circuitBreaker: CircuitBreakerService,
-    private readonly eventBufferService: EventBufferService,
+    @Inject(HEALTH_SERVICE_TOKEN)
+    private readonly healthService: IHealthService,
+    @Inject(CIRCUIT_BREAKER_SERVICE_TOKEN)
+    private readonly circuitBreaker: ICircuitBreakerService,
+    @Inject(EVENT_BUFFER_SERVICE_TOKEN)
+    private readonly eventBufferService: IEventBufferService,
     private readonly businessMetricsService: BusinessMetricsService,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,

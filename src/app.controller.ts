@@ -14,7 +14,9 @@ import {
   ApiReadinessCheck,
 } from './app.controller.decorators';
 import { HealthService } from './modules/common/services/health.service';
-import { ErrorLogger } from './modules/common/utils/error-logger';
+import { IErrorLoggerService } from './modules/common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from './modules/common/services/interfaces/error-logger-service.token';
+import { Inject } from '@nestjs/common';
 
 @ApiTags('Health Check')
 @Controller()
@@ -22,7 +24,11 @@ import { ErrorLogger } from './modules/common/utils/error-logger';
 export class AppController {
   private readonly logger = new Logger(AppController.name);
 
-  constructor(private readonly healthService: HealthService) {}
+  constructor(
+    private readonly healthService: HealthService,
+    @Inject(ERROR_LOGGER_SERVICE_TOKEN)
+    private readonly errorLogger: IErrorLoggerService,
+  ) {}
 
   /**
    * Endpoint to check the overall health status of the server.
@@ -45,7 +51,7 @@ export class AppController {
         throw error;
       }
       // Log unexpected error and convert to HttpException
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Unexpected error in health check',
         error,
@@ -81,7 +87,7 @@ export class AppController {
         throw error;
       }
       // Log unexpected error and convert to HttpException
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Unexpected error in liveness check',
         error,
@@ -117,7 +123,7 @@ export class AppController {
         throw error;
       }
       // Log unexpected error and convert to HttpException
-      ErrorLogger.logError(
+      this.errorLogger.logError(
         this.logger,
         'Unexpected error in readiness check',
         error,

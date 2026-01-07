@@ -64,8 +64,31 @@ describe('EventService', () => {
         {
           provide: SANITIZER_SERVICE_TOKEN,
           useValue: {
-            sanitizeString: jest.fn((str) => str),
-            sanitizeObject: jest.fn((obj) => obj),
+            sanitizeString: jest.fn((str) => {
+              // Simulate actual sanitization - remove HTML tags
+              if (!str || typeof str !== 'string') return str;
+              return str.replace(/<[^>]*>/g, '');
+            }),
+            sanitizeObject: jest.fn((obj) => {
+              // Simulate actual sanitization for objects
+              if (!obj || typeof obj !== 'object') return obj;
+              if (Array.isArray(obj)) {
+                return obj.map(item => 
+                  typeof item === 'string' ? item.replace(/<[^>]*>/g, '') : item
+                );
+              }
+              const sanitized: any = {};
+              for (const [key, value] of Object.entries(obj)) {
+                if (typeof value === 'string') {
+                  sanitized[key] = value.replace(/<[^>]*>/g, '');
+                } else if (typeof value === 'object' && value !== null) {
+                  sanitized[key] = value; // Simplified for test
+                } else {
+                  sanitized[key] = value;
+                }
+              }
+              return sanitized;
+            }),
           },
         },
         {

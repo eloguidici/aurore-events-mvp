@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { ERROR_LOGGER_SERVICE_TOKEN } from './interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { CircuitBreakerConfig } from '../../config/interfaces/circuit-breaker-config.interface';
 import { CircuitBreakerService, CircuitState } from './circuit-breaker.service';
@@ -20,6 +21,14 @@ describe('CircuitBreakerService', () => {
         {
           provide: CONFIG_TOKENS.CIRCUIT_BREAKER,
           useValue: mockConfig,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
         },
       ],
     }).compile();

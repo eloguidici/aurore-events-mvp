@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { FileMetricsRepository } from '../../repositories/file-metrics.repository';
 import { MetricsSnapshot } from '../../repositories/interfaces/metrics.repository.interface';
 
@@ -14,7 +15,17 @@ describe('FileMetricsRepository', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [FileMetricsRepository],
+      providers: [
+        FileMetricsRepository,
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     repository = module.get<FileMetricsRepository>(FileMetricsRepository);

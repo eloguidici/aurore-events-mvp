@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs/promises';
 
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { MetricsCollectorService } from '../../../common/services/metrics-collector.service';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BufferConfig } from '../../../config/interfaces/buffer-config.interface';
@@ -68,6 +69,14 @@ describe('EventBufferService', () => {
         {
           provide: CONFIG_TOKENS.CHECKPOINT,
           useValue: mockCheckpointConfig,
+        },
+        {
+          provide: ERROR_LOGGER_SERVICE_TOKEN,
+          useValue: {
+            logError: jest.fn(),
+            logWarning: jest.fn(),
+            createContext: jest.fn(),
+          },
         },
       ],
     }).compile();
