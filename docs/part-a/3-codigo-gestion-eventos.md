@@ -135,7 +135,7 @@ export class CreateEventDto {
  */
 private async validateBatch(batch: EnrichedEvent[]): Promise<BatchValidationResult> {
   const LARGE_BATCH_THRESHOLD = 1000;
-  const CHUNK_SIZE = 500;
+  const CHUNK_SIZE = 1000;  // Configurable via BATCH_CHUNK_SIZE (default: 1000)
 
   if (batch.length < LARGE_BATCH_THRESHOLD) {
     // Batch pequeño: validación sincrónica (muy rápida, no bloquea)
@@ -665,7 +665,7 @@ FIN
 
 // En background (worker, cada 1 segundo):
 FUNCIÓN processBatch():
-  batch = buffer.drenarBatch(500)
+  batch = buffer.drenarBatch(5000)  // Configurable via BATCH_SIZE (default: 5000)
 
   SI batch está vacío:
     RETORNAR

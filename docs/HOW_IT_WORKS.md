@@ -428,7 +428,7 @@ export class CreateEventDto {
 ```typescript
 export class EventBufferService {
   private buffer: EnrichedEvent[] = [];  // Array en memoria
-  private maxSize = 10000;  // Capacidad máxima (configurable)
+  private maxSize = 50000;  // Capacidad máxima (configurable via BUFFER_MAX_SIZE)
   
   enqueue(event: EnrichedEvent): boolean {
     if (this.buffer.length >= this.maxSize) {
@@ -457,9 +457,9 @@ Buffer (Array en memoria):
 ┌─────────────────────────────────────┐
 │ [event1] [event2] [event3] ...      │  ← Eventos esperando
 │                                     │
-│ Capacidad: 10,000 eventos          │
+│ Capacidad: 50,000 eventos (configurable)          │
 │ Actual: 1,250 eventos              │
-│ Utilización: 12.5%                 │
+│ Utilización: 2.5%                 │
 └─────────────────────────────────────┘
 ```
 
@@ -492,8 +492,8 @@ El worker se ejecuta **cada 1 segundo** (configurable) y hace lo siguiente:
 ```typescript
 // Se ejecuta automáticamente cada 1 segundo
 private async processBatch() {
-  // 1. DRENAR EL BUFFER (sacar hasta 500 eventos)
-  const batch = this.eventBufferService.drainBatch(500);
+  // 1. DRENAR EL BUFFER (sacar hasta 5000 eventos, configurable via BATCH_SIZE)
+  const batch = this.eventBufferService.drainBatch(5000);
   
   if (batch.length === 0) {
     return;  // Buffer vacío, no hay nada que hacer
@@ -521,7 +521,7 @@ Cada 1 segundo:
 ┌─────────────────────────────────────────┐
 │ Worker despierta                         │
 │   ↓                                      │
-│ Drena buffer: [500 eventos]              │
+│ Drena buffer: [5000 eventos]              │
 │   ↓                                      │
 │ Valida: 495 válidos, 5 inválidos        │
 │   ↓                                      │
@@ -605,8 +605,8 @@ CREATE INDEX idx_service_timestamp ON events(service, timestamp);
 ```
 
 **¿Por qué batch insert?**
-- 500 inserts individuales: ~5 segundos
-- 1 batch insert de 500: ~50 milisegundos
+- 5000 inserts individuales: ~50 segundos
+- 1 batch insert de 5000: ~50-100 milisegundos
 - **100x más rápido** 🚀
 
 ---
@@ -852,7 +852,7 @@ WHERE timestamp < '2023-12-16T00:00:00Z';
   "status": "healthy",
   "buffer": {
     "size": 1250,
-    "capacity": 10000,
+    "capacity": 50000,
     "utilization_percent": "12.50"
   },
   "metrics": {
@@ -919,7 +919,7 @@ WHERE timestamp < '2023-12-16T00:00:00Z';
 {
   "status": "healthy",
   "buffer_size": 1250,
-  "buffer_capacity": 10000,
+  "buffer_capacity": 50000,
   "buffer_utilization_percent": "12.50",
   "metrics": {
     "total_enqueued": 50000,

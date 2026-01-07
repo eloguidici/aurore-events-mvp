@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+/// <reference path="../../types/express.d.ts" />
 import { Request } from 'express';
 
 import { Inject } from '@nestjs/common';
@@ -90,7 +91,7 @@ export class EventController {
             'Buffer is full, rejecting event (backpressure)',
             {
               service: createEventDto.service,
-              correlationId: req.correlationId || 'unknown',
+              correlationId: (req as any).correlationId || 'unknown',
             },
           );
         }
@@ -102,7 +103,7 @@ export class EventController {
         'Unexpected error ingesting event',
         error,
         this.errorLogger.createContext(undefined, createEventDto.service, {
-          correlationId: req.correlationId || 'unknown',
+          correlationId: (req as any).correlationId || 'unknown',
         }),
       );
       throw new HttpException(
@@ -158,7 +159,7 @@ export class EventController {
         this.errorLogger.createContext(undefined, queryDto.service, {
           from: queryDto.from,
           to: queryDto.to,
-          correlationId: req.correlationId || 'unknown',
+          correlationId: (req as any).correlationId || 'unknown',
         }),
       );
       throw new HttpException(

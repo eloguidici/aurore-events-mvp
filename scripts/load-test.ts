@@ -278,7 +278,7 @@ async function waitAndVerify(serviceName: string, expectedMin: number) {
         from,
         to,
         page: 1,
-        pageSize: 10000,
+        pageSize: 1000, // Max limit is 1000 (MAX_QUERY_LIMIT)
       },
     });
 

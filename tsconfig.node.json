@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "ts-node"]
+  },
+  "ts-node": {
+    "files": true,
+    "transpileOnly": false
+  },
+  "include": ["scripts/**/*", "src/**/*", "src/types/**/*.d.ts"]
+}
+

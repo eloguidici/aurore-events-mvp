@@ -281,7 +281,7 @@ enqueue(event: EnrichedEvent): boolean {
 **Buenos ejemplos:**
 ```typescript
 eventBufferService.enqueue(event)
-eventBufferService.drainBatch(500)
+eventBufferService.drainBatch(5000)  // Configurable via BATCH_SIZE (default: 5000)
 batchWorkerService.processBatch()
 ```
 

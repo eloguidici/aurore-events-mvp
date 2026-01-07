@@ -126,7 +126,7 @@
 │     • Métricas: tamaño, capacidad, utilización                 │
 └──────────────────────────┬──────────────────────────────────────┘
                             │
-                            │ drainBatch(500)
+                            │ drainBatch(5000)  // Configurable via BATCH_SIZE
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  3. BATCH WORKER (BatchWorkerService)                           │

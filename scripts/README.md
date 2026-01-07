@@ -58,24 +58,25 @@ npm run load-test 20000 120 mi-servicio-test
 ### Capacidad teórica del sistema
 
 Con la configuración actual:
-- **Buffer**: 10,000 eventos máximo
-- **Batch Worker**: 500 eventos cada 1 segundo = 30,000 eventos/minuto teóricos
-- **Tasa sostenible**: ~5,000 eventos/minuto sin problemas
+- **Buffer**: 50,000 eventos máximo (configurable con `BUFFER_MAX_SIZE`)
+- **Batch Worker**: 5,000 eventos cada 1 segundo = 300,000 eventos/minuto teóricos
+- **Tasa sostenible**: ~50,000 eventos/minuto sin problemas
+- **Límite de batch**: Máximo 10,000 eventos por batch (configurable con `BATCH_MAX_SIZE`)
 
 ### Qué esperar
 
-**Carga normal (≤5,000 eventos/minuto):**
+**Carga normal (≤50,000 eventos/minuto):**
 - ✅ Todos los eventos deberían ser aceptados (202)
 - ✅ Buffer no debería llenarse
 - ✅ Todos los eventos deberían guardarse en DB
 
-**Carga alta (10,000-20,000 eventos/minuto):**
+**Carga alta (50,000-150,000 eventos/minuto):**
 - ⚠️ Buffer puede llenarse temporalmente
 - ⚠️ Algunos eventos pueden ser rechazados (429/503)
 - ✅ Sistema aplica backpressure (comportamiento esperado)
 - ✅ Eventos aceptados deberían guardarse en DB
 
-**Carga extrema (>30,000 eventos/minuto):**
+**Carga extrema (>300,000 eventos/minuto):**
 - ⚠️ Muchos eventos rechazados (429/503)
 - ⚠️ Buffer saturado
 - ✅ Sistema no se cae (resiliente)
@@ -98,20 +99,38 @@ Con la configuración actual:
 Para ajustar la capacidad, modifica en `.env`:
 
 ```env
-BUFFER_MAX_SIZE=10000      # Tamaño máximo del buffer
-BATCH_SIZE=500             # Eventos por batch
-DRAIN_INTERVAL=1000        # Intervalo de procesamiento (ms)
+BUFFER_MAX_SIZE=50000      # Tamaño máximo del buffer (default: 50000)
+BATCH_SIZE=5000            # Eventos por batch (default: 5000)
+DRAIN_INTERVAL=1000        # Intervalo de procesamiento (ms) (default: 1000)
+BATCH_MAX_SIZE=10000       # Límite máximo del batch para prevenir problemas de memoria
 ```
 
 **Cálculo de capacidad:**
 - Capacidad teórica = `(BATCH_SIZE / DRAIN_INTERVAL) * 60,000` eventos/minuto
-- Con valores por defecto: `(500 / 1000) * 60,000 = 30,000 eventos/minuto`
+- Con valores por defecto: `(5000 / 1000) * 60,000 = 300,000 eventos/minuto`
+- **Nota**: El sistema también limita el tamaño del batch con `BATCH_MAX_SIZE` para proteger contra problemas de memoria
 
 ## 📝 Notas
 
 - El script espera 30 segundos después de enviar eventos para que el worker termine de procesar
 - Los eventos se verifican en la DB consultando por servicio y rango de tiempo
 - Si el sistema está bajo carga, puede tomar más tiempo procesar todos los eventos
+- El script usa `pageSize: 1000` para las consultas (respeta el límite `MAX_QUERY_LIMIT`)
+- Todos los valores de configuración son ahora dinámicos a través de variables de entorno
+
+## 🗑️ Script de limpieza de base de datos
+
+Para limpiar todos los eventos de la base de datos antes de un test:
+
+```bash
+npm run clear-db
+```
+
+Este script:
+- Conecta a la base de datos usando la configuración de NestJS
+- Cuenta los eventos existentes
+- Elimina todos los eventos
+- Verifica que la eliminación fue exitosa
 
 ## 🧪 Script de prueba simple
 

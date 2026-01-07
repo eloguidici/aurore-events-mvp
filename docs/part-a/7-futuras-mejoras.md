@@ -116,7 +116,7 @@ entity.metadata = compressed; // JSONB soporta compresión nativa
 
 **4. Batch Processing Más Eficiente**
 ```typescript
-// Aumentar tamaño de batch (500 → 1000)
+// Aumentar tamaño de batch (5000 → 10000) - Configurable via BATCH_SIZE
 // Reducir frecuencia (1s → 2s)
 // Ahorro: Menos operaciones de DB
 ```

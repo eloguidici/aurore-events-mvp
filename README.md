@@ -25,7 +25,7 @@ See [Installation](#installation) section for detailed steps.
 
 ## Features
 
-- **High-Throughput Ingestion**: Handles ~5,000 events/second with in-memory buffering
+- **High-Throughput Ingestion**: Handles ~300,000 events/minute (5,000 events/second) with in-memory buffering
 - **Fast Queries**: Time-range and service-based queries with pagination
 - **Automatic Retention**: 30-day automatic data cleanup
 - **Resilient**: Graceful error handling, never breaks on bad events
