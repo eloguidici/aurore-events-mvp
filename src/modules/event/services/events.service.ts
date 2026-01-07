@@ -200,14 +200,14 @@ export class EventService implements IEventService {
     try {
       // Calculate pagination with validation
       const limit = Math.min(pageSize, this.queryConfig.maxLimit);
-      const maxOffset = 10000 * limit; // Prevent excessive offsets (max page 10000)
+      const maxOffset = this.queryConfig.maxPage * limit; // Prevent excessive offsets
       const calculatedOffset = (page - 1) * limit;
       const offset = Math.min(calculatedOffset, maxOffset);
 
       // Warn if offset was limited
       if (calculatedOffset > maxOffset) {
         this.logger.warn(
-          `Offset limited from ${calculatedOffset} to ${maxOffset} (page ${page} exceeds maximum)`,
+          `Offset limited from ${calculatedOffset} to ${maxOffset} (page ${page} exceeds maximum ${this.queryConfig.maxPage})`,
         );
       }
 

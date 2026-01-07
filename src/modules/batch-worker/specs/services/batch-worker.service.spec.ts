@@ -32,6 +32,7 @@ describe('BatchWorkerService', () => {
     batchSize: 100,
     drainInterval: 1000,
     maxRetries: 3,
+    maxBatchSize: 10000,
   };
 
   const mockShutdownConfig: ShutdownConfig = {

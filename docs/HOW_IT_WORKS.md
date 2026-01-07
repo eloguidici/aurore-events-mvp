@@ -992,6 +992,15 @@ CIRCUIT_BREAKER_TIMEOUT_MS=30000
 DEFAULT_QUERY_LIMIT=100
 MAX_QUERY_LIMIT=1000
 MAX_QUERY_TIME_RANGE_DAYS=30
+QUERY_TIMEOUT_MS=30000        # Timeout para queries (ms)
+MAX_QUERY_PAGE=10000          # Página máxima para paginación
+
+# Batch Worker
+BATCH_MAX_SIZE=10000          # Límite máximo de batch size
+
+# Validation
+METADATA_MAX_KEYS=100         # Máximo de claves en metadata
+METADATA_MAX_DEPTH=5          # Profundidad máxima de anidamiento
 ```
 
 Ver `env.example` para la lista completa de variables requeridas.

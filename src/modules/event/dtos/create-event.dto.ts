@@ -55,8 +55,9 @@ export class IsParseableTimestampConstraint implements ValidatorConstraintInterf
  */
 @ValidatorConstraint({ name: 'isMetadataSizeValid', async: false })
 export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterface {
-  private readonly MAX_DEPTH = 5; // Maximum nesting depth
-  private readonly MAX_KEYS = 100; // Maximum number of keys in an object
+  // Use values from validationConfig (loaded from environment variables)
+  private readonly MAX_DEPTH = validationConfig.metadataMaxDepth;
+  private readonly MAX_KEYS = validationConfig.metadataMaxKeys;
 
   /**
    * Calculate the depth of an object
@@ -166,7 +167,7 @@ export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterfa
    */
   defaultMessage(args: ValidationArguments) {
     const maxSizeKB = args.constraints[0] || validationConfig.metadataMaxSizeKB;
-    return `metadata must not exceed ${maxSizeKB}KB, 5 levels of nesting, or 100 total keys`;
+    return `metadata must not exceed ${maxSizeKB}KB, ${validationConfig.metadataMaxDepth} levels of nesting, or ${validationConfig.metadataMaxKeys} total keys`;
   }
 }
 

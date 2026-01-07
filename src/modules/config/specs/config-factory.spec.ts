@@ -64,10 +64,12 @@ describe('ConfigFactory', () => {
         batchSize: envs.batchSize,
         drainInterval: envs.drainInterval,
         maxRetries: envs.maxRetries,
+        maxBatchSize: envs.batchMaxSize,
       });
       expect(typeof config.batchSize).toBe('number');
       expect(typeof config.drainInterval).toBe('number');
       expect(typeof config.maxRetries).toBe('number');
+      expect(typeof config.maxBatchSize).toBe('number');
     });
   });
 
@@ -103,10 +105,14 @@ describe('ConfigFactory', () => {
         defaultLimit: envs.defaultQueryLimit,
         maxLimit: envs.maxQueryLimit,
         maxTimeRangeDays: envs.maxQueryTimeRangeDays,
+        queryTimeoutMs: envs.queryTimeoutMs,
+        maxPage: envs.maxQueryPage,
       });
       expect(typeof config.defaultLimit).toBe('number');
       expect(typeof config.maxLimit).toBe('number');
       expect(typeof config.maxTimeRangeDays).toBe('number');
+      expect(typeof config.queryTimeoutMs).toBe('number');
+      expect(typeof config.maxPage).toBe('number');
     });
   });
 
@@ -131,10 +137,14 @@ describe('ConfigFactory', () => {
         messageMaxLength: envs.messageMaxLength,
         metadataMaxSizeKB: envs.metadataMaxSizeKB,
         batchChunkSize: envs.batchChunkSize,
+        metadataMaxKeys: envs.metadataMaxKeys,
+        metadataMaxDepth: envs.metadataMaxDepth,
       });
       expect(typeof config.messageMaxLength).toBe('number');
       expect(typeof config.metadataMaxSizeKB).toBe('number');
       expect(typeof config.batchChunkSize).toBe('number');
+      expect(typeof config.metadataMaxKeys).toBe('number');
+      expect(typeof config.metadataMaxDepth).toBe('number');
     });
   });
 

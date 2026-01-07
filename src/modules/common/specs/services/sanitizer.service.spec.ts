@@ -1,13 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { ValidationConfig } from '../../../config/interfaces/validation-config.interface';
 import { SanitizerService } from '../../services/sanitizer.service';
 
 describe('SanitizerService', () => {
   let service: SanitizerService;
 
+  const mockValidationConfig: ValidationConfig = {
+    messageMaxLength: 2000,
+    metadataMaxSizeKB: 16,
+    batchChunkSize: 1000,
+    metadataMaxKeys: 100,
+    metadataMaxDepth: 5,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SanitizerService],
+      providers: [
+        SanitizerService,
+        {
+          provide: CONFIG_TOKENS.VALIDATION,
+          useValue: mockValidationConfig,
+        },
+      ],
     }).compile();
 
     service = module.get<SanitizerService>(SanitizerService);

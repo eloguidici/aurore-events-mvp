@@ -46,6 +46,7 @@ export function createBatchWorkerConfig(): BatchWorkerConfig {
     batchSize: envs.batchSize,
     drainInterval: envs.drainInterval,
     maxRetries: envs.maxRetries,
+    maxBatchSize: envs.batchMaxSize,
   };
 }
 
@@ -67,6 +68,8 @@ export function createQueryConfig(): QueryConfig {
     defaultLimit: envs.defaultQueryLimit,
     maxLimit: envs.maxQueryLimit,
     maxTimeRangeDays: envs.maxQueryTimeRangeDays,
+    queryTimeoutMs: envs.queryTimeoutMs,
+    maxPage: envs.maxQueryPage,
   };
 }
 
@@ -82,6 +85,8 @@ export function createValidationConfig(): ValidationConfig {
     messageMaxLength: envs.messageMaxLength,
     metadataMaxSizeKB: envs.metadataMaxSizeKB,
     batchChunkSize: envs.batchChunkSize,
+    metadataMaxKeys: envs.metadataMaxKeys,
+    metadataMaxDepth: envs.metadataMaxDepth,
   };
 }
 

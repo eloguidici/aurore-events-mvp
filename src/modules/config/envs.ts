@@ -21,6 +21,7 @@ interface EnvVars {
   BATCH_SIZE?: number;
   DRAIN_INTERVAL?: number;
   MAX_RETRIES?: number;
+  BATCH_MAX_SIZE?: number;
 
   // Buffer Configuration
   BUFFER_MAX_SIZE?: number;
@@ -36,6 +37,8 @@ interface EnvVars {
   DEFAULT_QUERY_LIMIT?: number;
   MAX_QUERY_LIMIT?: number;
   MAX_QUERY_TIME_RANGE_DAYS?: number; // Maximum time range in days for queries
+  QUERY_TIMEOUT_MS?: number;
+  MAX_QUERY_PAGE?: number;
 
   // Service Configuration
   SERVICE_NAME_MAX_LENGTH?: number;
@@ -45,6 +48,8 @@ interface EnvVars {
   MESSAGE_MAX_LENGTH?: number;
   METADATA_MAX_SIZE_KB?: number;
   BATCH_CHUNK_SIZE?: number;
+  METADATA_MAX_KEYS?: number;
+  METADATA_MAX_DEPTH?: number;
 
   // Circuit Breaker Configuration
   CIRCUIT_BREAKER_FAILURE_THRESHOLD?: number;
@@ -125,6 +130,7 @@ const envsSchema = joi
     BATCH_SIZE: joi.number().min(1).max(10000).required(),
     DRAIN_INTERVAL: joi.number().min(100).max(60000).required(),
     MAX_RETRIES: joi.number().min(0).max(10).required(),
+    BATCH_MAX_SIZE: joi.number().min(1000).max(100000).required(),
 
     // Buffer Configuration
     BUFFER_MAX_SIZE: joi.number().min(100).max(1000000).required(),
@@ -137,6 +143,8 @@ const envsSchema = joi
     DEFAULT_QUERY_LIMIT: joi.number().min(1).max(10000).required(),
     MAX_QUERY_LIMIT: joi.number().min(1).max(10000).required(),
     MAX_QUERY_TIME_RANGE_DAYS: joi.number().min(1).max(365).default(30), // Max 30 days default
+    QUERY_TIMEOUT_MS: joi.number().min(1000).max(300000).required(),
+    MAX_QUERY_PAGE: joi.number().min(100).max(100000).required(),
 
     // Service Configuration
     SERVICE_NAME_MAX_LENGTH: joi.number().min(10).max(500).required(),
@@ -146,6 +154,8 @@ const envsSchema = joi
     MESSAGE_MAX_LENGTH: joi.number().min(100).max(10000).required(),
     METADATA_MAX_SIZE_KB: joi.number().min(1).max(100).required(),
     BATCH_CHUNK_SIZE: joi.number().min(100).max(10000).required(),
+    METADATA_MAX_KEYS: joi.number().min(10).max(1000).required(),
+    METADATA_MAX_DEPTH: joi.number().min(2).max(10).required(),
 
     // Checkpoint Configuration
     CHECKPOINT_INTERVAL_MS: joi.number().min(1000).max(60000).required(),
@@ -188,16 +198,22 @@ const { error, value } = envsSchema.validate({
   BATCH_SIZE: process.env.BATCH_SIZE,
   DRAIN_INTERVAL: process.env.DRAIN_INTERVAL,
   MAX_RETRIES: process.env.MAX_RETRIES,
+  BATCH_MAX_SIZE: process.env.BATCH_MAX_SIZE,
   BUFFER_MAX_SIZE: process.env.BUFFER_MAX_SIZE,
   RETENTION_DAYS: process.env.RETENTION_DAYS,
   RETENTION_CRON_SCHEDULE: process.env.RETENTION_CRON_SCHEDULE,
   DEFAULT_QUERY_LIMIT: process.env.DEFAULT_QUERY_LIMIT,
   MAX_QUERY_LIMIT: process.env.MAX_QUERY_LIMIT,
+  MAX_QUERY_TIME_RANGE_DAYS: process.env.MAX_QUERY_TIME_RANGE_DAYS,
+  QUERY_TIMEOUT_MS: process.env.QUERY_TIMEOUT_MS,
+  MAX_QUERY_PAGE: process.env.MAX_QUERY_PAGE,
   SERVICE_NAME_MAX_LENGTH: process.env.SERVICE_NAME_MAX_LENGTH,
   RETRY_AFTER_SECONDS: process.env.RETRY_AFTER_SECONDS,
   MESSAGE_MAX_LENGTH: process.env.MESSAGE_MAX_LENGTH,
   METADATA_MAX_SIZE_KB: process.env.METADATA_MAX_SIZE_KB,
   BATCH_CHUNK_SIZE: process.env.BATCH_CHUNK_SIZE,
+  METADATA_MAX_KEYS: process.env.METADATA_MAX_KEYS,
+  METADATA_MAX_DEPTH: process.env.METADATA_MAX_DEPTH,
   CHECKPOINT_INTERVAL_MS: process.env.CHECKPOINT_INTERVAL_MS,
   CIRCUIT_BREAKER_FAILURE_THRESHOLD:
     process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
@@ -256,6 +272,7 @@ export const envs = {
   batchSize: envVars.BATCH_SIZE,
   drainInterval: envVars.DRAIN_INTERVAL,
   maxRetries: envVars.MAX_RETRIES,
+  batchMaxSize: envVars.BATCH_MAX_SIZE,
 
   // Buffer Configuration
   bufferMaxSize: envVars.BUFFER_MAX_SIZE,
@@ -268,6 +285,8 @@ export const envs = {
   defaultQueryLimit: envVars.DEFAULT_QUERY_LIMIT,
   maxQueryLimit: envVars.MAX_QUERY_LIMIT,
   maxQueryTimeRangeDays: envVars.MAX_QUERY_TIME_RANGE_DAYS || 30,
+  queryTimeoutMs: envVars.QUERY_TIMEOUT_MS,
+  maxQueryPage: envVars.MAX_QUERY_PAGE,
 
   // Service Configuration
   serviceNameMaxLength: envVars.SERVICE_NAME_MAX_LENGTH,
@@ -277,6 +296,8 @@ export const envs = {
   messageMaxLength: envVars.MESSAGE_MAX_LENGTH,
   metadataMaxSizeKB: envVars.METADATA_MAX_SIZE_KB,
   batchChunkSize: envVars.BATCH_CHUNK_SIZE,
+  metadataMaxKeys: envVars.METADATA_MAX_KEYS,
+  metadataMaxDepth: envVars.METADATA_MAX_DEPTH,
 
   // Checkpoint Configuration
   checkpointIntervalMs: envVars.CHECKPOINT_INTERVAL_MS,

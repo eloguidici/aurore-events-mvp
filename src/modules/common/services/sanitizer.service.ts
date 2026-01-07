@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as sanitizeHtml from 'sanitize-html';
 
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
 import { ISanitizerService } from './interfaces/sanitizer-service.interface';
 
 /**
@@ -10,8 +12,10 @@ import { ISanitizerService } from './interfaces/sanitizer-service.interface';
  */
 @Injectable()
 export class SanitizerService implements ISanitizerService {
-  private static readonly MAX_DEPTH = 5; // Maximum nesting depth for objects
-  private static readonly MAX_KEYS = 100; // Maximum number of keys in an object
+  constructor(
+    @Inject(CONFIG_TOKENS.VALIDATION)
+    private readonly validationConfig: ValidationConfig,
+  ) {}
 
   /**
    * Sanitize a string by removing HTML tags and dangerous content
@@ -67,12 +71,12 @@ export class SanitizerService implements ISanitizerService {
     }
 
     // Check depth limit
-    if (depth >= SanitizerService.MAX_DEPTH) {
+    if (depth >= this.validationConfig.metadataMaxDepth) {
       return '[Object too deeply nested]';
     }
 
     // Check key count limit
-    if (keyCount >= SanitizerService.MAX_KEYS) {
+    if (keyCount >= this.validationConfig.metadataMaxKeys) {
       return '[Object has too many keys]';
     }
 
@@ -94,7 +98,7 @@ export class SanitizerService implements ISanitizerService {
     const sanitized: Record<string, any> = {};
     let currentKeyCount = keyCount;
     for (const [key, value] of Object.entries(obj)) {
-      if (currentKeyCount >= SanitizerService.MAX_KEYS) {
+      if (currentKeyCount >= this.validationConfig.metadataMaxKeys) {
         break; // Stop processing if too many keys
       }
 

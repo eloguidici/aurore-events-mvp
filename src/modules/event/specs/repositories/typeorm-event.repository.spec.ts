@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { QueryConfig } from '../../../config/interfaces/query-config.interface';
 import { ValidationConfig } from '../../../config/interfaces/validation-config.interface';
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { Event } from '../../entities/event.entity';
@@ -28,6 +29,16 @@ describe('TypeOrmEventRepository', () => {
     messageMaxLength: 1000,
     metadataMaxSizeKB: 100,
     batchChunkSize: 500,
+    metadataMaxKeys: 100,
+    metadataMaxDepth: 5,
+  };
+
+  const mockQueryConfig: QueryConfig = {
+    defaultLimit: 100,
+    maxLimit: 1000,
+    maxTimeRangeDays: 30,
+    queryTimeoutMs: 30000,
+    maxPage: 10000,
   };
 
   beforeEach(async () => {
@@ -53,6 +64,10 @@ describe('TypeOrmEventRepository', () => {
         {
           provide: CONFIG_TOKENS.VALIDATION,
           useValue: mockValidationConfig,
+        },
+        {
+          provide: CONFIG_TOKENS.QUERY,
+          useValue: mockQueryConfig,
         },
       ],
     }).compile();

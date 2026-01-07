@@ -10,6 +10,52 @@ const originalLog = console.log;
 const isTestEnvironment =
   process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
+// Set default environment variables for tests if not already set
+if (isTestEnvironment) {
+  // Set required environment variables with test defaults if not already set
+  if (!process.env.NODE_ENV) process.env.NODE_ENV = 'test';
+  if (!process.env.PORT) process.env.PORT = '3000';
+  if (!process.env.HOST) process.env.HOST = 'localhost';
+  if (!process.env.DB_HOST) process.env.DB_HOST = 'localhost';
+  if (!process.env.DB_PORT) process.env.DB_PORT = '5432';
+  if (!process.env.DB_USERNAME) process.env.DB_USERNAME = 'admin';
+  if (!process.env.DB_PASSWORD) process.env.DB_PASSWORD = 'admin';
+  if (!process.env.DB_DATABASE) process.env.DB_DATABASE = 'aurore_events_test';
+  if (!process.env.DB_SYNCHRONIZE) process.env.DB_SYNCHRONIZE = 'false';
+  if (!process.env.DB_LOGGING) process.env.DB_LOGGING = 'false';
+  if (!process.env.BATCH_SIZE) process.env.BATCH_SIZE = '5000';
+  if (!process.env.DRAIN_INTERVAL) process.env.DRAIN_INTERVAL = '1000';
+  if (!process.env.MAX_RETRIES) process.env.MAX_RETRIES = '3';
+  if (!process.env.BATCH_MAX_SIZE) process.env.BATCH_MAX_SIZE = '10000';
+  if (!process.env.BUFFER_MAX_SIZE) process.env.BUFFER_MAX_SIZE = '50000';
+  if (!process.env.RETENTION_DAYS) process.env.RETENTION_DAYS = '30';
+  if (!process.env.RETENTION_CRON_SCHEDULE) process.env.RETENTION_CRON_SCHEDULE = '0 2 * * *';
+  if (!process.env.DEFAULT_QUERY_LIMIT) process.env.DEFAULT_QUERY_LIMIT = '100';
+  if (!process.env.MAX_QUERY_LIMIT) process.env.MAX_QUERY_LIMIT = '1000';
+  if (!process.env.MAX_QUERY_TIME_RANGE_DAYS) process.env.MAX_QUERY_TIME_RANGE_DAYS = '30';
+  if (!process.env.QUERY_TIMEOUT_MS) process.env.QUERY_TIMEOUT_MS = '30000';
+  if (!process.env.MAX_QUERY_PAGE) process.env.MAX_QUERY_PAGE = '10000';
+  if (!process.env.SERVICE_NAME_MAX_LENGTH) process.env.SERVICE_NAME_MAX_LENGTH = '100';
+  if (!process.env.RETRY_AFTER_SECONDS) process.env.RETRY_AFTER_SECONDS = '5';
+  if (!process.env.MESSAGE_MAX_LENGTH) process.env.MESSAGE_MAX_LENGTH = '2000';
+  if (!process.env.METADATA_MAX_SIZE_KB) process.env.METADATA_MAX_SIZE_KB = '16';
+  if (!process.env.BATCH_CHUNK_SIZE) process.env.BATCH_CHUNK_SIZE = '1000';
+  if (!process.env.METADATA_MAX_KEYS) process.env.METADATA_MAX_KEYS = '100';
+  if (!process.env.METADATA_MAX_DEPTH) process.env.METADATA_MAX_DEPTH = '5';
+  if (!process.env.CHECKPOINT_INTERVAL_MS) process.env.CHECKPOINT_INTERVAL_MS = '5000';
+  if (!process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD) process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD = '5';
+  if (!process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD) process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD = '2';
+  if (!process.env.CIRCUIT_BREAKER_TIMEOUT_MS) process.env.CIRCUIT_BREAKER_TIMEOUT_MS = '30000';
+  if (!process.env.SHUTDOWN_TIMEOUT_MS) process.env.SHUTDOWN_TIMEOUT_MS = '30000';
+  if (!process.env.METRICS_HISTORY_DEFAULT_LIMIT) process.env.METRICS_HISTORY_DEFAULT_LIMIT = '100';
+  if (!process.env.THROTTLE_TTL_MS) process.env.THROTTLE_TTL_MS = '60000';
+  if (!process.env.THROTTLE_GLOBAL_LIMIT) process.env.THROTTLE_GLOBAL_LIMIT = '300000';
+  if (!process.env.THROTTLE_IP_LIMIT) process.env.THROTTLE_IP_LIMIT = '10000';
+  if (!process.env.THROTTLE_QUERY_LIMIT) process.env.THROTTLE_QUERY_LIMIT = '200';
+  if (!process.env.THROTTLE_HEALTH_LIMIT) process.env.THROTTLE_HEALTH_LIMIT = '60';
+  if (!process.env.DB_POOL_MAX) process.env.DB_POOL_MAX = '20';
+}
+
 // Helper to check if a message matches expected error patterns
 function isExpectedError(message: string): boolean {
   const expectedErrorPatterns = [

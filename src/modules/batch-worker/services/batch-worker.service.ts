@@ -31,6 +31,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly drainInterval: number; // milliseconds
   private readonly maxRetries: number;
   private readonly shutdownTimeoutMs: number;
+  private readonly batchWorkerConfig: BatchWorkerConfig;
 
   constructor(
     @Inject(EVENT_BUFFER_SERVICE_TOKEN)
@@ -47,6 +48,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     shutdownConfig: ShutdownConfig,
   ) {
     // Configuration injected via ConfigModule
+    this.batchWorkerConfig = batchWorkerConfig;
     this.batchSize = batchWorkerConfig.batchSize;
     this.drainInterval = batchWorkerConfig.drainInterval;
     this.maxRetries = batchWorkerConfig.maxRetries;
@@ -216,7 +218,7 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     // Drain buffer (with validation of batch size to prevent memory issues)
     const requestedBatchSize = Math.min(
       this.batchSize,
-      10000, // Hard limit to prevent memory issues
+      this.batchWorkerConfig.maxBatchSize, // Configurable limit to prevent memory issues
     );
     const batch = this.eventBufferService.drain(requestedBatchSize);
 

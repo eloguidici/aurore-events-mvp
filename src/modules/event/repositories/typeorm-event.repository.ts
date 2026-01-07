@@ -9,6 +9,7 @@ import { IErrorLoggerService } from '../../common/services/interfaces/error-logg
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
+import { QueryConfig } from '../../config/interfaces/query-config.interface';
 import { Event } from '../entities/event.entity';
 import { BatchInsertResult } from './interfaces/batch-insert-result.interface';
 import { EnrichedEvent } from '../services/interfaces/enriched-event.interface';
@@ -31,6 +32,8 @@ export class TypeOrmEventRepository implements IEventRepository {
     private readonly errorLogger: IErrorLoggerService,
     @Inject(CONFIG_TOKENS.VALIDATION)
     private readonly validationConfig: ValidationConfig,
+    @Inject(CONFIG_TOKENS.QUERY)
+    private readonly queryConfig: QueryConfig,
   ) {}
 
   /**
@@ -207,7 +210,7 @@ export class TypeOrmEventRepository implements IEventRepository {
       const safeSortField = this.validateSortField(params.sortField);
 
       // Add timeout protection for long-running queries
-      const queryTimeout = 30000; // 30 seconds timeout
+      const queryTimeout = this.queryConfig.queryTimeoutMs;
       const queryPromise = this.buildServiceAndTimeRangeQuery(
         params.service,
         params.from,
@@ -320,7 +323,7 @@ export class TypeOrmEventRepository implements IEventRepository {
       const safeSortField = this.validateSortField(params.sortField);
 
       // Add timeout protection for long-running queries
-      const queryTimeout = 30000; // 30 seconds timeout
+      const queryTimeout = this.queryConfig.queryTimeoutMs;
 
       // Execute find and count queries in parallel for optimal performance
       const queryPromise = Promise.all([

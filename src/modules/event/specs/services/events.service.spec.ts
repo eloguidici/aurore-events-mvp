@@ -35,6 +35,8 @@ describe('EventService', () => {
     defaultLimit: 10,
     maxLimit: 1000,
     maxTimeRangeDays: 30,
+    queryTimeoutMs: 30000,
+    maxPage: 10000,
   };
 
   beforeEach(async () => {
