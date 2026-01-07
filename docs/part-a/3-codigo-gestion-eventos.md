@@ -15,7 +15,9 @@ Este documento muestra cómo el MVP gestiona la ingesta de eventos, desde la rec
  * Respuesta inmediata (202 Accepted) sin esperar persistencia
  */
 @Post('events')
-@Throttle({ default: { limit: 1000, ttl: 60000 } }) // Rate limiting
+@Throttle({
+  default: { limit: rateLimitConfig.globalLimit, ttl: rateLimitConfig.ttlMs },
+}) // Rate limiting configurable
 async ingestEvent(@Body() createEventDto: CreateEventDto): Promise<IngestEventResponseDto> {
   try {
     // Delega a EventsService (separación de responsabilidades)
@@ -220,13 +222,13 @@ private validateEvent(event: EnrichedEvent): boolean {
 ```typescript
 /**
  * Buffer thread-safe en memoria con optimizaciones
- * Capacidad: 10,000 eventos (configurable)
+ * Capacidad: 50,000 eventos por defecto (configurable via BUFFER_MAX_SIZE)
  * Usa bufferHead para evitar O(n) shift() operations
  */
 export class EventBufferService {
   private readonly buffer: EnrichedEvent[] = [];
   private bufferHead = 0; // Índice del primer elemento (para drenado eficiente)
-  private readonly maxSize: number = 10000;
+  private readonly maxSize: number = 50000; // Configurable via env
   private readonly metrics = {
     totalEnqueued: 0,
     totalDropped: 0,
@@ -308,24 +310,24 @@ export class EventBufferService {
 
 ```typescript
 /**
- * Worker procesa batches cada 1 segundo
- * Tamaño de batch: 500 eventos (configurable)
+ * Worker procesa batches cada 1 segundo (configurable)
+ * Tamaño de batch: 5,000 eventos por defecto (configurable via BATCH_SIZE)
  */
 export class BatchWorkerService {
-  private readonly batchSize: number = 500;
-  private readonly drainInterval: number = 1000; // 1 segundo
+  private readonly batchSize: number = 5000; // Configurable via env
+  private readonly drainInterval: number = 1000; // Configurable via DRAIN_INTERVAL
 
   /**
    * Procesa batch cada 1 segundo
    */
   start() {
     setInterval(() => {
-      this.processBatch(); // Drena hasta 500 eventos
+      this.processBatch(); // Drena hasta BATCH_SIZE eventos (default: 5,000)
     }, this.drainInterval);
   }
 
   private async processBatch() {
-    // 1. Drenar buffer (hasta 500 eventos)
+    // 1. Drenar buffer (hasta BATCH_SIZE eventos, default: 5,000)
     const batch = this.eventBufferService.drainBatch(this.batchSize);
 
     if (batch.length === 0) {
@@ -349,9 +351,9 @@ export class BatchWorkerService {
 ```
 
 **Estrategia de batching:**
-- **Por tamaño:** 500 eventos por batch
-- **Por tiempo:** Cada 1 segundo (incluso si batch no está lleno)
-- **Throughput:** 500 eventos/batch × 10 batches/segundo = 5,000 eventos/segundo
+- **Por tamaño:** 5,000 eventos por batch (configurable via `BATCH_SIZE`)
+- **Por tiempo:** Cada 1 segundo (configurable via `DRAIN_INTERVAL`)
+- **Throughput:** 5,000 eventos/batch × 1 batch/segundo = 5,000 eventos/segundo
 
 ---
 
@@ -431,7 +433,7 @@ async batchInsert(events: CreateEventDto[]): Promise<BatchInsertResult> {
 
 **Características:**
 - ✅ Transacción atómica (todo o nada)
-- ✅ Batch insert (500 eventos en una operación)
+- ✅ Batch insert (5,000 eventos por defecto, configurable via `BATCH_SIZE`)
 - ✅ ~10x más rápido que inserts individuales
 - ✅ Manejo de errores sin romper el pipeline
 
@@ -530,10 +532,10 @@ async ingestEvent(@Body() createEventDto: CreateEventDto) {
 **Flujo completo:**
 
 ```
-T=0.0s:  Buffer: 9,500 eventos
-T=0.1s:  Llegan 600 eventos → Buffer: 10,000 (LLENO)
+T=0.0s:  Buffer: 49,500 eventos
+T=0.1s:  Llegan 600 eventos → Buffer: 50,000 (LLENO)
 T=0.2s:  POST /events → 429 Too Many Requests
-T=0.3s:  Worker procesa batch (500 eventos) → Buffer: 9,500
+T=0.3s:  Worker procesa batch (5,000 eventos) → Buffer: 45,500
 T=0.4s:  POST /events → 202 Accepted (buffer tiene espacio)
 ```
 
@@ -608,7 +610,7 @@ private async retryFailedEvents(failedEvents: EnrichedEvent[]) {
 **Flujo bajo presión:**
 
 ```
-T=0.0s:  Worker intenta insertar batch (500 eventos)
+T=0.0s:  Worker intenta insertar batch (5,000 eventos, configurable)
 T=0.1s:  DB lenta → Timeout después de 2 segundos
 T=2.1s:  Batch falla → Reintentar con backoff (100ms)
 T=2.2s:  Reintentar → Timeout otra vez
@@ -716,7 +718,7 @@ FIN
 - Métricas disponibles para monitoreo
 
 ### 3. **Batching Eficiente**
-- 500 eventos por batch
+- 5,000 eventos por batch (configurable via `BATCH_SIZE`)
 - Transacción atómica (todo o nada)
 - ~10x más rápido que inserts individuales
 

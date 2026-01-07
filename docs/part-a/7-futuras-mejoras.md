@@ -352,6 +352,267 @@ if (user.hasOptedOut) {
 
 ---
 
+## Escenario 5: Observabilidad y Monitoreo Avanzado
+
+### Situación Actual
+- **Métricas básicas:** `/health`, `/metrics`, `/health/buffer`, `/health/database`, `/health/business`
+- **Logging:** Estructurado con `ErrorLogger`
+- **Health checks:** Básicos (liveness, readiness)
+- **Métricas de negocio:** Eventos por servicio, tendencias, top servicios
+
+### Si Necesitamos Observabilidad Avanzada
+
+#### Mejoras Necesarias:
+
+**1. Alertas Automáticas (Prometheus + AlertManager)**
+```typescript
+// Exponer métricas en formato Prometheus
+@Get('metrics/prometheus')
+async getPrometheusMetrics() {
+  return `
+# HELP buffer_size Current buffer size
+# TYPE buffer_size gauge
+buffer_size ${bufferSize}
+
+# HELP buffer_utilization_percent Buffer utilization percentage
+# TYPE buffer_utilization_percent gauge
+buffer_utilization_percent ${utilizationPercent}
+
+# HELP events_dropped_total Total events dropped
+# TYPE events_dropped_total counter
+events_dropped_total ${totalDropped}
+  `;
+}
+
+// Alertas configuradas en Prometheus:
+// - buffer_utilization_percent > 90 → Critical
+// - events_dropped_total > 100 → Warning
+// - database_connection_failures > 5 → Critical
+```
+
+**2. Dashboards (Grafana)**
+```typescript
+// Dashboards pre-configurados:
+// - Buffer utilization over time
+// - Events throughput (events/second)
+// - Drop rate trends
+// - Database connection pool usage
+// - Circuit breaker state transitions
+// - Business metrics (events by service, hourly trends)
+// - Error rates by endpoint
+```
+
+**3. Distributed Tracing (OpenTelemetry)**
+```typescript
+// Instrumentar con OpenTelemetry
+import { trace } from '@opentelemetry/api';
+
+async ingestEvent(dto: CreateEventDto) {
+  const span = trace.getActiveSpan();
+  span?.setAttribute('event.service', dto.service);
+  span?.setAttribute('event.timestamp', dto.timestamp);
+  
+  // Trace completo: Request → Validation → Enrichment → Buffer → Worker → DB
+  // Permite ver latencia en cada paso
+}
+```
+
+**4. Log Aggregation (ELK Stack)**
+```typescript
+// Enviar logs a Elasticsearch
+// - Structured logging ya implementado
+// - Agregar correlation IDs a todos los logs
+// - Indexar por service, timestamp, error level
+// - Búsqueda avanzada y análisis de patrones
+
+// Implementación:
+this.logger.log({
+  correlationId: req.correlationId,
+  service: dto.service,
+  level: 'info',
+  message: 'Event ingested',
+  timestamp: new Date().toISOString(),
+  metadata: { eventId, bufferSize }
+});
+```
+
+**5. APM Tools (New Relic, Datadog)**
+```typescript
+// Integración con APM para:
+// - Performance monitoring (latencia por endpoint)
+// - Error tracking (errores agrupados por tipo)
+// - Database query performance
+// - Memory/CPU usage
+// - Custom business metrics
+
+// Implementación:
+newrelic.recordMetric('Custom/Events/Ingested', eventCount);
+newrelic.recordMetric('Custom/Buffer/Utilization', utilizationPercent);
+```
+
+**6. Métricas de Negocio Avanzadas**
+```typescript
+// Agregar métricas adicionales:
+// - P95/P99 latencia de ingesta
+// - Tasa de éxito/fallo por servicio
+// - Tiempo promedio de procesamiento (ingesta → persistencia)
+// - Distribución de tamaños de eventos
+// - Patrones de uso por hora/día
+
+// Endpoint adicional:
+@Get('metrics/advanced')
+async getAdvancedMetrics() {
+  return {
+    latency: {
+      p50: 2.5,  // ms
+      p95: 5.0,
+      p99: 10.0
+    },
+    processingTime: {
+      average: 1.2,  // segundos desde ingesta hasta DB
+      max: 3.5
+    },
+    eventSizeDistribution: {
+      small: 0.6,   // < 1KB
+      medium: 0.3,  // 1-10KB
+      large: 0.1    // > 10KB
+    }
+  };
+}
+```
+
+**Costo Estimado:**
+- Prometheus (self-hosted): $0-50/mes
+- Grafana (self-hosted): $0-30/mes
+- ELK Stack (self-hosted): $100-200/mes
+- APM (managed): $50-200/mes según volumen
+- **Total: ~$50-480/mes** (depende de opciones elegidas)
+
+---
+
+## Escenario 6: Alta Disponibilidad y Resiliencia
+
+### Situación Actual
+- **Deployment:** Servidor único
+- **Base de datos:** PostgreSQL en Docker (single instance)
+- **Recuperación:** Checkpoint en disco local
+- **Failover:** Manual
+
+### Si Necesitamos Alta Disponibilidad
+
+#### Mejoras Necesarias:
+
+**1. Multi-Region Deployment**
+```typescript
+// Desplegar en múltiples regiones:
+// - Región 1 (US-East): Primary
+// - Región 2 (US-West): Secondary (read-only)
+// - Región 3 (EU): Secondary (read-only)
+
+// Load balancing geográfico:
+// - Ingesta: Route a región más cercana
+// - Queries: Route a read replica más cercana
+// - Failover automático si primary falla
+```
+
+**2. Database Replication**
+```sql
+-- PostgreSQL streaming replication
+-- Primary: Write operations
+-- Replicas: Read operations (read-only)
+
+-- Configuración:
+-- 1. Primary DB acepta writes
+-- 2. Replicas sincronizadas en tiempo real
+-- 3. Failover automático si primary falla
+-- 4. Queries distribuidas entre replicas
+```
+
+**3. Disaster Recovery**
+```typescript
+// Estrategia de backup:
+// 1. Backups incrementales cada hora
+// 2. Backups completos diarios
+// 3. Backups almacenados en S3 (multi-region)
+// 4. Point-in-time recovery (PITR)
+// 5. RTO (Recovery Time Objective): < 1 hora
+// 6. RPO (Recovery Point Objective): < 15 minutos
+
+// Implementación:
+// - PostgreSQL WAL archiving
+// - Backup automatizado con pg_dump
+// - Restore testing mensual
+```
+
+**4. Health Checks Avanzados**
+```typescript
+// Health checks más granulares:
+@Get('health/readiness')
+async readinessCheck() {
+  const checks = {
+    database: await this.checkDatabase(),
+    buffer: this.checkBuffer(),
+    diskSpace: await this.checkDiskSpace(),
+    memory: this.checkMemory(),
+  };
+  
+  const isReady = Object.values(checks).every(c => c.healthy);
+  return { status: isReady ? 'ready' : 'not_ready', checks };
+}
+
+// Kubernetes readiness probe:
+// - Si no está ready, no recibe tráfico
+// - Permite graceful shutdown
+```
+
+**5. Circuit Breaker Avanzado**
+```typescript
+// Circuit breaker con múltiples niveles:
+// - L1: Database connection failures
+// - L2: Slow queries (> 2 segundos)
+// - L3: High error rate (> 10% errors)
+
+// Auto-recovery con exponential backoff
+// Health checks periódicos en estado HALF_OPEN
+// Métricas de circuit breaker state transitions
+```
+
+**6. Graceful Degradation**
+```typescript
+// Si database falla:
+// 1. Continuar aceptando eventos (buffer)
+// 2. Almacenar en checkpoint más frecuentemente
+// 3. Cuando DB se recupera, procesar backlog
+// 4. Notificar a operadores
+
+// Si buffer se llena:
+// 1. Aplicar backpressure (429)
+// 2. Log eventos rechazados para análisis
+// 3. Alertar a operadores
+```
+
+**7. Multi-AZ Deployment**
+```typescript
+// Desplegar en múltiples Availability Zones:
+// - AZ-1: Primary application + Primary DB
+// - AZ-2: Secondary application + Replica DB
+// - Auto-failover entre AZs
+
+// Beneficios:
+// - Tolerancia a fallos de AZ
+// - Sin downtime en mantenimiento
+// - Mejor latencia (AZ más cercana)
+```
+
+**Costo Estimado:**
+- Multi-region deployment: +$200-400/mes (servidores adicionales)
+- Database replication: +$100-200/mes (replicas)
+- Backup storage (S3): +$20-50/mes
+- Load balancer: +$20-50/mes
+- **Total: ~$340-700/mes adicionales**
+
+---
+
 ## Resumen de Mejoras por Escenario
 
 | Escenario | Cambios Principales | Costo Adicional | Complejidad |
@@ -360,6 +621,8 @@ if (user.hasOptedOut) {
 | **Reducción Costos** | Compresión, S3, Retención agresiva | -$80/mes | Media |
 | **Seguridad** | API keys, TLS, Encriptación, Rate limiting | $50-150/mes | Media |
 | **Compliance** | Eliminación por solicitud, Anonimización | $50/mes + dev | Alta |
+| **Observabilidad** | Prometheus, Grafana, ELK, APM, Tracing | $50-480/mes | Media |
+| **Alta Disponibilidad** | Multi-region, Replicación, DR, Multi-AZ | $340-700/mes | Alta |
 
 ---
 
@@ -373,9 +636,10 @@ if (user.hasOptedOut) {
 
 ### Fase 2: Escalabilidad (Volumen Medio)
 - ✅ PostgreSQL (ya implementado)
+- ✅ Métricas básicas (ya implementadas: `/health`, `/metrics`, `/health/business`)
 - 🔄 Particionado de tablas
 - 🔄 Múltiples workers
-- 🔄 Métricas avanzadas
+- 🔄 Métricas avanzadas (P95/P99, distribución de tamaños)
 
 ### Fase 3: Escalabilidad Alta (Volumen Alto)
 - 🔄 Redis Streams
@@ -394,6 +658,22 @@ if (user.hasOptedOut) {
 - 🔄 Anonimización
 - 🔄 Exportación de datos
 - 🔄 Logging de acceso
+
+### Fase 6: Observabilidad Avanzada
+- 🔄 Alertas automáticas (Prometheus + AlertManager)
+- 🔄 Dashboards (Grafana)
+- 🔄 Distributed tracing (OpenTelemetry)
+- 🔄 Log aggregation (ELK Stack)
+- 🔄 APM tools (New Relic, Datadog)
+- 🔄 Métricas avanzadas (P95/P99, processing time)
+
+### Fase 7: Alta Disponibilidad
+- 🔄 Multi-region deployment
+- 🔄 Database replication
+- 🔄 Disaster recovery (backups automatizados)
+- 🔄 Health checks avanzados
+- 🔄 Multi-AZ deployment
+- 🔄 Graceful degradation
 
 ---
 

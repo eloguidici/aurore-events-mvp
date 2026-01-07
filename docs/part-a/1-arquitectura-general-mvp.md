@@ -6,7 +6,7 @@
 **Responsabilidad:**
 - Exponer endpoint HTTP `POST /events` para recibir eventos
 - Validación ligera en el borde (schema, campos requeridos, formato)
-- Rate limiting (1000 requests/minuto para ingesta, 200 para consultas)
+- Rate limiting configurable por tipo de endpoint (global, query, health limits)
 - Enriquecimiento de eventos con metadata (eventId generado con crypto.randomBytes)
 - Encolado no bloqueante al buffer en memoria
 - Aplicar backpressure cuando el buffer está saturado (429/503)
@@ -25,7 +25,7 @@
 ### 1.2 Buffer en Memoria (In-Memory Event Buffer)
 **Responsabilidad:**
 - Cola thread-safe para absorber picos de ingesta
-- Capacidad configurable (10,000 eventos por defecto)
+- Capacidad configurable (50,000 eventos por defecto, configurable via `BUFFER_MAX_SIZE`)
 - Operaciones de append rápidas (O(1))
 - Operaciones de drenado optimizadas (bufferHead para evitar O(n) shift)
 - Proporcionar métricas avanzadas (tamaño, capacidad, utilización, drop rate, throughput, health status)
@@ -42,7 +42,7 @@
 
 ### 1.3 Worker de Procesamiento por Lotes (Batch Worker)
 **Responsabilidad:**
-- Drenar continuamente el buffer en lotes (500 eventos por batch)
+- Drenar continuamente el buffer en lotes (5,000 eventos por batch por defecto, configurable via `BATCH_SIZE`)
 - Validación profunda optimizada (chunked para batches grandes, sincrónica para pequeños)
 - Escritura en lote a la capa de almacenamiento
 - Manejo de fallos parciales (reintento solo de items fallidos)
@@ -78,7 +78,7 @@
 - **Circuit Breaker:** Protege operaciones de DB (CLOSED → OPEN → HALF_OPEN)
 - **Queries optimizadas:** `findByServiceAndTimeRangeWithCount` ejecuta find y count en paralelo
 - PostgreSQL para producción (mayor escalabilidad y concurrencia)
-- Connection pooling configurado (max 20 conexiones)
+- Connection pooling configurado (max 20 conexiones, configurable via `DB_POOL_MAX`)
 
 ---
 
@@ -121,7 +121,7 @@
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  2. BUFFER EN MEMORIA (EventBufferService)                      │
-│     • Cola thread-safe (10,000 eventos)                         │
+│     • Cola thread-safe (50,000 eventos, configurable)          │
 │     • Checkpoint cada 5 segundos                                │
 │     • Métricas: tamaño, capacidad, utilización                 │
 └──────────────────────────┬──────────────────────────────────────┘
@@ -132,7 +132,7 @@
 │  3. BATCH WORKER (BatchWorkerService)                           │
 │     • Procesa cada 1 segundo                                    │
 │     • Validación profunda                                       │
-│     • Batch insert (500 eventos)                                │
+│     • Batch insert (5,000 eventos, configurable)               │
 │     • Reintentos con exponential backoff                        │
 └──────────────────────────┬──────────────────────────────────────┘
                             │
@@ -244,8 +244,8 @@
 
 ### Throughput
 - **Ingesta:** ~5,000 eventos/segundo
-  - Buffer: 10,000 eventos (absorbe picos)
-  - Worker: 500 eventos/batch × 10 batches/segundo = 5,000 eventos/segundo
+  - Buffer: 50,000 eventos (absorbe picos, configurable via `BUFFER_MAX_SIZE`)
+  - Worker: 5,000 eventos/batch × 1 batch/segundo = 5,000 eventos/segundo (configurable via `BATCH_SIZE` y `DRAIN_INTERVAL`)
 
 ### Latencia
 - **Ingesta:** < 5ms (request path)

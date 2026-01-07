@@ -105,7 +105,7 @@ ErrorLogger.logError(
 
 **Archivo:** `env.example`
 ```env
-BUFFER_MAX_SIZE=10000
+BUFFER_MAX_SIZE=50000
 BATCH_SIZE=500
 DRAIN_INTERVAL=1000
 RETENTION_DAYS=30
@@ -166,7 +166,11 @@ throw new ServiceUnavailableException();
 
 **Razón:** Complejidad adicional no necesaria para MVP.
 
-**Nota:** Rate limiting básico está implementado con `@Throttle` (1000 req/min para ingesta, 200 para consultas).
+**Nota:** Rate limiting está implementado con `@Throttle` y es configurable via variables de entorno:
+- `THROTTLE_GLOBAL_LIMIT`: Límite global (default: 300,000)
+- `THROTTLE_IP_LIMIT`: Límite por IP (default: 10,000)
+- `THROTTLE_QUERY_LIMIT`: Límite para queries (default: 200)
+- `THROTTLE_HEALTH_LIMIT`: Límite para health checks (default: 60)
 
 **Para el futuro:**
 - API keys por cliente
@@ -465,7 +469,7 @@ try {
 ```typescript
 // ❌ MAL: Hardcoded
 const batchSize = 500;
-const maxSize = 10000;
+const maxSize = 50000; // Configurable via env
 ```
 
 **Ejemplo correcto:**

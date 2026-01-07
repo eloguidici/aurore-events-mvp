@@ -2,6 +2,26 @@
 
 ## Fecha: 2025-01-XX (Actualización Reciente)
 
+### 📝 Actualizaciones de Documentos del Assignment (Part A, B, C)
+
+1. **Part A - Documentos de Diseño y MVP**:
+   - Actualizada información de configuración de rate limiting con valores reales y variables de entorno
+   - Actualizada capacidad del buffer (50,000 eventos en vez de 10,000)
+   - Actualizado tamaño de batch (5,000 eventos en vez de 500)
+   - Agregados todos los endpoints de health check implementados (`/health`, `/live`, `/ready`, `/health/*`)
+   - Agregada información sobre configuración de pool de conexiones PostgreSQL (`DB_POOL_MAX`)
+   - Actualizada información de throughput para reflejar configuración actual
+
+2. **Part B - Mentoring y Code Review**:
+   - Documento completo y actualizado (no requiere cambios, es análisis de código Python independiente)
+
+3. **Part C - Estimación y Planificación**:
+   - Documento completo y actualizado (refleja estimación para construcción desde cero)
+
+---
+
+## Fecha: 2025-01-XX (Actualización Reciente)
+
 ### 📝 Actualizaciones Recientes
 
 1. **Documentación de endpoints actualizada**: 

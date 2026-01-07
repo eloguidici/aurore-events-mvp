@@ -9,9 +9,9 @@ Este documento explica las decisiones arquitectónicas y técnicas más importan
 ### Decisión: Buffer en Memoria + Batching por Tamaño y Tiempo
 
 **Implementación:**
-- Buffer en memoria (array) con capacidad 10,000 eventos
-- Batching: 500 eventos por batch
-- Intervalo: Procesa cada 1 segundo (incluso si batch no está lleno)
+- Buffer en memoria (array) con capacidad 50,000 eventos (configurable via `BUFFER_MAX_SIZE`)
+- Batching: 5,000 eventos por batch (configurable via `BATCH_SIZE`)
+- Intervalo: Procesa cada 1 segundo (configurable via `DRAIN_INTERVAL`)
 
 **¿Por qué?**
 
@@ -102,7 +102,7 @@ Este documento explica las decisiones arquitectónicas y técnicas más importan
 - PostgreSQL como base de datos (via Docker)
 - Tabla: `events` con índices compuestos
 - Transacciones atómicas para batch inserts
-- Connection pooling (max 20 conexiones)
+- Connection pooling (max 20 conexiones, configurable via `DB_POOL_MAX`)
 
 **¿Por qué?**
 
@@ -324,7 +324,7 @@ CREATE INDEX idx_service_timestamp ON events(service, timestamp);
 #### Trade-offs:
 1. **I/O de disco:** Escribe cada 5 segundos
    - **Mitigación:** Operación asíncrona, no bloquea
-2. **Espacio en disco:** ~5 MB máximo (10,000 eventos)
+2. **Espacio en disco:** ~25 MB máximo (50,000 eventos por defecto)
    - **Mitigación:** Se elimina después de cargar
 3. **Pérdida de eventos recientes:** Últimos 0-5 segundos
    - **Mitigación:** Aceptable para MVP
@@ -332,7 +332,7 @@ CREATE INDEX idx_service_timestamp ON events(service, timestamp);
 #### Alternativas Consideradas:
 
 **Opción A: Sin checkpoint (aceptar pérdida en crash)**
-- ❌ Pérdida de hasta 10,000 eventos en crash
+- ❌ Pérdida de hasta 50,000 eventos en crash (si no hay checkpoint)
 - ❌ No resiliente
 
 **Decisión:** Checkpoint (recuperación > pérdida)
@@ -511,7 +511,7 @@ LIMIT 10 OFFSET 0;
 |----------|----------------|-----------------|-----------|
 | Buffer | Memoria optimizado | Simplicidad + Performance | Complejidad adicional |
 | Almacenamiento | PostgreSQL | Escalabilidad y concurrencia | Requiere Docker |
-| Batching | 500 eventos, 1s | Balance throughput/latencia | Latencia de 1s máximo |
+| Batching | 5,000 eventos, 1s | Balance throughput/latencia | Latencia de 1s máximo |
 | Backpressure | 429 explícito | Protección y transparencia | Cliente debe retry |
 | Retención | Job diario | Simplicidad | Latencia de 24h |
 | Checkpoint | Cada 5s (streaming) | Recuperación + Memoria | I/O periódico |

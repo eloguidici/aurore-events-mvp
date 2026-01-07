@@ -28,6 +28,10 @@ Este documento describe los pasos para construir el MVP, incluyendo qué partes 
 - Configuración compleja (TypeORM, validación, etc.)
 - Establece estándares para el equipo
 
+**Mentoring (Pair Programming):**
+- 1-2 juniors observan y hacen preguntas durante sesiones de 1-2 horas
+- Enfoque: Entender estructura de módulos, configuración de TypeORM, y estándares del proyecto
+
 **Entregables:**
 - ✅ Proyecto funcionando con estructura base
 - ✅ Health checks básicos
@@ -114,6 +118,10 @@ export class CreateEventDto {
 - **Tech Lead:** Lógica crítica (backpressure, enriquecimiento)
 - **Junior:** Tests (aprendizaje, bajo riesgo)
 
+**Mentoring (Pair Programming):**
+- 1 junior hace pair durante la implementación del buffer (sesión de 2-3 horas)
+- Enfoque: Entender por qué se usa bufferHead, cómo funciona el backpressure, y el patrón de enriquecimiento
+
 **Código crítico (Tech Lead):**
 ```typescript
 // Backpressure check
@@ -162,6 +170,10 @@ describe('EventBufferService', () => {
 **Justificación:**
 - **Tech Lead:** Lógica compleja (worker, backoff, validación)
 - **Junior:** Operaciones de base de datos (aprendizaje de TypeORM)
+
+**Mentoring (Pair Programming):**
+- 1 junior hace pair durante la implementación del worker (sesión de 2-3 horas)
+- Enfoque: Entender el patrón de batching, exponential backoff, y cómo se maneja la presión del sistema
 
 **Código crítico (Tech Lead):**
 ```typescript
@@ -232,6 +244,10 @@ async handleCleanup() {
 - Manejo de I/O y atomicidad
 - Impacto alto en resiliencia
 
+**Mentoring (Pair Programming):**
+- 1 junior observa y hace preguntas durante la implementación (sesión de 1-2 horas)
+- Enfoque: Entender la escritura atómica, recuperación ante crashes, y por qué es crítico
+
 **Código crítico:**
 ```typescript
 // Escritura atómica
@@ -252,6 +268,56 @@ await fs.rename(tempPath, this.checkpointPath); // Atómico
 | 4 | Worker y Persistencia | Tech Lead + Junior (DB) | Complejidad + aprendizaje |
 | 5 | Retención | Junior | Tarea simple, bien definida |
 | 6 | Checkpoint | Tech Lead | Lógica crítica, alto impacto |
+
+---
+
+## Estrategia de Mentoring con Pair Programming
+
+Aunque las tareas complejas son implementadas por el Tech Lead, se utiliza **pair programming selectivo** (práctica de Extreme Programming) para que los desarrolladores junior vayan entendiendo el "por qué" de las decisiones técnicas, no solo el "qué" del código final.
+
+### Objetivos del Pair Programming:
+
+1. **Aprendizaje práctico:** Los juniors observan cómo se resuelven problemas complejos en tiempo real
+2. **Reducción del bus factor:** El conocimiento se distribuye, no se concentra solo en el Tech Lead
+3. **Mejora de calidad:** Dos pares de ojos detectan más problemas y validan decisiones
+4. **Preparación para el futuro:** Los juniors pueden tomar tareas complejas más adelante
+
+### Aplicación por Paso:
+
+**Paso 1 (Setup Inicial):**
+- Tech Lead implementa la arquitectura base
+- **Pair programming:** 1-2 juniors observan y hacen preguntas durante sesiones de 1-2 horas
+- **Enfoque:** Entender la estructura de módulos, configuración de TypeORM, y estándares del proyecto
+
+**Paso 3 (Buffer e Ingesta):**
+- Tech Lead implementa `EventBufferService` y lógica de backpressure
+- **Pair programming:** 1 junior hace pair durante la implementación del buffer (sesión de 2-3 horas)
+- **Enfoque:** Entender por qué se usa bufferHead, cómo funciona el backpressure, y el patrón de enriquecimiento
+
+**Paso 4 (Worker y Persistencia):**
+- Tech Lead implementa la lógica del worker y validación profunda
+- **Pair programming:** 1 junior hace pair durante la implementación del worker (sesión de 2-3 horas)
+- **Enfoque:** Entender el patrón de batching, exponential backoff, y cómo se maneja la presión del sistema
+
+**Paso 6 (Checkpoint):**
+- Tech Lead implementa el sistema de checkpoint
+- **Pair programming:** 1 junior observa y hace preguntas (sesión de 1-2 horas)
+- **Enfoque:** Entender la escritura atómica, recuperación ante crashes, y por qué es crítico
+
+### Dinámica de las Sesiones:
+
+- **Duración:** 1-3 horas por sesión (según complejidad)
+- **Formato:** Tech Lead codifica y explica decisiones en tiempo real, junior pregunta y toma notas
+- **Rotación:** Diferentes juniors participan en diferentes pasos (no todos en todo)
+- **Seguimiento:** Después de cada sesión, el junior documenta lo aprendido y puede hacer preguntas adicionales
+
+### Beneficios:
+
+- ✅ Los juniors entienden el razonamiento detrás de decisiones complejas
+- ✅ El conocimiento se distribuye en el equipo
+- ✅ Mejor calidad de código (dos pares de ojos)
+- ✅ Los juniors están mejor preparados para tareas complejas futuras
+- ✅ El Tech Lead valida sus decisiones explicándolas
 
 ---
 
@@ -367,8 +433,9 @@ Total: ~10 días hábiles (2 semanas)
 
 1. **Tech Lead:** Componentes críticos y arquitectura
 2. **Junior:** Tareas bien definidas y tests
-3. **Colaboración:** Code reviews y pair programming cuando sea necesario
-4. **Iterativo:** Implementar paso a paso, probar, ajustar
+3. **Colaboración:** Code reviews y pair programming selectivo en tareas complejas
+4. **Mentoring activo:** Pair programming para que juniors entiendan decisiones técnicas complejas
+5. **Iterativo:** Implementar paso a paso, probar, ajustar
 
 **Resultado:** MVP funcional en ~2 semanas con equipo junior involucrado y aprendiendo.
 

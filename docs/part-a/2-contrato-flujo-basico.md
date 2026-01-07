@@ -8,8 +8,13 @@
 Ingesta un nuevo evento al sistema. El evento se valida, enriquece con metadata, y se encola al buffer. La respuesta es inmediata (202 Accepted) sin esperar persistencia.
 
 **Rate Limiting:**
-- 1000 requests por minuto por IP/cliente
-- Implementado con `@Throttle` decorator
+- Configurable via variables de entorno:
+  - `THROTTLE_GLOBAL_LIMIT`: Límite global por ventana de tiempo (default: 300,000)
+  - `THROTTLE_IP_LIMIT`: Límite por IP por ventana (default: 10,000)
+  - `THROTTLE_QUERY_LIMIT`: Límite para queries (default: 200)
+  - `THROTTLE_HEALTH_LIMIT`: Límite para health checks (default: 60)
+  - `THROTTLE_TTL_MS`: Ventana de tiempo en ms (default: 60,000 = 1 minuto)
+- Implementado con `@Throttle` decorator de NestJS
 
 ---
 
@@ -104,7 +109,7 @@ Content-Type: application/json
 ```
 
 **Causa:**
-- Buffer alcanzó capacidad máxima (10,000 eventos)
+- Buffer alcanzó capacidad máxima (50,000 eventos por defecto, configurable via `BUFFER_MAX_SIZE`)
 - Sistema bajo presión (almacenamiento lento o worker lento)
 
 **Acción del sistema:**
@@ -146,8 +151,8 @@ Content-Type: application/json
 Consulta eventos por servicio y rango de tiempo con paginación y ordenamiento.
 
 **Rate Limiting:**
-- 200 requests por minuto por IP/cliente
-- Implementado con `@Throttle` decorator
+- Configurable via `THROTTLE_QUERY_LIMIT` (default: 200 requests por ventana de tiempo)
+- Implementado con `@Throttle` decorator de NestJS
 
 ---
 
@@ -311,7 +316,7 @@ GET /events?service=auth-service&from=2024-01-15T00:00:00Z&to=2024-01-15T23:59:5
 ┌─────────────────────────────────────────────────────────────────┐
 │ 7. WORKER PROCESA (BatchWorkerService)                          │
 │    • Cada 1 segundo                                             │
-│    • Drena buffer (500 eventos)                                │
+│    • Drena buffer (5,000 eventos, configurable)                │
 │    • Valida profundamente                                       │
 │    • Batch insert a PostgreSQL                                 │
 │    • Reintentos si falla                                        │
@@ -440,7 +445,7 @@ Cliente → GET /events?service=X&from=Y&to=Z → 200 OK → { total: 0, items: 
 {
   "status": "healthy",
   "currentSize": 45,
-  "capacity": 10000,
+  "capacity": 50000,  // Configurable via BUFFER_MAX_SIZE
   "utilizationPercent": 0.45,
   "totalEnqueued": 1234,
   "totalDropped": 0,
@@ -471,11 +476,26 @@ Cliente → GET /events?service=X&from=Y&to=Z → 200 OK → { total: 0, items: 
 ## Health Checks
 
 ### `GET /health`
-Estado general del servidor
+Estado general del servidor (readiness check)
 
 ### `GET /live`
-Liveness check (servidor corriendo)
+Liveness check (verifica que el servidor no esté apagándose)
 
 ### `GET /ready`
-Readiness check (servidor listo para recibir requests)
+Readiness check (verifica que el servidor esté listo para recibir tráfico)
+
+### `GET /health/buffer`
+Estado y métricas del buffer (size, capacity, utilization, throughput, drop rate)
+
+### `GET /health/database`
+Estado de conexión a BD y circuit breaker (estado del circuito, métricas)
+
+### `GET /health/business`
+Métricas de negocio (eventos por servicio, tendencias, top servicios, eventos por hora)
+
+### `GET /health/detailed`
+Estado completo del sistema (agrega todos los componentes: server, database, buffer, circuit breaker, business)
+
+### `GET /metrics`
+Métricas del buffer y estado del sistema (buffer size, capacity, utilization, throughput, drop rate, health status)
 
