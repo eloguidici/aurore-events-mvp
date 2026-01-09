@@ -32,7 +32,7 @@ See [Installation](#installation) section for detailed steps.
 - **Simple & Maintainable**: Built for junior developers
 - **Security**: Input sanitization to prevent XSS attacks
 - **Rate Limiting**: Per-IP rate limiting to prevent abuse
-- **Observability**: Correlation IDs for request tracking, business metrics
+- **Observability**: Prometheus metrics, Grafana dashboards, correlation IDs for request tracking, business metrics
 - **Circuit Breaker**: Automatic protection against database failures
 - **100% Decoupled Architecture**: All services use interfaces for complete decoupling
 - **Comprehensive Testing**: 37 test files with 200+ test cases covering all components
@@ -430,21 +430,58 @@ npm run format
 ## Docker Commands
 
 ```bash
-# Start PostgreSQL
+# Start all services (PostgreSQL, Prometheus, Grafana)
 docker-compose up -d
 
-# Stop PostgreSQL
+# Stop all services
 docker-compose down
 
 # View PostgreSQL logs
 docker-compose logs postgres
 
+# View Prometheus logs
+docker-compose logs prometheus
+
+# View Grafana logs
+docker-compose logs grafana
+
 # Access PostgreSQL console
 docker-compose exec postgres psql -U admin -d aurore_events
 
-# Check PostgreSQL status
+# Check all services status
 docker-compose ps
 ```
+
+## Observability
+
+The application includes **Prometheus** and **Grafana** for observability:
+
+- **Prometheus**: Available at http://localhost:9090
+  - Scrapes metrics from the application every 15 seconds
+  - Stores metrics for 30 days
+  - Metrics endpoint: `GET /metrics/prometheus`
+
+- **Grafana**: Available at http://localhost:3001
+  - Default credentials: `admin` / `admin`
+  - **Complete Dashboard**: "Aurore Events - Complete Dashboard" with 16 panels covering all metrics
+  - Dashboard automatically loaded via provisioning: `grafana/dashboards/aurore-dashboard.json`
+  - Pre-configured Prometheus datasource
+
+**All services start automatically** when you run `docker-compose up -d`.
+
+**Note**: Prometheus metrics are exposed via `PrometheusService` and `PrometheusController` in the `CommonModule` (located at `src/modules/common/services/prometheus.service.ts` and `src/modules/common/controllers/prometheus.controller.ts`).
+
+### Available Metrics
+
+The application exposes the following Prometheus metrics:
+
+- **Buffer Metrics**: `buffer_size`, `buffer_capacity`, `buffer_utilization_percent`, `events_enqueued_total`, `events_dropped_total`, `events_drop_rate_percent`, `events_throughput_per_second`, `buffer_health_status`
+- **Batch Worker Metrics**: `batches_processed_total`, `events_processed_total`, `batch_processing_time_ms`, `batch_insert_time_ms`
+- **Business Metrics**: `business_events_total`, `business_events_last_24h`, `business_events_last_hour`, `business_events_by_service`
+- **Health Metrics**: `health_status`, `database_connection_status`, `circuit_breaker_state`
+- **Infrastructure Metrics**: `process_cpu_user_seconds_total`, `process_resident_memory_bytes`, `nodejs_heap_size_total_bytes`
+
+**📖 For detailed observability documentation**, see [`docs/OBSERVABILITY_ANALYSIS.md`](docs/OBSERVABILITY_ANALYSIS.md).
 
 **📖 For detailed Docker setup and troubleshooting**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
 
@@ -461,6 +498,7 @@ The project includes comprehensive documentation in the `docs/` folder:
 - **`docs/QUICK_START.md`** - Quick start guide (2-3 commands to get started)
 - **`docs/DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
 - **`docs/TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
+- **`docs/OBSERVABILITY_ANALYSIS.md`** - Prometheus and Grafana observability setup and analysis
 
 ### Exercise Documentation (Aurore Labs Assignment)
 - **`docs/part-a/`** - Part A: Design and MVP system architecture (7 documents)

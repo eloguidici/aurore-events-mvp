@@ -315,7 +315,23 @@ Responsable de la limpieza automática de eventos antiguos.
 
 **Ubicación**: `src/modules/common/`
 
-Funcionalidades compartidas entre módulos.
+Funcionalidades compartidas entre módulos. Incluye servicios de infraestructura como métricas, health checks, circuit breaker, sanitización, logging de errores y observabilidad (Prometheus).
+
+**Nota**: `PrometheusService` y `PrometheusController` están ubicados en este módulo porque son servicios de infraestructura compartidos que exponen métricas del sistema, similar a `MetricsCollectorService` y `HealthService`.
+
+#### Controllers
+
+##### `PrometheusController`
+**Archivo**: `controllers/prometheus.controller.ts`
+
+- **Responsabilidad**: Endpoint HTTP para exposición de métricas Prometheus
+- **Endpoints**:
+  - `GET /metrics/prometheus` - Métricas en formato Prometheus (text/plain)
+- **Características**:
+  - Expone métricas para scraping por Prometheus
+  - Content-Type: `text/plain; version=0.0.4; charset=utf-8`
+  - Manejo de errores con logging estructurado
+  - Documentado con Swagger
 
 #### Services
 
@@ -341,6 +357,23 @@ Funcionalidades compartidas entre módulos.
   - Estado del buffer
   - Estado de la base de datos
   - Estado del circuit breaker
+
+##### `PrometheusService`
+**Archivo**: `services/prometheus.service.ts`
+
+- **Responsabilidad**: Exposición de métricas en formato Prometheus para observabilidad
+- **Características**:
+  - Registra métricas de buffer, batch worker, business y health
+  - Actualiza métricas cada 5 segundos
+  - Expone métricas en formato Prometheus estándar
+  - Incluye métricas de infraestructura (CPU, memoria) automáticamente
+  - Usa `prom-client` para gestión de métricas
+- **Métricas expuestas**:
+  - Buffer: `buffer_size`, `buffer_capacity`, `buffer_utilization_percent`, `events_enqueued_total`, `events_dropped_total`, `events_drop_rate_percent`, `events_throughput_per_second`, `buffer_health_status`
+  - Batch Worker: `batches_processed_total`, `events_processed_total`, `batch_processing_time_ms`, `batch_insert_time_ms`
+  - Business: `business_events_total`, `business_events_last_24h`, `business_events_last_hour`, `business_events_by_service`
+  - Health: `health_status`, `database_connection_status`, `circuit_breaker_state`
+  - Infrastructure: `process_cpu_user_seconds_total`, `process_resident_memory_bytes`, `nodejs_heap_size_total_bytes`
 
 ##### `ErrorHandlingService`
 **Archivo**: `services/error-handling.service.ts`
@@ -392,6 +425,8 @@ Funcionalidades compartidas entre módulos.
     - `getBatchWorkerMetrics()` - Obtiene snapshot de métricas del batch worker
     - `reset()` - Resetea todas las métricas (útil para testing)
 - **Uso**: Inyectado en `EventBufferService` y `BatchWorkerService` mediante `METRICS_COLLECTOR_SERVICE_TOKEN`
+
+**Nota sobre estructura**: `PrometheusService` y `PrometheusController` están en el `CommonModule` junto con `MetricsCollectorService` porque son servicios de infraestructura compartidos que exponen métricas del sistema.
 
 #### Guards
 

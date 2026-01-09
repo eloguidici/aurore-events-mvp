@@ -58,6 +58,7 @@ import { TypeOrmBusinessMetricsRepository } from './repositories/typeorm-busines
     EVENT_BUFFER_SERVICE_TOKEN,
     EventService,
     EVENT_SERVICE_TOKEN,
+    BusinessMetricsService,
   ],
 })
 export class EventModule {}

@@ -44,7 +44,7 @@ export class IpThrottlerGuard extends ThrottlerGuard {
   ): string {
     const request = context.switchToHttp().getRequest<Request>();
     // Get route path from request URL or use default
-    const route = (request as any).route?.path || request.url || 'default';
+    const route = (request as any).route?.path || (request as any).url || 'default';
 
     // Combine IP, route, and throttler name for per-IP, per-route rate limiting
     return `throttle:${name}:${suffix}:${route}`;

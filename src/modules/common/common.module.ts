@@ -11,8 +11,13 @@ import { MetricsCollectorService } from './services/metrics-collector.service';
 import { METRICS_COLLECTOR_SERVICE_TOKEN } from './services/interfaces/metrics-collector-service.token';
 import { SANITIZER_SERVICE_TOKEN } from './services/interfaces/sanitizer-service.token';
 import { SanitizerService } from './services/sanitizer.service';
+import { PrometheusController } from './controllers/prometheus.controller';
+import { PrometheusService } from './services/prometheus.service';
+import { EventModule } from '../event/event.module';
 
 @Module({
+  imports: [EventModule], // Required for BusinessMetricsService
+  controllers: [PrometheusController],
   providers: [
     HealthService,
     {
@@ -40,6 +45,7 @@ import { SanitizerService } from './services/sanitizer.service';
       provide: SANITIZER_SERVICE_TOKEN,
       useClass: SanitizerService,
     },
+    PrometheusService,
   ],
   exports: [
     HealthService,
@@ -52,6 +58,7 @@ import { SanitizerService } from './services/sanitizer.service';
     ERROR_LOGGER_SERVICE_TOKEN,
     SanitizerService,
     SANITIZER_SERVICE_TOKEN,
+    PrometheusService,
   ],
 })
 export class CommonModule {}

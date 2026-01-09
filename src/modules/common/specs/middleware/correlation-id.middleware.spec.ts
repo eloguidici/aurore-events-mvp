@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 
 import { CorrelationIdMiddleware } from '../../middleware/correlation-id.middleware';
 
+
 describe('CorrelationIdMiddleware', () => {
   let middleware: CorrelationIdMiddleware;
 
@@ -37,8 +38,8 @@ describe('CorrelationIdMiddleware', () => {
 
       middleware.use(req, res, next);
 
-      expect(req.correlationId).toBe(correlationId);
-      expect(res.setHeader).toHaveBeenCalledWith('X-Correlation-Id', correlationId);
+      expect((req as any).correlationId).toBe(correlationId);
+      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', correlationId);
       expect(next).toHaveBeenCalled();
     });
 
@@ -57,9 +58,9 @@ describe('CorrelationIdMiddleware', () => {
 
       middleware.use(req, res, next);
 
-      expect(req.correlationId).toBeDefined();
-      expect(req.correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-      expect(res.setHeader).toHaveBeenCalledWith('X-Correlation-Id', req.correlationId);
+      expect((req as any).correlationId).toBeDefined();
+      expect((req as any).correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', (req as any).correlationId);
       expect(next).toHaveBeenCalled();
     });
 
@@ -80,9 +81,9 @@ describe('CorrelationIdMiddleware', () => {
 
       middleware.use(req, res, next);
 
-      expect(req.correlationId).toBeDefined();
-      expect(req.correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-      expect(res.setHeader).toHaveBeenCalledWith('X-Correlation-Id', req.correlationId);
+      expect((req as any).correlationId).toBeDefined();
+      expect((req as any).correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', (req as any).correlationId);
       expect(next).toHaveBeenCalled();
     });
 
@@ -101,8 +102,8 @@ describe('CorrelationIdMiddleware', () => {
 
       middleware.use(req, res, next);
 
-      expect(req.correlationId).toBeDefined();
-      expect(typeof req.correlationId).toBe('string');
+      expect((req as any).correlationId).toBeDefined();
+      expect(typeof (req as any).correlationId).toBe('string');
     });
 
     it('should set correlation ID in response header', () => {
@@ -123,8 +124,8 @@ describe('CorrelationIdMiddleware', () => {
 
       middleware.use(req, res, next);
 
-      expect(res.setHeader).toHaveBeenCalledWith('X-Correlation-Id', correlationId);
-      expect(res.setHeader).toHaveBeenCalledTimes(1);
+      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', correlationId);
+      expect((res as any).setHeader).toHaveBeenCalledTimes(1);
     });
 
     it('should call next middleware', () => {
@@ -173,9 +174,9 @@ describe('CorrelationIdMiddleware', () => {
       middleware.use(req1, res1, next1);
       middleware.use(req2, res2, next2);
 
-      expect(req1.correlationId).toBeDefined();
-      expect(req2.correlationId).toBeDefined();
-      expect(req1.correlationId).not.toBe(req2.correlationId);
+      expect((req1 as any).correlationId).toBeDefined();
+      expect((req2 as any).correlationId).toBeDefined();
+      expect((req1 as any).correlationId).not.toBe((req2 as any).correlationId);
     });
 
     it('should preserve correlation ID across request lifecycle', () => {
@@ -197,7 +198,7 @@ describe('CorrelationIdMiddleware', () => {
       middleware.use(req, res, next);
 
       // Correlation ID should remain the same
-      expect(req.correlationId).toBe(correlationId);
+      expect((req as any).correlationId).toBe(correlationId);
     });
 
     it('should handle case-insensitive header name', () => {
@@ -221,11 +222,11 @@ describe('CorrelationIdMiddleware', () => {
       middleware.use(req, res, next);
 
       // If header exists in lowercase form, it should be used
-      if (req.headers['x-correlation-id']) {
-        expect(req.correlationId).toBe(correlationId);
+      if ((req as any).headers?.['x-correlation-id']) {
+        expect((req as any).correlationId).toBe(correlationId);
       } else {
         // Otherwise, new ID should be generated
-        expect(req.correlationId).toBeDefined();
+        expect((req as any).correlationId).toBeDefined();
       }
       expect(next).toHaveBeenCalled();
     });

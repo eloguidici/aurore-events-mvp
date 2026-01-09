@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'aurore-events'
+    environment: 'development'
+
+# Alertmanager configuration (optional, for future use)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Load rules once and periodically evaluate them (optional, for future use)
+# rule_files:
+#   - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape Aurore Events application
+  - job_name: 'aurore-events'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+        labels:
+          service: 'aurore-events'
+          environment: 'development'
+          instance: 'aurore-events-1'

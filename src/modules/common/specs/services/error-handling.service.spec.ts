@@ -6,6 +6,7 @@ import { ErrorHandlingService } from '../../services/error-handling.service';
 describe('ErrorHandlingService', () => {
   let service: ErrorHandlingService;
   let healthService: any;
+  let pendingTimeouts: NodeJS.Timeout[] = [];
 
   const mockHealthService = {
     signalNotReady: jest.fn(),
@@ -30,6 +31,10 @@ describe('ErrorHandlingService', () => {
     process.removeAllListeners('unhandledRejection');
     process.removeAllListeners('warning');
 
+    // Clear any pending timeouts
+    pendingTimeouts.forEach(clearTimeout);
+    pendingTimeouts = [];
+
     jest.clearAllMocks();
   });
 
@@ -39,7 +44,12 @@ describe('ErrorHandlingService', () => {
     process.removeAllListeners('unhandledRejection');
     process.removeAllListeners('warning');
     
+    // Clear any pending timeouts
+    pendingTimeouts.forEach(clearTimeout);
+    pendingTimeouts = [];
+    
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   it('should be defined', () => {
@@ -73,6 +83,7 @@ describe('ErrorHandlingService', () => {
 
   describe('uncaughtException handler', () => {
     it('should handle uncaught exceptions', (done) => {
+      jest.useFakeTimers();
       service.onModuleInit();
 
       // Mock process.exit to prevent actual exit
@@ -82,15 +93,22 @@ describe('ErrorHandlingService', () => {
           expect(code).toBe(1);
           expect(mockHealthService.signalNotReady).toHaveBeenCalled();
           exitSpy.mockRestore();
+          jest.useRealTimers();
+          // Clean up listeners after test
+          process.removeAllListeners('uncaughtException');
           done();
           return undefined as never;
         });
 
       const error = new Error('Test uncaught exception');
       process.emit('uncaughtException' as any, error);
+
+      // Fast-forward the timeout
+      jest.advanceTimersByTime(1000);
     });
 
     it('should log error details on uncaught exception', (done) => {
+      jest.useFakeTimers();
       const loggerSpy = jest.spyOn(service['logger'], 'error');
       service.onModuleInit();
 
@@ -103,12 +121,18 @@ describe('ErrorHandlingService', () => {
             'UncaughtException',
           );
           exitSpy.mockRestore();
+          jest.useRealTimers();
+          // Clean up listeners after test
+          process.removeAllListeners('uncaughtException');
           done();
           return undefined as never;
         });
 
       const error = new Error('Test error');
       process.emit('uncaughtException' as any, error);
+
+      // Fast-forward the timeout
+      jest.advanceTimersByTime(1000);
     });
   });
 
