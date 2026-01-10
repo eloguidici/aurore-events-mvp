@@ -471,19 +471,27 @@ export class TypeOrmEventRepository implements IEventRepository {
       ]);
 
       // Race query against timeout to prevent hanging queries
+      let timeoutId: NodeJS.Timeout | null = null;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
+        timeoutId = setTimeout(
           () => reject(new Error('Query timeout exceeded')),
           queryTimeout,
         );
       });
 
-      const [events, total] = await Promise.race([
-        queryPromise,
-        timeoutPromise,
-      ]);
+      try {
+        const [events, total] = await Promise.race([
+          queryPromise,
+          timeoutPromise,
+        ]);
 
-      return { events, total };
+        return { events, total };
+      } finally {
+        // Always clear timeout to prevent leaks, regardless of which promise won
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
     };
 
     try {

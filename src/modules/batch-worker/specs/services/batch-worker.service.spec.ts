@@ -84,6 +84,21 @@ describe('BatchWorkerService', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(async () => {
+    // Always stop the service after each test to prevent interval leaks
+    if (service && service['isRunning']) {
+      try {
+        await service.stop();
+      } catch (error) {
+        // Ignore errors when stopping during cleanup
+      }
+    }
+    
+    // Reset buffer service mocks
+    mockEventBufferService.getSize.mockReturnValue(0);
+    mockEventBufferService.drain.mockReturnValue([]);
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

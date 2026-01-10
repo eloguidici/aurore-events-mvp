@@ -670,9 +670,10 @@ The application includes **Prometheus** and **Grafana** for observability:
   - Pre-configured Prometheus datasource
 
 
+
   ![Grafana Dashboard](docs/images/grafana-dashboard.png)
 
-  
+
 
 **All services start automatically** when you run `docker-compose up -d`.
 
@@ -723,8 +724,6 @@ The application exposes the following Prometheus metrics:
 - **Health Metrics**: `health_status`, `database_connection_status`, `circuit_breaker_state`
 - **Infrastructure Metrics**: `process_cpu_user_seconds_total`, `process_resident_memory_bytes`, `nodejs_heap_size_total_bytes`
 
-**📖 For detailed observability documentation**, see [`docs/OBSERVABILITY_ANALYSIS.md`](docs/OBSERVABILITY_ANALYSIS.md).
-
 **📖 For detailed Docker setup and troubleshooting**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
 
 ## Recent Improvements (January 2024)
@@ -739,7 +738,7 @@ The following improvements have been implemented:
 - ✅ **Deployment Documentation** - Complete deployment guide with Docker, PM2, systemd configurations, backup procedures, and disaster recovery plan
 - ✅ **Logger Improvements** - Replaced console.log with process.stdout.write for better control and performance
 
-See `docs/MEJORAS_IDENTIFICADAS.md` for complete analysis and `docs/MEJORAS_CRITICAS_DETALLADAS.md` for critical improvements guide.
+See `docs/MEJORAS_CRITICAS_DETALLADAS.md` for critical improvements guide and `docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md` for implementation details.
 
 ## Recent Improvements
 
@@ -758,13 +757,12 @@ The project includes comprehensive documentation in the `docs/` folder:
 - **`docs/QUICK_START.md`** - Quick start guide (2-3 commands to get started)
 - **`docs/DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
 - **`docs/TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
-- **`docs/OBSERVABILITY_ANALYSIS.md`** - Prometheus and Grafana observability setup and analysis
 - **`docs/DEPLOYMENT.md`** - Complete deployment guide for production environments
-- **`docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md`** - Summary of all improvements implemented
 
-### Improvements & Analysis Documentation
-- **`docs/MEJORAS_IDENTIFICADAS.md`** - Complete analysis of improvements identified across all areas (security, performance, code quality, etc.)
-- **`docs/MEJORAS_CRITICAS_DETALLADAS.md`** - Detailed implementation guide for critical improvements (API Keys, Migrations, Backup)
+### Improvements Documentation
+- **`docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md`** - Summary of all improvements implemented
+- **`docs/RESUMEN_POC.md`** - Quick summary for POC context
+- **`docs/MEJORAS_CRITICAS_DETALLADAS.md`** - Detailed implementation guide for critical improvements (API Keys, Migrations, Backup) - for production, not POC
 
 ### Exercise Documentation (Aurore Labs Assignment)
 - **`docs/part-a/`** - Part A: Design and MVP system architecture (7 documents)

@@ -79,7 +79,6 @@
 - **`CHANGELOG_MEJORAS.md`**: Este changelog
 
 #### Documentos Actualizados
-- **`docs/MEJORAS_IDENTIFICADAS.md`**: Actualizado con estado de implementación
 - **`README.md`**: Agregada sección de mejoras recientes y endpoints de DLQ
 
 ### 🔒 Seguridad
@@ -126,7 +125,7 @@ Para verificar que todas las mejoras están implementadas:
 - [x] Queries Optimizadas: Ya implementadas, mejoradas con documentación
 - [x] Caché de Métricas: Ya implementado, documentado
 - [x] Documentación de Deployment: Guía completa creada
-- [x] Documentación Actualizada: README y MEJORAS_IDENTIFICADAS.md actualizados
+- [x] Documentación Actualizada: README y documentación de mejoras actualizados
 
 ---
 

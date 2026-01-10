@@ -1,5 +1,6 @@
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CronJob } from 'cron';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { RetentionConfig } from '../../../config/interfaces/retention-config.interface';
@@ -9,6 +10,7 @@ import { RetentionService } from '../../services/retention.service';
 
 describe('RetentionService', () => {
   let service: RetentionService;
+  let cronJobs: Map<string, CronJob>;
 
   const mockEventService = {
     cleanup: jest.fn(),
@@ -16,6 +18,8 @@ describe('RetentionService', () => {
 
   const mockSchedulerRegistry = {
     addCronJob: jest.fn(),
+    getCronJob: jest.fn(),
+    deleteCronJob: jest.fn(),
   };
 
   const mockRetentionConfig: RetentionConfig = {
@@ -24,6 +28,17 @@ describe('RetentionService', () => {
   };
 
   beforeEach(async () => {
+    cronJobs = new Map();
+    
+    // Setup mock to track cron jobs
+    mockSchedulerRegistry.addCronJob.mockImplementation((name: string, job: CronJob) => {
+      cronJobs.set(name, job);
+    });
+    
+    mockSchedulerRegistry.getCronJob.mockImplementation((name: string) => {
+      return cronJobs.get(name);
+    });
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RetentionService,
@@ -55,6 +70,18 @@ describe('RetentionService', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    // Stop all cron jobs after each test to prevent leaks
+    cronJobs.forEach((job) => {
+      try {
+        job.stop();
+      } catch (error) {
+        // Ignore errors when stopping
+      }
+    });
+    cronJobs.clear();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -62,6 +89,10 @@ describe('RetentionService', () => {
   it('should register cron job on module init', () => {
     service.onModuleInit();
     expect(mockSchedulerRegistry.addCronJob).toHaveBeenCalled();
+    
+    // Verify the cron job was created and started
+    const cronJob = mockSchedulerRegistry.getCronJob('retention-cleanup');
+    expect(cronJob).toBeDefined();
   });
 
   describe('cleanup', () => {

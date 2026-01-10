@@ -29,7 +29,7 @@ Este documento describe cómo evolucionaría el sistema si cambian los requisito
 
 **Nota:** Este es un **POC (Proof of Concept)**, no producción. Las mejoras críticas para producción no se implementan para POC.
 
-**Ver `docs/MEJORAS_PENDIENTES_EVALUACION.md` para evaluación completa.**
+**Ver `docs/RESUMEN_POC.md` para contexto del POC.**
 
 ---
 
@@ -744,7 +744,7 @@ El MVP está diseñado para ser **escalable desde el inicio**. Las decisiones ac
 - 🔄 Log aggregation - Solo si se necesita
 - 🔄 Particionado de tablas - Solo si volumen lo requiere
 
-**Ver `docs/MEJORAS_PENDIENTES_EVALUACION.md` para evaluación completa de mejoras para POC.**
+**Ver `docs/RESUMEN_POC.md` para contexto del POC y `docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md` para mejoras implementadas.**
 
 **Clave:** El sistema evoluciona según necesidades reales, no anticipando problemas que pueden no ocurrir.
 

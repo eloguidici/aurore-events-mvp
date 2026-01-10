@@ -472,7 +472,7 @@ Ver sección "Mejoras Adicionales Implementadas" al inicio de este documento.
 
 ### Próximos Pasos (Opcional):
 
-- ⚠️ Evaluar mejoras pendientes según contexto del POC (ver `docs/MEJORAS_PENDIENTES_EVALUACION.md`)
+- ⚠️ Evaluar mejoras pendientes según contexto del POC (ver `docs/RESUMEN_POC.md`)
 - ⚠️ Si el POC se convierte en producción, implementar mejoras críticas (ver `docs/MEJORAS_CRITICAS_DETALLADAS.md`)
 
 ---
