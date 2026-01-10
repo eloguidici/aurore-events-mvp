@@ -210,20 +210,39 @@ The API will be available at `http://localhost:3000`
 
 ### Ingest Event
 
+**Linux/Mac (curl):**
 ```bash
-POST /events
-Content-Type: application/json
-X-API-KEY: your-api-key  # (Required when authentication is enabled)
+curl -X POST http://localhost:3000/events \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-api-key" \
+  -d '{
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "service": "auth-service",
+    "message": "User login successful",
+    "metadata": {
+      "user_id": "12345",
+      "ip_address": "192.168.1.1"
+    }
+  }'
+```
 
-{
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "service": "auth-service",
-  "message": "User login successful",
-  "metadata": {
-    "user_id": "12345",
-    "ip_address": "192.168.1.1"
-  }
-}
+**Windows PowerShell:**
+```powershell
+$body = @{
+    timestamp = "2024-01-15T10:30:00.000Z"
+    service = "auth-service"
+    message = "User login successful"
+    metadata = @{
+        user_id = "12345"
+        ip_address = "192.168.1.1"
+    }
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri http://localhost:3000/events `
+    -Method POST `
+    -ContentType "application/json" `
+    -Headers @{"X-API-KEY" = "your-api-key"} `
+    -Body $body
 ```
 
 **Note:** Metadata larger than 1KB is automatically compressed to save storage space.
@@ -247,8 +266,17 @@ X-API-KEY: your-api-key  # (Required when authentication is enabled)
 
 ### Query Events
 
+**Linux/Mac (curl):**
 ```bash
-GET /events?service=auth-service&from=2024-01-15T00:00:00.000Z&to=2024-01-15T23:59:59.000Z&page=1&pageSize=50
+curl "http://localhost:3000/events?service=auth-service&from=2024-01-15T00:00:00.000Z&to=2024-01-15T23:59:59.000Z&page=1&pageSize=50"
+```
+
+**Windows PowerShell:**
+```powershell
+$from = "2024-01-15T00:00:00.000Z"
+$to = "2024-01-15T23:59:59.000Z"
+$uri = "http://localhost:3000/events?service=auth-service&from=$from&to=$to&page=1&pageSize=50"
+Invoke-RestMethod -Uri $uri -Method GET
 ```
 
 **Response (200):**
@@ -280,8 +308,14 @@ GET /events?service=auth-service&from=2024-01-15T00:00:00.000Z&to=2024-01-15T23:
 
 ### Business Metrics
 
+**Linux/Mac (curl):**
 ```bash
-GET /health/business
+curl http://localhost:3000/health/business
+```
+
+**Windows PowerShell:**
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/health/business -Method GET
 ```
 
 **Response (200):**
@@ -311,21 +345,40 @@ GET /health/business
 
 ### Dead Letter Queue (DLQ)
 
+**Linux/Mac (curl):**
 ```bash
 # List events in Dead Letter Queue
-GET /dlq?service=auth-service&reprocessed=false&limit=100&offset=0
+curl "http://localhost:3000/dlq?service=auth-service&reprocessed=false&limit=100&offset=0"
 
 # Get DLQ statistics
-GET /dlq/statistics
+curl http://localhost:3000/dlq/statistics
 
 # Get specific DLQ event
-GET /dlq/:id
+curl http://localhost:3000/dlq/:id
 
 # Reprocess a DLQ event (re-enqueue to buffer)
-PATCH /dlq/:id/reprocess
+curl -X PATCH http://localhost:3000/dlq/:id/reprocess
 
 # Delete DLQ event permanently
-DELETE /dlq/:id
+curl -X DELETE http://localhost:3000/dlq/:id
+```
+
+**Windows PowerShell:**
+```powershell
+# List events in Dead Letter Queue
+Invoke-RestMethod -Uri "http://localhost:3000/dlq?service=auth-service&reprocessed=false&limit=100&offset=0" -Method GET
+
+# Get DLQ statistics
+Invoke-RestMethod -Uri http://localhost:3000/dlq/statistics -Method GET
+
+# Get specific DLQ event
+Invoke-RestMethod -Uri http://localhost:3000/dlq/:id -Method GET
+
+# Reprocess a DLQ event (re-enqueue to buffer)
+Invoke-RestMethod -Uri http://localhost:3000/dlq/:id/reprocess -Method PATCH
+
+# Delete DLQ event permanently
+Invoke-RestMethod -Uri http://localhost:3000/dlq/:id -Method DELETE
 ```
 
 **Response (list):**
@@ -365,8 +418,14 @@ DELETE /dlq/:id
 
 ### Health Check
 
+**Linux/Mac (curl):**
 ```bash
-GET /health
+curl http://localhost:3000/health
+```
+
+**Windows PowerShell:**
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/health -Method GET
 ```
 
 **Response:**
@@ -442,6 +501,54 @@ npm run load-test:parallel [num_clients] [events_per_minute] [duration_seconds]
 npm run load-test:parallel 15 20000 60
 ```
 
+**Note:** All npm commands work identically on Linux/Mac/bash and Windows PowerShell. The examples above are platform-agnostic.
+
+### Testing with PowerShell (Windows)
+
+For manual API testing on Windows, you can use PowerShell:
+
+**Send a test event:**
+```powershell
+$timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$body = @{
+    timestamp = $timestamp
+    service = "test-service"
+    message = "Test event from PowerShell"
+    metadata = @{
+        test = "true"
+        platform = "windows"
+    }
+} | ConvertTo-Json -Depth 3
+
+Invoke-RestMethod -Uri http://localhost:3000/events `
+    -Method POST `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+**Query events:**
+```powershell
+$from = (Get-Date).AddHours(-1).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$to = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$uri = "http://localhost:3000/events?service=test-service&from=$from&to=$to&page=1&pageSize=10"
+Invoke-RestMethod -Uri $uri -Method GET | ConvertTo-Json -Depth 5
+```
+
+**Check health endpoints:**
+```powershell
+# Basic health check
+Invoke-RestMethod -Uri http://localhost:3000/health
+
+# Detailed health
+Invoke-RestMethod -Uri http://localhost:3000/health/detailed | ConvertTo-Json -Depth 10
+
+# Buffer status
+Invoke-RestMethod -Uri http://localhost:3000/health/buffer | ConvertTo-Json -Depth 5
+
+# Business metrics
+Invoke-RestMethod -Uri http://localhost:3000/health/business | ConvertTo-Json -Depth 5
+```
+
 **📖 For detailed testing documentation**, including unit test coverage, testing strategy, and best practices, see:
 - [`docs/TESTING.md`](docs/TESTING.md) - Complete testing documentation
 - [`docs/TESTING_GUIDE.md`](docs/TESTING_GUIDE.md) - Step-by-step testing guide with examples
@@ -497,6 +604,7 @@ npm run format
 
 ## Docker Commands
 
+**Linux/Mac/bash:**
 ```bash
 # Start all services (PostgreSQL, Prometheus, Grafana)
 docker-compose up -d
@@ -520,6 +628,32 @@ docker-compose exec postgres psql -U admin -d aurore_events
 docker-compose ps
 ```
 
+**Windows PowerShell:**
+```powershell
+# Start all services (PostgreSQL, Prometheus, Grafana)
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View PostgreSQL logs
+docker-compose logs postgres
+
+# View Prometheus logs
+docker-compose logs prometheus
+
+# View Grafana logs
+docker-compose logs grafana
+
+# Access PostgreSQL console
+docker-compose exec postgres psql -U admin -d aurore_events
+
+# Check all services status
+docker-compose ps
+```
+
+**Note:** Docker Compose commands work identically on all platforms. The examples above apply to both Linux/Mac and Windows PowerShell.
+
 ## Observability
 
 The application includes **Prometheus** and **Grafana** for observability:
@@ -540,6 +674,41 @@ The application includes **Prometheus** and **Grafana** for observability:
 **All services start automatically** when you run `docker-compose up -d`.
 
 **Note**: Prometheus metrics are exposed via `PrometheusService` and `PrometheusController` in the `CommonModule` (located at `src/modules/common/services/prometheus.service.ts` and `src/modules/common/controllers/prometheus.controller.ts`).
+
+### Accessing Metrics
+
+**Get Prometheus metrics from the application:**
+```bash
+# Linux/Mac
+curl http://localhost:3000/metrics/prometheus
+```
+
+```powershell
+# Windows PowerShell
+Invoke-RestMethod -Uri http://localhost:3000/metrics/prometheus -Method GET
+```
+
+**Query Prometheus API (example: get buffer_size metric):**
+```bash
+# Linux/Mac
+curl "http://localhost:9090/api/v1/query?query=buffer_size"
+```
+
+```powershell
+# Windows PowerShell
+$query = "buffer_size"
+$uri = "http://localhost:9090/api/v1/query?query=$([Uri]::EscapeDataString($query))"
+Invoke-RestMethod -Uri $uri -Method GET | ConvertTo-Json -Depth 10
+```
+
+**Open Prometheus/Grafana in browser (PowerShell):**
+```powershell
+# Open Prometheus
+Start-Process "http://localhost:9090"
+
+# Open Grafana
+Start-Process "http://localhost:3001"
+```
 
 ### Available Metrics
 
