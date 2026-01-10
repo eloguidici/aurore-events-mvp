@@ -58,11 +58,8 @@ export class PrometheusController {
   async getPrometheusMetrics(@Res() res: Response): Promise<void> {
     try {
       const metrics = await this.prometheusService.getMetrics();
-      (res as any).set(
-        'Content-Type',
-        'text/plain; version=0.0.4; charset=utf-8',
-      );
-      (res as any).send(metrics);
+      res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+      res.send(metrics);
     } catch (error) {
       this.errorLogger.logError(
         this.logger,

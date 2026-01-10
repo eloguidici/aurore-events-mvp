@@ -229,7 +229,7 @@ export class EventBufferService
         const isLast = i === events.length - 1;
         writeStream.write(`  ${eventJson}${isLast ? '\n' : ',\n'}`);
         serializedCount++;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If stringify fails (e.g., circular reference), log and skip this event
         // This should be extremely rare as sanitizer should prevent it
         failedCount++;
@@ -584,7 +584,14 @@ export class EventBufferService
           loadedCount++;
         } else {
           invalidCount++;
-          const eventId = (event as any)?.eventId || 'unknown';
+          // Try to extract eventId for logging, but safely handle if it doesn't exist
+          const eventId =
+            event &&
+            typeof event === 'object' &&
+            'eventId' in event &&
+            typeof (event as { eventId?: unknown }).eventId === 'string'
+              ? (event as { eventId: string }).eventId
+              : 'unknown';
           this.errorLogger.logWarning(
             this.logger,
             'Invalid event in checkpoint, skipping',
@@ -805,7 +812,7 @@ export class EventBufferService
    *          false otherwise
    * @private
    */
-  private isValid(event: any): event is EnrichedEvent {
+  private isValid(event: unknown): event is EnrichedEvent {
     // Early return: check basic structure
     if (
       !event ||

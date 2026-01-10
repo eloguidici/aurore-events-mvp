@@ -86,12 +86,20 @@ export class TypeOrmEventRepository implements IEventRepository {
                 .execute();
 
               successful += chunk.length;
-            } catch (chunkError: any) {
+            } catch (chunkError: unknown) {
               // Check for duplicate eventId error (PostgreSQL unique constraint violation)
+              const errorCode =
+                chunkError &&
+                typeof chunkError === 'object' &&
+                'code' in chunkError
+                  ? (chunkError as { code?: string }).code
+                  : undefined;
+              const errorMessage =
+                chunkError instanceof Error ? chunkError.message : String(chunkError);
               const isDuplicateError =
-                chunkError?.code === '23505' || // PostgreSQL unique violation
-                chunkError?.message?.includes('duplicate key') ||
-                chunkError?.message?.includes('UNIQUE constraint');
+                errorCode === '23505' || // PostgreSQL unique violation
+                errorMessage?.includes('duplicate key') ||
+                errorMessage?.includes('UNIQUE constraint');
 
               // Update failed count for the chunk that failed
               failed += chunk.length;
@@ -150,7 +158,7 @@ export class TypeOrmEventRepository implements IEventRepository {
    */
   private async insertEventsIndividually(
     events: EnrichedEvent[],
-    originalError: any,
+    originalError: unknown,
   ): Promise<BatchInsertResult> {
     let successful = 0;
     let failed = 0;
@@ -182,15 +190,25 @@ export class TypeOrmEventRepository implements IEventRepository {
           .execute();
 
         successful++;
-      } catch (individualError: any) {
+      } catch (individualError: unknown) {
         failed++;
         failedEventIds.push(event.eventId);
 
         // Log individual failure
+        const errorCode =
+          individualError &&
+          typeof individualError === 'object' &&
+          'code' in individualError
+            ? (individualError as { code?: string }).code
+            : undefined;
+        const errorMessage =
+          individualError instanceof Error
+            ? individualError.message
+            : String(individualError);
         const isDuplicateError =
-          individualError?.code === '23505' ||
-          individualError?.message?.includes('duplicate key') ||
-          individualError?.message?.includes('UNIQUE constraint');
+          errorCode === '23505' ||
+          errorMessage?.includes('duplicate key') ||
+          errorMessage?.includes('UNIQUE constraint');
 
         this.errorLogger.logError(
           this.logger,

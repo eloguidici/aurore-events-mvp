@@ -91,7 +91,7 @@ export class EventController {
             'Buffer is full, rejecting event (backpressure)',
             {
               service: createEventDto.service,
-              correlationId: (req as any).correlationId || 'unknown',
+              correlationId: req.correlationId || 'unknown',
             },
           );
         }
@@ -103,7 +103,7 @@ export class EventController {
         'Unexpected error ingesting event',
         error,
         this.errorLogger.createContext(undefined, createEventDto.service, {
-          correlationId: (req as any).correlationId || 'unknown',
+          correlationId: req.correlationId || 'unknown',
         }),
       );
       throw new HttpException(
@@ -137,17 +137,19 @@ export class EventController {
   ): Promise<SearchResponseDto> {
     try {
       return await this.eventService.search(queryDto);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Check for timestamp or time range validation errors
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       if (
-        error?.message?.includes('timestamp') ||
-        error?.message?.includes('time range') ||
-        error?.message?.includes('Time range')
+        errorMessage?.includes('timestamp') ||
+        errorMessage?.includes('time range') ||
+        errorMessage?.includes('Time range')
       ) {
         throw new HttpException(
           {
             status: 'error',
-            message: error.message || 'Invalid timestamp or time range',
+            message: errorMessage || 'Invalid timestamp or time range',
           },
           HttpStatus.BAD_REQUEST,
         );
@@ -159,7 +161,7 @@ export class EventController {
         this.errorLogger.createContext(undefined, queryDto.service, {
           from: queryDto.from,
           to: queryDto.to,
-          correlationId: (req as any).correlationId || 'unknown',
+          correlationId: req.correlationId || 'unknown',
         }),
       );
       throw new HttpException(

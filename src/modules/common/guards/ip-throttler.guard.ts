@@ -17,13 +17,15 @@ export class IpThrottlerGuard extends ThrottlerGuard {
    * @param req - Request object
    * @returns IP address as tracker string
    */
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+  protected async getTracker(req: Request): Promise<string> {
     // Use IP address for tracking instead of a global counter
     // This enables per-IP rate limiting
     const ip =
       req.ip ||
-      req.connection?.remoteAddress ||
-      req.socket?.remoteAddress ||
+      (req as Request & { connection?: { remoteAddress?: string } })
+        .connection?.remoteAddress ||
+      (req as Request & { socket?: { remoteAddress?: string } })
+        .socket?.remoteAddress ||
       'unknown';
     return ip;
   }
@@ -45,7 +47,9 @@ export class IpThrottlerGuard extends ThrottlerGuard {
     const request = context.switchToHttp().getRequest<Request>();
     // Get route path from request URL or use default
     const route =
-      (request as any).route?.path || (request as any).url || 'default';
+      (request as Request & { route?: { path?: string } }).route?.path ||
+      request.url ||
+      'default';
 
     // Combine IP, route, and throttler name for per-IP, per-route rate limiting
     return `throttle:${name}:${suffix}:${route}`;

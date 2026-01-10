@@ -535,6 +535,8 @@ The application includes **Prometheus** and **Grafana** for observability:
   - Dashboard automatically loaded via provisioning: `grafana/dashboards/aurore-dashboard.json`
   - Pre-configured Prometheus datasource
 
+  ![Grafana Dashboard](docs/images/grafana-dashboard.png)
+
 **All services start automatically** when you run `docker-compose up -d`.
 
 **Note**: Prometheus metrics are exposed via `PrometheusService` and `PrometheusController` in the `CommonModule` (located at `src/modules/common/services/prometheus.service.ts` and `src/modules/common/controllers/prometheus.controller.ts`).

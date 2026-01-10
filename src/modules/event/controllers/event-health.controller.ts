@@ -77,12 +77,12 @@ export class EventHealthController {
         },
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const queryLatency = Date.now() - startTime;
 
       // Sanitize error message to prevent information leakage
       const sanitizedError =
-        error?.message && typeof error.message === 'string'
+        error instanceof Error && typeof error.message === 'string'
           ? 'Database connection failed'
           : 'Unknown database error';
 
@@ -271,17 +271,17 @@ export class EventHealthController {
    * @private
    */
   private determineOverallHealth(checks: {
-    database: any;
-    buffer: any;
-    circuitBreaker: any;
+    database: { status?: string } | null;
+    buffer: { status?: string } | null;
+    circuitBreaker: { state?: string; status?: string } | null;
   }): 'healthy' | 'warning' | 'critical' | 'error' {
     const statuses: string[] = [];
 
-    if (checks.database) {
-      statuses.push(checks.database.status || 'unknown');
+    if (checks.database?.status) {
+      statuses.push(checks.database.status);
     }
-    if (checks.buffer) {
-      statuses.push(checks.buffer.status || 'unknown');
+    if (checks.buffer?.status) {
+      statuses.push(checks.buffer.status);
     }
     if (checks.circuitBreaker?.state === 'OPEN') {
       statuses.push('critical');
