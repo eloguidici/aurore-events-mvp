@@ -194,9 +194,9 @@ Presento dos escenarios según el tamaño del equipo:
    - **Contingencia:** Si encontramos bugs críticos, dedicamos tiempo extra a tests y pruebas manuales
 
 2. **Problemas de performance no detectados**
-   - **Probabilidad:** Baja (el código ya está optimizado)
+   - **Probabilidad:** Media (código nuevo, puede tener cuellos de botella)
    - **Impacto:** Alto
-   - **Mitigación:** Pruebas de carga tempranas (semana 3)
+   - **Mitigación:** Pruebas de carga tempranas (semana 3), diseño con performance en mente desde el inicio
    - **Contingencia:** Si hay problemas, ajustamos configuración o optimizamos queries
 
 3. **Problemas de concurrencia en PostgreSQL**
@@ -223,9 +223,9 @@ Presento dos escenarios según el tamaño del equipo:
    - **Contingencia:** Si encontramos bugs en producción por falta de pruebas, dedicamos tiempo a mejorar proceso de testing manual
 
 6. **Integración entre componentes**
-   - **Probabilidad:** Baja (los componentes ya están integrados)
+   - **Probabilidad:** Media (componentes nuevos, pueden tener problemas de integración)
    - **Impacto:** Medio
-   - **Mitigación:** Tests de integración tempranos
+   - **Mitigación:** Tests de integración tempranos, integración continua desde semana 2
    - **Contingencia:** Si hay problemas, dedicamos tiempo extra a debugging
 
 7. **Coordinación con equipo más grande (Escenario B)**
