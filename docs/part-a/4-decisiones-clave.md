@@ -297,10 +297,10 @@ CREATE INDEX idx_service_timestamp ON events(service, timestamp);
 
 **Opción B: Dead Letter Queue (DLQ)**
 - ✅ Preserva eventos fallidos
-- ❌ Complejidad adicional
-- ❌ No necesario para MVP
+- ✅ Permite reprocessamiento manual
+- ✅ Mejor trazabilidad
 
-**Decisión:** Logging para MVP (DLQ en futuro si es necesario)
+**Decisión:** ✅ **DLQ IMPLEMENTADO** - Eventos que fallan permanentemente se almacenan para revisión/reprocesamiento manual
 
 ---
 

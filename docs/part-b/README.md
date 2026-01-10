@@ -39,7 +39,7 @@ python --version  # Python 3.6+
 ### Ejecutar Tests
 
 ```bash
-cd doc/part-b
+cd docs/part-b
 python test_log_processor.py
 ```
 

@@ -214,7 +214,6 @@ The API will be available at `http://localhost:3000`
 ```bash
 curl -X POST http://localhost:3000/events \
   -H "Content-Type: application/json" \
-  -H "X-API-KEY: your-api-key" \
   -d '{
     "timestamp": "2024-01-15T10:30:00.000Z",
     "service": "auth-service",
@@ -241,7 +240,6 @@ $body = @{
 Invoke-RestMethod -Uri http://localhost:3000/events `
     -Method POST `
     -ContentType "application/json" `
-    -Headers @{"X-API-KEY" = "your-api-key"} `
     -Body $body
 ```
 
@@ -739,11 +737,7 @@ The following improvements have been implemented:
 - ✅ **Deployment Documentation** - Complete deployment guide with Docker, PM2, systemd configurations, backup procedures, and disaster recovery plan
 - ✅ **Logger Improvements** - Replaced console.log with process.stdout.write for better control and performance
 
-See `docs/MEJORAS_CRITICAS_DETALLADAS.md` for critical improvements guide and `docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md` for implementation details.
-
-## Recent Improvements
-
-✅ **9 major improvements implemented** including Dead Letter Queue, metadata compression, enhanced health checks, security tests, and comprehensive deployment documentation. See `docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md` for details.
+See `docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md` for implementation details.
 
 ## Documentation
 

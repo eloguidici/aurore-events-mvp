@@ -200,35 +200,41 @@ throw new ServiceUnavailableException();
 
 ---
 
-### 3. Dead Letter Queue (DLQ)
+### 3. ~~Dead Letter Queue (DLQ)~~ ✅ IMPLEMENTADO
 
-**Razón:** Logging es suficiente para MVP.
+**Estado:** ✅ **YA IMPLEMENTADO**
 
-**Para el futuro:**
-- Tabla de eventos fallidos
-- Reprocesamiento manual
-- Alertas automáticas
+**Características implementadas:**
+- ✅ Tabla de eventos fallidos (`dead_letter_events`)
+- ✅ Reprocesamiento manual via API (`PATCH /dlq/:id/reprocess`)
+- ✅ Estadísticas de DLQ (`GET /dlq/statistics`)
+- ✅ Listado con filtros y paginación (`GET /dlq`)
 
-**Impacto en juniors:**
-- ✅ Menos componentes que mantener
-- ✅ Flujo más simple
-- ✅ Menos casos edge
+**Beneficios:**
+- ✅ No se pierden eventos importantes
+- ✅ Posibilidad de revisar y reprocesar manualmente
+- ✅ Mejor trazabilidad de eventos fallidos
 
 ---
 
-### 4. Métricas Avanzadas y Alertas
+### 4. ~~Métricas Avanzadas y Alertas~~ ✅ IMPLEMENTADO
 
-**Razón:** Métricas básicas (`/metrics`) son suficientes.
+**Estado:** ✅ **YA IMPLEMENTADO**
 
-**Para el futuro:**
-- Prometheus/Grafana
-- Alertas automáticas
-- Dashboards
+**Características implementadas:**
+- ✅ Prometheus (`GET /metrics/prometheus`)
+- ✅ Grafana con dashboard completo (16 paneles)
+- ✅ Métricas de negocio (`GET /health/business`)
+- ✅ Health checks detallados (`GET /health/detailed`)
 
-**Impacto en juniors:**
-- ✅ Menos herramientas que aprender
-- ✅ Enfoque en código
-- ✅ Menos configuración
+**Acceso:**
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001 (admin/admin)
+
+**Beneficios:**
+- ✅ Observabilidad completa
+- ✅ Dashboard pre-configurado
+- ✅ Alertas configurables en Grafana
 
 ---
 
