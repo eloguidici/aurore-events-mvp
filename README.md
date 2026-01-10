@@ -668,6 +668,7 @@ The application includes **Prometheus** and **Grafana** for observability:
   - **Complete Dashboard**: "Aurore Events - Complete Dashboard" with 16 panels covering all metrics
   - Dashboard automatically loaded via provisioning: `grafana/dashboards/aurore-dashboard.json`
   - Pre-configured Prometheus datasource
+    
 
 
 
