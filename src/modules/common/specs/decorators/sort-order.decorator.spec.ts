@@ -138,7 +138,16 @@ describe('IsSortOrder', () => {
   });
 
   it('should be case insensitive for valid values', async () => {
-    const validCases = ['asc', 'ASC', 'Asc', 'aSc', 'desc', 'DESC', 'Desc', 'dEsC'];
+    const validCases = [
+      'asc',
+      'ASC',
+      'Asc',
+      'aSc',
+      'desc',
+      'DESC',
+      'Desc',
+      'dEsC',
+    ];
 
     for (const value of validCases) {
       const dto = new TestDto();
@@ -149,4 +158,3 @@ describe('IsSortOrder', () => {
     }
   });
 });
-

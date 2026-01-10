@@ -7,4 +7,3 @@ export interface BatchWorkerConfig {
   maxRetries: number;
   maxBatchSize: number;
 }
-

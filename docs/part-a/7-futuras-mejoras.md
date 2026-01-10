@@ -4,6 +4,35 @@ Este documento describe cómo evolucionaría el sistema si cambian los requisito
 
 ---
 
+## ✅ Estado de Mejoras (Enero 2024)
+
+### Mejoras Implementadas (Más allá de lo originalmente planificado)
+
+| Mejora | Estado Original | Estado Actual | Fecha Implementación |
+|--------|----------------|---------------|----------------------|
+| Compresión de Metadata | 🔮 Futuro | ✅ **IMPLEMENTADO** | Enero 2024 |
+| Métricas Avanzadas (Prometheus/Grafana) | 🔮 Futuro | ✅ **IMPLEMENTADO** | Implementado inicialmente |
+| Health Checks Mejorados | 🔮 Futuro | ✅ **IMPLEMENTADO** | Enero 2024 |
+| Dead Letter Queue (DLQ) | 🔮 Futuro | ✅ **IMPLEMENTADO** | Enero 2024 |
+| Tests de Seguridad | 🔮 Futuro | ✅ **IMPLEMENTADO** | Enero 2024 |
+| Documentación de Deployment | 🔮 Futuro | ✅ **IMPLEMENTADO** | Enero 2024 |
+| Manejo de Retries Mejorado | 🔮 Futuro | ✅ **IMPLEMENTADO** | Enero 2024 |
+
+### Mejoras NO Implementadas (Solo para Producción, no POC)
+
+| Mejora | Estado Original | Estado Actual | Razón |
+|--------|----------------|---------------|-------|
+| Autenticación (API Keys) | 🔮 Futuro | ❌ **NO POC** | No tiene sentido para POC |
+| Migraciones TypeORM | 🔮 Futuro | ❌ **NO POC** | `synchronize: true` es aceptable para POC |
+| Backup Automatizado | 🔮 Futuro | ❌ **NO POC** | No necesario para POC |
+| HTTPS/TLS | 🔮 Futuro | ⚠️ **OPCIONAL** | Solo si POC corre en servidor público |
+
+**Nota:** Este es un **POC (Proof of Concept)**, no producción. Las mejoras críticas para producción no se implementan para POC.
+
+**Ver `docs/MEJORAS_PENDIENTES_EVALUACION.md` para evaluación completa.**
+
+---
+
 ## Escenario 1: Aumento de Volumen de Eventos
 
 ### Situación Actual
@@ -637,9 +666,10 @@ async readinessCheck() {
 ### Fase 2: Escalabilidad (Volumen Medio)
 - ✅ PostgreSQL (ya implementado)
 - ✅ Métricas básicas (ya implementadas: `/health`, `/metrics`, `/health/business`)
-- 🔄 Particionado de tablas
-- 🔄 Múltiples workers
-- 🔄 Métricas avanzadas (P95/P99, distribución de tamaños)
+- ✅ Métricas avanzadas (Prometheus + Grafana completos con dashboards)
+- 🔄 Particionado de tablas (pendiente, solo si volumen lo requiere)
+- 🔄 Múltiples workers (pendiente, solo si volumen lo requiere)
+- 🔄 Métricas avanzadas (P95/P99, distribución de tamaños) - Prometheus ya implementado
 
 ### Fase 3: Escalabilidad Alta (Volumen Alto)
 - 🔄 Redis Streams
@@ -648,10 +678,12 @@ async readinessCheck() {
 - 🔄 Auto-scaling
 
 ### Fase 4: Seguridad
-- 🔄 API keys
-- 🔄 Rate limiting
-- 🔄 Encriptación
-- 🔄 Auditoría
+- ✅ Rate limiting (ya implementado con `@nestjs/throttler` - global, IP, query, health limits)
+- ✅ Input sanitization (ya implementado para prevenir XSS)
+- ✅ Tests de seguridad (ya implementados - suite completa E2E con 12+ casos)
+- 🔄 API keys - ❌ **NO POC** (ver `docs/MEJORAS_CRITICAS_DETALLADAS.md`)
+- 🔄 Encriptación (HTTPS/TLS) - ⚠️ **OPCIONAL** (solo si POC corre en servidor público)
+- 🔄 Auditoría - Pendiente (solo para producción)
 
 ### Fase 5: Compliance
 - 🔄 Eliminación por solicitud
@@ -660,20 +692,21 @@ async readinessCheck() {
 - 🔄 Logging de acceso
 
 ### Fase 6: Observabilidad Avanzada
-- 🔄 Alertas automáticas (Prometheus + AlertManager)
-- 🔄 Dashboards (Grafana)
-- 🔄 Distributed tracing (OpenTelemetry)
-- 🔄 Log aggregation (ELK Stack)
-- 🔄 APM tools (New Relic, Datadog)
-- 🔄 Métricas avanzadas (P95/P99, processing time)
+- ✅ Prometheus (ya implementado con métricas completas)
+- ✅ Dashboards (Grafana ya implementado con dashboard completo - 16 paneles)
+- ✅ Métricas avanzadas (Prometheus + Grafana completos, métricas de negocio, circuit breaker, buffer, etc.)
+- 🔄 Alertas automáticas (AlertManager) - Pendiente, solo si se necesita alertas
+- 🔄 Distributed tracing (OpenTelemetry) - Pendiente, solo si se necesita tracing distribuido
+- 🔄 Log aggregation (ELK Stack) - Pendiente, solo si se necesita logging centralizado
+- 🔄 APM tools (New Relic, Datadog) - Pendiente, solo si se necesita APM específico
 
 ### Fase 7: Alta Disponibilidad
-- 🔄 Multi-region deployment
-- 🔄 Database replication
-- 🔄 Disaster recovery (backups automatizados)
-- 🔄 Health checks avanzados
-- 🔄 Multi-AZ deployment
-- 🔄 Graceful degradation
+- ✅ Health checks avanzados (ya implementados - memoria, latencia, conexiones, estado general)
+- ✅ Graceful degradation (ya implementado - circuit breaker, retries, DLQ)
+- 🔄 Multi-region deployment - Pendiente (solo para producción escalada)
+- 🔄 Database replication - Pendiente (solo para producción escalada)
+- 🔄 Disaster recovery (backups automatizados) - ❌ **NO POC** (ver `docs/MEJORAS_CRITICAS_DETALLADAS.md`)
+- 🔄 Multi-AZ deployment - Pendiente (solo para producción escalada)
 
 ---
 
@@ -691,5 +724,32 @@ async readinessCheck() {
 
 El MVP está diseñado para ser **escalable desde el inicio**. Las decisiones actuales (PostgreSQL, buffer en memoria) son **suficientes para MVP** y permiten escalar según necesidades futuras.
 
+### Estado Actual (Enero 2024)
+
+**Implementado:**
+- ✅ Todas las funcionalidades básicas del MVP
+- ✅ Observabilidad completa (Prometheus + Grafana)
+- ✅ Health checks avanzados
+- ✅ Tests completos (200+ casos de prueba)
+- ✅ Mejoras adicionales (DLQ, compresión, retries mejorados)
+
+**Pendiente (Solo para Producción, no POC):**
+- 🔄 Autenticación (API Keys) - Solo si se convierte en producción
+- 🔄 Migraciones TypeORM - Solo si se convierte en producción
+- 🔄 Backups Automatizados - Solo si se convierte en producción
+
+**Pendiente (Opcional según Necesidades):**
+- 🔄 Alertas automáticas - Solo si se necesita
+- 🔄 Distributed tracing - Solo si se necesita
+- 🔄 Log aggregation - Solo si se necesita
+- 🔄 Particionado de tablas - Solo si volumen lo requiere
+
+**Ver `docs/MEJORAS_PENDIENTES_EVALUACION.md` para evaluación completa de mejoras para POC.**
+
 **Clave:** El sistema evoluciona según necesidades reales, no anticipando problemas que pueden no ocurrir.
+
+---
+
+**Fecha de Actualización:** 2024-01-15  
+**Versión:** 1.1.0 (Actualizado con estado de implementación)
 

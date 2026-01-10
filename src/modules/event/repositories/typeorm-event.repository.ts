@@ -7,12 +7,12 @@ import { ICircuitBreakerService } from '../../common/services/interfaces/circuit
 import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../common/services/interfaces/circuit-breaker-service.token';
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
-import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
 import { QueryConfig } from '../../config/interfaces/query-config.interface';
+import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { Event } from '../entities/event.entity';
-import { BatchInsertResult } from './interfaces/batch-insert-result.interface';
 import { EnrichedEvent } from '../services/interfaces/enriched-event.interface';
+import { BatchInsertResult } from './interfaces/batch-insert-result.interface';
 import { IEventRepository } from './interfaces/event.repository.interface';
 
 /**
@@ -38,6 +38,7 @@ export class TypeOrmEventRepository implements IEventRepository {
 
   /**
    * Batch insert events to database using a transaction
+   * Improved: Attempts individual inserts when batch fails to identify specific failed events
    *
    * @param events - Array of enriched events to insert (includes eventId)
    * @returns Object containing count of successful and failed insertions
@@ -106,6 +107,9 @@ export class TypeOrmEventRepository implements IEventRepository {
                   chunkSize: chunk.length,
                   totalChunks: Math.ceil(values.length / chunkSize),
                   isDuplicateError,
+                  // Store chunk indices for later individual retry
+                  chunkStartIndex: i,
+                  chunkEndIndex: Math.min(i + chunkSize, values.length),
                 },
               );
               // If any chunk fails, throw to rollback entire transaction
@@ -125,15 +129,112 @@ export class TypeOrmEventRepository implements IEventRepository {
       // Execute with circuit breaker protection
       return await this.circuitBreaker.execute(operation);
     } catch (error) {
-      // Transaction rolled back - all events failed
-      this.errorLogger.logError(
-        this.logger,
-        'Batch insert transaction failed',
-        error,
-        { eventsCount: events.length },
+      // Transaction rolled back - batch failed
+      // Attempt individual inserts to identify specific failed events
+      this.logger.debug(
+        `Batch insert transaction failed, attempting individual inserts to identify failed events (batch size: ${events.length})`,
       );
-      return { successful: 0, failed: events.length };
+
+      return await this.insertEventsIndividually(events, error);
     }
+  }
+
+  /**
+   * Insert events individually to identify which specific events failed
+   * Used as fallback when batch insert fails
+   *
+   * @param events - Events to insert individually
+   * @param originalError - Original error from batch insert
+   * @returns BatchInsertResult with counts of successful and failed events
+   * @private
+   */
+  private async insertEventsIndividually(
+    events: EnrichedEvent[],
+    originalError: any,
+  ): Promise<BatchInsertResult> {
+    let successful = 0;
+    let failed = 0;
+    const failedEventIds: string[] = [];
+
+    // Try to insert each event individually to identify which ones fail
+    // Limit to reasonable number to avoid performance issues
+    const maxIndividualAttempts = Math.min(events.length, 100);
+    const eventsToTry = events.slice(0, maxIndividualAttempts);
+
+    for (const event of eventsToTry) {
+      try {
+        const value = {
+          id: randomUUID(),
+          eventId: event.eventId,
+          timestamp: event.timestamp,
+          service: event.service,
+          message: event.message,
+          metadata: event.metadata || null,
+          ingestedAt: event.ingestedAt,
+        };
+
+        // Attempt individual insert
+        await this.eventRepository
+          .createQueryBuilder()
+          .insert()
+          .into(Event)
+          .values(value)
+          .execute();
+
+        successful++;
+      } catch (individualError: any) {
+        failed++;
+        failedEventIds.push(event.eventId);
+
+        // Log individual failure
+        const isDuplicateError =
+          individualError?.code === '23505' ||
+          individualError?.message?.includes('duplicate key') ||
+          individualError?.message?.includes('UNIQUE constraint');
+
+        this.errorLogger.logError(
+          this.logger,
+          isDuplicateError
+            ? `Failed to insert individual event: duplicate eventId (${event.eventId})`
+            : `Failed to insert individual event: ${event.eventId}`,
+          individualError,
+          {
+            eventId: event.eventId,
+            service: event.service,
+            isDuplicateError,
+          },
+        );
+      }
+    }
+
+    // If we tried fewer events than total, mark remaining as failed
+    const remainingFailed = events.length - maxIndividualAttempts;
+    if (remainingFailed > 0) {
+      failed += remainingFailed;
+      this.logger.warn(
+        `Batch insert failed for ${events.length} events. Tried ${maxIndividualAttempts} individually (${successful} succeeded, ${failed - remainingFailed} failed). Marking remaining ${remainingFailed} as failed.`,
+      );
+    } else {
+      this.logger.log(
+        `Batch insert failed. Tried ${events.length} events individually: ${successful} succeeded, ${failed} failed. Failed eventIds: ${failedEventIds.slice(0, 10).join(', ')}${failedEventIds.length > 10 ? '...' : ''}`,
+      );
+    }
+
+    // Log original batch error for context
+    this.errorLogger.logError(
+      this.logger,
+      'Batch insert transaction failed - attempted individual inserts',
+      originalError,
+      {
+        totalEvents: events.length,
+        successful,
+        failed,
+        failedEventIds: failedEventIds.slice(0, 20), // Log up to 20 failed event IDs
+        attemptedIndividualInserts: eventsToTry.length,
+      },
+    );
+
+    return { successful, failed };
   }
 
   /**
@@ -158,12 +259,15 @@ export class TypeOrmEventRepository implements IEventRepository {
     }
 
     // Default to timestamp if invalid
-    this.logger.warn(`Invalid sortField: ${sortField}, defaulting to timestamp`);
+    this.logger.warn(
+      `Invalid sortField: ${sortField}, defaulting to timestamp`,
+    );
     return 'timestamp';
   }
 
   /**
    * Build base query builder with service and time range filters
+   * Optimized: Uses prepared statements and indexed columns for better performance
    * Reusable method to avoid code duplication
    *
    * @param service - Service name to filter
@@ -176,11 +280,14 @@ export class TypeOrmEventRepository implements IEventRepository {
     from: string,
     to: string,
   ) {
+    // Use indexed columns (service, timestamp) for optimal query performance
+    // PostgreSQL will use composite index IDX_EVENT_SERVICE_TIMESTAMP for this query
     return this.eventRepository
       .createQueryBuilder('event')
       .where('event.service = :service', { service })
       .andWhere('event.timestamp >= :from', { from })
       .andWhere('event.timestamp <= :to', { to });
+    // Note: TypeORM uses prepared statements automatically, preventing SQL injection
   }
 
   /**
@@ -300,6 +407,7 @@ export class TypeOrmEventRepository implements IEventRepository {
   /**
    * Find events by service and time range with pagination, sorting, and total count
    * Optimized: Executes find and count queries in parallel for better performance
+   * Uses indexes for optimal query execution
    * Protected by circuit breaker to prevent cascading failures
    *
    * @param params - Query parameters including pagination and sorting
@@ -326,24 +434,25 @@ export class TypeOrmEventRepository implements IEventRepository {
       const queryTimeout = this.queryConfig.queryTimeoutMs;
 
       // Execute find and count queries in parallel for optimal performance
+      // Both queries use the same indexed columns (service, timestamp) for efficiency
       const queryPromise = Promise.all([
         this.buildServiceAndTimeRangeQuery(
           params.service,
           params.from,
           params.to,
         )
-          .orderBy(`event.${safeSortField}`, params.sortOrder)
-          .limit(params.limit)
+          .orderBy(`event.${safeSortField}`, params.sortOrder) // Uses index on sortField
+          .limit(params.limit) // Limit results to prevent excessive data transfer
           .offset(params.offset)
-          .getMany(),
+          .getMany(), // Returns array of Event entities
         this.countByServiceAndTimeRange({
           service: params.service,
           from: params.from,
           to: params.to,
-        }),
+        }), // Uses same index for count query
       ]);
 
-      // Race query against timeout
+      // Race query against timeout to prevent hanging queries
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
           () => reject(new Error('Query timeout exceeded')),

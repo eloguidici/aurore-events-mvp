@@ -24,4 +24,3 @@ describe('ServiceUnavailableException', () => {
     expect(exception).toBeInstanceOf(ServiceUnavailableException);
   });
 });
-

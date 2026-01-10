@@ -128,4 +128,3 @@ export function createRateLimitingConfig(): RateLimitingConfig {
     healthLimit: envs.throttleHealthLimit,
   };
 }
-

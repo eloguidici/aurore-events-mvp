@@ -1,5 +1,8 @@
+import {
+  EventDto,
+  SearchResponseDto,
+} from '../../dtos/search-events-response.dto';
 import { Event } from '../../entities/event.entity';
-import { EventDto, SearchResponseDto } from '../../dtos/search-events-response.dto';
 
 describe('EventDto', () => {
   it('should create DTO from Event entity', () => {
@@ -115,4 +118,3 @@ describe('SearchResponseDto', () => {
     expect(dto.items).toHaveLength(0);
   });
 });
-

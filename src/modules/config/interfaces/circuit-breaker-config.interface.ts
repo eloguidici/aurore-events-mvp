@@ -6,4 +6,3 @@ export interface CircuitBreakerConfig {
   successThreshold: number;
   timeoutMs: number;
 }
-

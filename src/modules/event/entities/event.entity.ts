@@ -12,6 +12,7 @@ import {
 @Index(['timestamp']) // Index for deleteOldEvents operations (retention cleanup)
 @Index(['createdAt']) // Index for business metrics queries
 @Index(['eventId']) // Index for eventId lookups
+// Note: GIN index for metadata JSONB is created via migration for optimal JSON queries
 export class Event {
   @PrimaryGeneratedColumn('uuid')
   id: string;

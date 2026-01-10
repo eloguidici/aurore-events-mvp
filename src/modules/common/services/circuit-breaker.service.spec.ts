@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { ERROR_LOGGER_SERVICE_TOKEN } from './interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { CircuitBreakerConfig } from '../../config/interfaces/circuit-breaker-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { CircuitBreakerService, CircuitState } from './circuit-breaker.service';
+import { ERROR_LOGGER_SERVICE_TOKEN } from './interfaces/error-logger-service.token';
 
 describe('CircuitBreakerService', () => {
   let service: CircuitBreakerService;

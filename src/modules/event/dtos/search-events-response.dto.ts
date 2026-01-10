@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+
 import { Event } from '../entities/event.entity';
 
 /**
@@ -29,11 +30,11 @@ export class EventDto {
     this.timestamp = event.timestamp;
     this.service = event.service;
     this.message = event.message;
-    
+
     // With JSONB, TypeORM automatically parses the JSON
     // metadata is already a JavaScript object, not a string
     this.metadata = event.metadata || null;
-    
+
     this.ingestedAt = event.ingestedAt;
     this.createdAt = event.createdAt;
   }

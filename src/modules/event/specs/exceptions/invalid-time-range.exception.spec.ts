@@ -14,7 +14,9 @@ describe('InvalidTimeRangeException', () => {
     const response = exception.getResponse() as any;
 
     expect(response.status).toBe('error');
-    expect(response.message).toBe("'from' timestamp must be before 'to' timestamp");
+    expect(response.message).toBe(
+      "'from' timestamp must be before 'to' timestamp",
+    );
     expect(response.errorCode).toBe('INVALID_TIME_RANGE');
   });
 
@@ -24,4 +26,3 @@ describe('InvalidTimeRangeException', () => {
     expect(exception).toBeInstanceOf(InvalidTimeRangeException);
   });
 });
-

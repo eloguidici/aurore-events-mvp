@@ -1,6 +1,6 @@
 /**
  * Configuration Module exports
- * 
+ *
  * Main entry point for configuration module.
  * Exports all configuration interfaces, tokens, and the ConfigModule.
  */
@@ -19,4 +19,3 @@ export * from './config-factory';
 
 // Legacy exports (for backward compatibility)
 export { envs } from './envs';
-

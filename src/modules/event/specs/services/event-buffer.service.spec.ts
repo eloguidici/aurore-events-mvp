@@ -3,11 +3,11 @@ import * as fs from 'fs/promises';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { METRICS_COLLECTOR_SERVICE_TOKEN } from '../../../common/services/interfaces/metrics-collector-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BufferConfig } from '../../../config/interfaces/buffer-config.interface';
 import { CheckpointConfig } from '../../../config/interfaces/checkpoint-config.interface';
-import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface'; 
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { EventBufferService } from '../../services/event-buffer.service';
+import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
 
 // Mock fs module
 jest.mock('fs/promises');
@@ -37,7 +37,6 @@ jest.mock('fs', () => {
 
 describe('EventBufferService', () => {
   let service: EventBufferService;
-  let metricsCollector: any;
 
   const mockMetricsCollector = {
     recordBufferEnqueue: jest.fn(),
@@ -82,7 +81,6 @@ describe('EventBufferService', () => {
     }).compile();
 
     service = module.get<EventBufferService>(EventBufferService);
-    metricsCollector = module.get(METRICS_COLLECTOR_SERVICE_TOKEN);
 
     jest.clearAllMocks();
 
@@ -278,4 +276,3 @@ describe('EventBufferService', () => {
     });
   });
 });
-

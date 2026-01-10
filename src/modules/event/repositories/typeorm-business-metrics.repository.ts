@@ -16,9 +16,7 @@ import {
  * Handles all database queries for business metrics using TypeORM
  */
 @Injectable()
-export class TypeOrmBusinessMetricsRepository
-  implements IBusinessMetricsRepository
-{
+export class TypeOrmBusinessMetricsRepository implements IBusinessMetricsRepository {
   private readonly logger = new Logger(TypeOrmBusinessMetricsRepository.name);
 
   constructor(
@@ -112,9 +110,7 @@ export class TypeOrmBusinessMetricsRepository
    * @param last24Hours - Date representing 24 hours ago
    * @returns Array of hourly event counts
    */
-  async getEventsByHour(
-    last24Hours: Date,
-  ): Promise<HourlyCountRow[]> {
+  async getEventsByHour(last24Hours: Date): Promise<HourlyCountRow[]> {
     try {
       return (await this.eventRepository
         .createQueryBuilder('event')
@@ -134,4 +130,3 @@ export class TypeOrmBusinessMetricsRepository
     }
   }
 }
-

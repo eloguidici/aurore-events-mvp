@@ -11,4 +11,3 @@ export interface IMetricsPersistenceService {
    */
   getMetricsHistory(limit?: number): Promise<any[]>;
 }
-

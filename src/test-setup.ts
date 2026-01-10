@@ -29,30 +29,43 @@ if (isTestEnvironment) {
   if (!process.env.BATCH_MAX_SIZE) process.env.BATCH_MAX_SIZE = '10000';
   if (!process.env.BUFFER_MAX_SIZE) process.env.BUFFER_MAX_SIZE = '50000';
   if (!process.env.RETENTION_DAYS) process.env.RETENTION_DAYS = '30';
-  if (!process.env.RETENTION_CRON_SCHEDULE) process.env.RETENTION_CRON_SCHEDULE = '0 2 * * *';
+  if (!process.env.RETENTION_CRON_SCHEDULE)
+    process.env.RETENTION_CRON_SCHEDULE = '0 2 * * *';
   if (!process.env.DEFAULT_QUERY_LIMIT) process.env.DEFAULT_QUERY_LIMIT = '100';
   if (!process.env.MAX_QUERY_LIMIT) process.env.MAX_QUERY_LIMIT = '1000';
-  if (!process.env.MAX_QUERY_TIME_RANGE_DAYS) process.env.MAX_QUERY_TIME_RANGE_DAYS = '30';
+  if (!process.env.MAX_QUERY_TIME_RANGE_DAYS)
+    process.env.MAX_QUERY_TIME_RANGE_DAYS = '30';
   if (!process.env.QUERY_TIMEOUT_MS) process.env.QUERY_TIMEOUT_MS = '30000';
   if (!process.env.MAX_QUERY_PAGE) process.env.MAX_QUERY_PAGE = '10000';
-  if (!process.env.SERVICE_NAME_MAX_LENGTH) process.env.SERVICE_NAME_MAX_LENGTH = '100';
+  if (!process.env.SERVICE_NAME_MAX_LENGTH)
+    process.env.SERVICE_NAME_MAX_LENGTH = '100';
   if (!process.env.RETRY_AFTER_SECONDS) process.env.RETRY_AFTER_SECONDS = '5';
   if (!process.env.MESSAGE_MAX_LENGTH) process.env.MESSAGE_MAX_LENGTH = '2000';
-  if (!process.env.METADATA_MAX_SIZE_KB) process.env.METADATA_MAX_SIZE_KB = '16';
+  if (!process.env.METADATA_MAX_SIZE_KB)
+    process.env.METADATA_MAX_SIZE_KB = '16';
   if (!process.env.BATCH_CHUNK_SIZE) process.env.BATCH_CHUNK_SIZE = '1000';
   if (!process.env.METADATA_MAX_KEYS) process.env.METADATA_MAX_KEYS = '100';
   if (!process.env.METADATA_MAX_DEPTH) process.env.METADATA_MAX_DEPTH = '5';
-  if (!process.env.CHECKPOINT_INTERVAL_MS) process.env.CHECKPOINT_INTERVAL_MS = '5000';
-  if (!process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD) process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD = '5';
-  if (!process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD) process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD = '2';
-  if (!process.env.CIRCUIT_BREAKER_TIMEOUT_MS) process.env.CIRCUIT_BREAKER_TIMEOUT_MS = '30000';
-  if (!process.env.SHUTDOWN_TIMEOUT_MS) process.env.SHUTDOWN_TIMEOUT_MS = '30000';
-  if (!process.env.METRICS_HISTORY_DEFAULT_LIMIT) process.env.METRICS_HISTORY_DEFAULT_LIMIT = '100';
+  if (!process.env.CHECKPOINT_INTERVAL_MS)
+    process.env.CHECKPOINT_INTERVAL_MS = '5000';
+  if (!process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD)
+    process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD = '5';
+  if (!process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD)
+    process.env.CIRCUIT_BREAKER_SUCCESS_THRESHOLD = '2';
+  if (!process.env.CIRCUIT_BREAKER_TIMEOUT_MS)
+    process.env.CIRCUIT_BREAKER_TIMEOUT_MS = '30000';
+  if (!process.env.SHUTDOWN_TIMEOUT_MS)
+    process.env.SHUTDOWN_TIMEOUT_MS = '30000';
+  if (!process.env.METRICS_HISTORY_DEFAULT_LIMIT)
+    process.env.METRICS_HISTORY_DEFAULT_LIMIT = '100';
   if (!process.env.THROTTLE_TTL_MS) process.env.THROTTLE_TTL_MS = '60000';
-  if (!process.env.THROTTLE_GLOBAL_LIMIT) process.env.THROTTLE_GLOBAL_LIMIT = '300000';
+  if (!process.env.THROTTLE_GLOBAL_LIMIT)
+    process.env.THROTTLE_GLOBAL_LIMIT = '300000';
   if (!process.env.THROTTLE_IP_LIMIT) process.env.THROTTLE_IP_LIMIT = '10000';
-  if (!process.env.THROTTLE_QUERY_LIMIT) process.env.THROTTLE_QUERY_LIMIT = '200';
-  if (!process.env.THROTTLE_HEALTH_LIMIT) process.env.THROTTLE_HEALTH_LIMIT = '60';
+  if (!process.env.THROTTLE_QUERY_LIMIT)
+    process.env.THROTTLE_QUERY_LIMIT = '200';
+  if (!process.env.THROTTLE_HEALTH_LIMIT)
+    process.env.THROTTLE_HEALTH_LIMIT = '60';
   if (!process.env.DB_POOL_MAX) process.env.DB_POOL_MAX = '20';
 }
 
@@ -67,6 +80,13 @@ function isExpectedError(message: string): boolean {
     'Failure threshold exceeded',
     'Failed to save checkpoint',
     "Cannot read properties of undefined (reading 'write')",
+    'Uncaught Exception:',
+    'Unhandled Rejection:',
+    'Test uncaught exception',
+    'Test error',
+    'Test rejection',
+    'ECONNREFUSED: Connection refused',
+    'Validation failed: invalid input',
   ];
 
   return expectedErrorPatterns.some((pattern) => message.includes(pattern));
@@ -88,6 +108,10 @@ function isExpectedNestJSLog(line: string): boolean {
   // NestJS format: [Nest] PID - timestamp ERROR [ServiceName] Message
   // Check if it contains ERROR or WARN and matches expected patterns
   if (line.includes('ERROR') || line.includes('WARN')) {
+    // Check if it's from ErrorHandlingService tests
+    if (line.includes('[ErrorHandlingService]')) {
+      return isExpectedError(line) || isExpectedWarning(line);
+    }
     return isExpectedError(line) || isExpectedWarning(line);
   }
   return false;

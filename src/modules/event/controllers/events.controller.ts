@@ -10,17 +10,17 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 /// <reference path="../../types/express.d.ts" />
 import { Request } from 'express';
 
-import { Inject } from '@nestjs/common';
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { createRateLimitingConfig } from '../../config/config-factory';
 import { RateLimitingConfig } from '../../config/interfaces/rate-limiting-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { CreateEventDto } from '../dtos/create-event.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
 import { MetricsDto } from '../dtos/metrics-response.dto';

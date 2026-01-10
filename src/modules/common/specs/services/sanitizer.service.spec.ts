@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { ValidationConfig } from '../../../config/interfaces/validation-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { SanitizerService } from '../../services/sanitizer.service';
 
 describe('SanitizerService', () => {
@@ -69,4 +69,3 @@ describe('SanitizerService', () => {
     });
   });
 });
-

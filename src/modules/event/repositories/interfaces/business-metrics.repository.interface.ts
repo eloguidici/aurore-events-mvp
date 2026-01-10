@@ -57,8 +57,5 @@ export interface IBusinessMetricsRepository {
    * @param last24Hours - Date representing 24 hours ago
    * @returns Array of hourly event counts
    */
-  getEventsByHour(
-    last24Hours: Date,
-  ): Promise<HourlyCountRow[]>;
+  getEventsByHour(last24Hours: Date): Promise<HourlyCountRow[]>;
 }
-

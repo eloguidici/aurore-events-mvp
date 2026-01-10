@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
-import { MetricsConfig } from '../../../config/interfaces/metrics-config.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
+import { MetricsConfig } from '../../../config/interfaces/metrics-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BUSINESS_METRICS_REPOSITORY_TOKEN } from '../../repositories/interfaces/business-metrics.repository.token';
 import { BusinessMetricsService } from '../../services/business-metrics.service';
 
@@ -75,4 +75,3 @@ describe('BusinessMetricsService', () => {
     expect(service['cacheTimestamp']).toBe(0);
   });
 });
-

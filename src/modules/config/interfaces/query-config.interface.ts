@@ -8,4 +8,3 @@ export interface QueryConfig {
   queryTimeoutMs: number;
   maxPage: number;
 }
-

@@ -1,7 +1,10 @@
 import { validate } from 'class-validator';
 
 import { createQueryConfig } from '../../../config/config-factory';
-import { IsMaxTimeRange, IsMaxTimeRangeConstraint } from '../../decorators/max-time-range.decorator';
+import {
+  IsMaxTimeRange,
+  IsMaxTimeRangeConstraint,
+} from '../../decorators/max-time-range.decorator';
 
 // Get config for tests
 const queryConfig = createQueryConfig();
@@ -272,4 +275,3 @@ describe('IsMaxTimeRange', () => {
     });
   });
 });
-

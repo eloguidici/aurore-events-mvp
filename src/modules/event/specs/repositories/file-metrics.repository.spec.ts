@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { FileMetricsRepository } from '../../repositories/file-metrics.repository';
@@ -53,7 +52,9 @@ describe('FileMetricsRepository', () => {
       const error = new Error('Permission denied');
       mockFs.mkdir.mockRejectedValue(error);
 
-      await expect(repository.initialize()).rejects.toThrow('Permission denied');
+      await expect(repository.initialize()).rejects.toThrow(
+        'Permission denied',
+      );
     });
   });
 
@@ -313,4 +314,3 @@ describe('FileMetricsRepository', () => {
     });
   });
 });
-

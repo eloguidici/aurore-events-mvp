@@ -2,8 +2,8 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { RetentionConfig } from '../../../config/interfaces/retention-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { EVENT_SERVICE_TOKEN } from '../../../event/services/interfaces/event-service.token';
 import { RetentionService } from '../../services/retention.service';
 
@@ -82,4 +82,3 @@ describe('RetentionService', () => {
     });
   });
 });
-

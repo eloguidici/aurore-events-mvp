@@ -8,4 +8,3 @@ export interface ValidationConfig {
   metadataMaxKeys: number;
   metadataMaxDepth: number;
 }
-

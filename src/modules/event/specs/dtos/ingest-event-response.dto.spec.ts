@@ -25,4 +25,3 @@ describe('IngestResponseDto', () => {
     expect(dto.status).toBe('accepted');
   });
 });
-

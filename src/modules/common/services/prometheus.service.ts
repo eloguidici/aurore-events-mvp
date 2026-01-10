@@ -1,14 +1,14 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as promClient from 'prom-client';
 
-import { ICircuitBreakerService } from './interfaces/circuit-breaker-service.interface';
-import { CIRCUIT_BREAKER_SERVICE_TOKEN } from './interfaces/circuit-breaker-service.token';
-import { CircuitState } from './circuit-breaker.service';
-import { IMetricsCollectorService } from './interfaces/metrics-collector-service.interface';
-import { METRICS_COLLECTOR_SERVICE_TOKEN } from './interfaces/metrics-collector-service.token';
 import { BusinessMetricsService } from '../../event/services/business-metrics.service';
 import { IEventBufferService } from '../../event/services/interfaces/event-buffer-service.interface';
 import { EVENT_BUFFER_SERVICE_TOKEN } from '../../event/services/interfaces/event-buffer-service.token';
+import { CircuitState } from './circuit-breaker.service';
+import { ICircuitBreakerService } from './interfaces/circuit-breaker-service.interface';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from './interfaces/circuit-breaker-service.token';
+import { IMetricsCollectorService } from './interfaces/metrics-collector-service.interface';
+import { METRICS_COLLECTOR_SERVICE_TOKEN } from './interfaces/metrics-collector-service.token';
 
 /**
  * Prometheus metrics service
@@ -219,7 +219,7 @@ export class PrometheusService implements OnModuleInit {
    */
   private updateBufferMetrics(): void {
     const bufferMetrics = this.eventBufferService.getMetrics();
-    
+
     this.bufferSize.set(bufferMetrics.buffer_size);
     this.bufferCapacity.set(bufferMetrics.buffer_capacity);
     this.bufferUtilizationPercent.set(
@@ -260,7 +260,7 @@ export class PrometheusService implements OnModuleInit {
     try {
       const businessMetrics =
         await this.businessMetricsService.getBusinessMetrics();
-      
+
       this.businessEventsTotal.set(businessMetrics.totalEvents);
       this.businessEventsLast24h.set(businessMetrics.eventsLast24Hours);
       this.businessEventsLastHour.set(businessMetrics.eventsLastHour);
@@ -283,7 +283,7 @@ export class PrometheusService implements OnModuleInit {
    */
   private updateHealthMetrics(): void {
     const circuitMetrics = this.circuitBreaker.getMetrics();
-    
+
     const circuitStateValue =
       circuitMetrics.state === CircuitState.CLOSED
         ? 0

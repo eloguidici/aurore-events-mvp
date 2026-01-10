@@ -5,4 +5,3 @@ export interface RetentionConfig {
   days: number;
   cronSchedule: string;
 }
-

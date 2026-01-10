@@ -137,7 +137,8 @@ export class IsMetadataSizeValidConstraint implements ValidatorConstraintInterfa
 
     try {
       // Validate size
-      const maxSizeKB = args.constraints[0] || validationConfig.metadataMaxSizeKB;
+      const maxSizeKB =
+        args.constraints[0] || validationConfig.metadataMaxSizeKB;
       const metadataStr = JSON.stringify(metadata);
       const sizeKB = Buffer.byteLength(metadataStr, 'utf8') / 1024;
       if (sizeKB > maxSizeKB) {

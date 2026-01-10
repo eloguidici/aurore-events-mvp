@@ -6,4 +6,3 @@
  * so NestJS needs a string token to identify the dependency.
  */
 export const BUSINESS_METRICS_REPOSITORY_TOKEN = 'IBusinessMetricsRepository';
-

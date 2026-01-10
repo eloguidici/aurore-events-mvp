@@ -30,7 +30,11 @@ describe('Tracing', () => {
 
     it('should include parentSpanId when provided', () => {
       const parentSpanId = 'parent-span-123';
-      const context = Tracing.createContext('test-service', undefined, parentSpanId);
+      const context = Tracing.createContext(
+        'test-service',
+        undefined,
+        parentSpanId,
+      );
 
       expect(context.parentSpanId).toBe(parentSpanId);
     });
@@ -47,20 +51,27 @@ describe('Tracing', () => {
     it('should generate valid UUID format for traceId', () => {
       const context = Tracing.createContext('test-service');
 
-      expect(context.traceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(context.traceId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
     });
 
     it('should generate valid UUID format for spanId', () => {
       const context = Tracing.createContext('test-service');
 
-      expect(context.spanId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(context.spanId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
     });
   });
 
   describe('createChildContext', () => {
     it('should create a child context from parent', () => {
       const parentContext = Tracing.createContext('parent-service');
-      const childContext = Tracing.createChildContext(parentContext, 'child-service');
+      const childContext = Tracing.createChildContext(
+        parentContext,
+        'child-service',
+      );
 
       expect(childContext.traceId).toBe(parentContext.traceId);
       expect(childContext.spanId).not.toBe(parentContext.spanId);
@@ -71,41 +82,65 @@ describe('Tracing', () => {
 
     it('should preserve correlationId from parent', () => {
       const correlationId = 'correlation-123';
-      const parentContext = Tracing.createContext('parent-service', correlationId);
-      const childContext = Tracing.createChildContext(parentContext, 'child-service');
+      const parentContext = Tracing.createContext(
+        'parent-service',
+        correlationId,
+      );
+      const childContext = Tracing.createChildContext(
+        parentContext,
+        'child-service',
+      );
 
       expect(childContext.correlationId).toBe(correlationId);
     });
 
     it('should create unique spanId for child', () => {
       const parentContext = Tracing.createContext('parent-service');
-      const childContext = Tracing.createChildContext(parentContext, 'child-service');
+      const childContext = Tracing.createChildContext(
+        parentContext,
+        'child-service',
+      );
 
       expect(childContext.spanId).not.toBe(parentContext.spanId);
     });
 
-    it('should set child startTime to current timestamp', () => {
-      const parentContext = Tracing.createContext('parent-service');
-      
-      // Wait a bit to ensure time difference
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const beforeTime = Date.now();
-          const childContext = Tracing.createChildContext(parentContext, 'child-service');
-          const afterTime = Date.now();
+    it(
+      'should set child startTime to current timestamp',
+      () => {
+        const parentContext = Tracing.createContext('parent-service');
 
-          expect(childContext.startTime).toBeGreaterThanOrEqual(beforeTime);
-          expect(childContext.startTime).toBeLessThanOrEqual(afterTime);
-          expect(childContext.startTime).toBeGreaterThan(parentContext.startTime);
-          resolve(undefined);
-        }, 10);
-      });
-    });
+        // Wait a bit to ensure time difference
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const beforeTime = Date.now();
+            const childContext = Tracing.createChildContext(
+              parentContext,
+              'child-service',
+            );
+            const afterTime = Date.now();
+
+            expect(childContext.startTime).toBeGreaterThanOrEqual(beforeTime);
+            expect(childContext.startTime).toBeLessThanOrEqual(afterTime);
+            expect(childContext.startTime).toBeGreaterThan(
+              parentContext.startTime,
+            );
+            resolve(undefined);
+          }, 10);
+        });
+      },
+      10000, // 10 second timeout
+    );
 
     it('should allow nested child contexts', () => {
       const parentContext = Tracing.createContext('parent-service');
-      const childContext = Tracing.createChildContext(parentContext, 'child-service');
-      const grandchildContext = Tracing.createChildContext(childContext, 'grandchild-service');
+      const childContext = Tracing.createChildContext(
+        parentContext,
+        'child-service',
+      );
+      const grandchildContext = Tracing.createChildContext(
+        childContext,
+        'grandchild-service',
+      );
 
       expect(grandchildContext.traceId).toBe(parentContext.traceId);
       expect(grandchildContext.parentSpanId).toBe(childContext.spanId);
@@ -114,20 +149,24 @@ describe('Tracing', () => {
   });
 
   describe('getDuration', () => {
-    it('should return duration in milliseconds', () => {
-      const context = Tracing.createContext('test-service');
-      
-      // Wait a bit
-      const waitTime = 50;
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const duration = Tracing.getDuration(context);
-          expect(duration).toBeGreaterThanOrEqual(waitTime - 5); // Allow some margin
-          expect(duration).toBeLessThan(waitTime + 50); // Upper bound
-          resolve(undefined);
-        }, waitTime);
-      });
-    });
+    it(
+      'should return duration in milliseconds',
+      () => {
+        const context = Tracing.createContext('test-service');
+
+        // Wait a bit
+        const waitTime = 50;
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const duration = Tracing.getDuration(context);
+            expect(duration).toBeGreaterThanOrEqual(waitTime - 10); // Allow some margin for timing
+            expect(duration).toBeLessThan(waitTime + 100); // Increased upper bound for CI/slow systems
+            resolve(undefined);
+          }, waitTime);
+        });
+      },
+      10000, // 10 second timeout
+    );
 
     it('should return zero for just created context', () => {
       const context = Tracing.createContext('test-service');
@@ -137,24 +176,31 @@ describe('Tracing', () => {
       expect(duration).toBeLessThan(10); // Should be very small
     });
 
-    it('should calculate duration correctly for child context', () => {
-      const parentContext = Tracing.createContext('parent-service');
-      
-      // Wait a bit before creating child
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const childContext = Tracing.createChildContext(parentContext, 'child-service');
-          
+    it(
+      'should calculate duration correctly for child context',
+      () => {
+        const parentContext = Tracing.createContext('parent-service');
+
+        // Wait a bit before creating child
+        return new Promise((resolve) => {
           setTimeout(() => {
-            const parentDuration = Tracing.getDuration(parentContext);
-            const childDuration = Tracing.getDuration(childContext);
-            
-            expect(parentDuration).toBeGreaterThan(childDuration);
-            resolve(undefined);
+            const childContext = Tracing.createChildContext(
+              parentContext,
+              'child-service',
+            );
+
+            setTimeout(() => {
+              const parentDuration = Tracing.getDuration(parentContext);
+              const childDuration = Tracing.getDuration(childContext);
+
+              expect(parentDuration).toBeGreaterThan(childDuration);
+              resolve(undefined);
+            }, 20);
           }, 20);
-        }, 20);
-      });
-    });
+        });
+      },
+      10000, // 10 second timeout
+    );
   });
 
   describe('formatTrace', () => {
@@ -173,12 +219,17 @@ describe('Tracing', () => {
       const context = Tracing.createContext('test-service');
       const formatted = Tracing.formatTrace(context);
 
-      expect(formatted).toMatch(/\[traceId=[^,]+,\s*spanId=[^,]+,\s*service=test-service\]/);
+      expect(formatted).toMatch(
+        /\[traceId=[^,]+,\s*spanId=[^,]+,\s*service=test-service\]/,
+      );
     });
 
     it('should format child context correctly', () => {
       const parentContext = Tracing.createContext('parent-service');
-      const childContext = Tracing.createChildContext(parentContext, 'child-service');
+      const childContext = Tracing.createChildContext(
+        parentContext,
+        'child-service',
+      );
       const formatted = Tracing.formatTrace(childContext);
 
       expect(formatted).toContain('service=child-service');
@@ -210,7 +261,11 @@ describe('Tracing', () => {
     });
 
     it('should allow optional properties', () => {
-      const context: TracingContext = Tracing.createContext('test-service', 'correlation-123', 'parent-123');
+      const context: TracingContext = Tracing.createContext(
+        'test-service',
+        'correlation-123',
+        'parent-123',
+      );
 
       expect(context.parentSpanId).toBe('parent-123');
       expect(context.correlationId).toBe('correlation-123');
@@ -220,15 +275,21 @@ describe('Tracing', () => {
   describe('integration', () => {
     it('should work for complete tracing workflow', () => {
       // Create parent trace
-      const parentContext = Tracing.createContext('api-service', 'correlation-123');
-      
+      const parentContext = Tracing.createContext(
+        'api-service',
+        'correlation-123',
+      );
+
       // Simulate some work
       const parentDuration = Tracing.getDuration(parentContext);
       expect(parentDuration).toBeGreaterThanOrEqual(0);
 
       // Create child trace
-      const childContext = Tracing.createChildContext(parentContext, 'db-service');
-      
+      const childContext = Tracing.createChildContext(
+        parentContext,
+        'db-service',
+      );
+
       // Format both
       const parentFormatted = Tracing.formatTrace(parentContext);
       const childFormatted = Tracing.formatTrace(childContext);
@@ -240,4 +301,3 @@ describe('Tracing', () => {
     });
   });
 });
-

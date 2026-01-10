@@ -6,4 +6,3 @@ export interface MetricsConfig {
   cacheTtlMs?: number;
   persistenceIntervalMs?: number;
 }
-

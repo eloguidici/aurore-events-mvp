@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
 import { METRICS_COLLECTOR_SERVICE_TOKEN } from '../../../common/services/interfaces/metrics-collector-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { BatchWorkerConfig } from '../../../config/interfaces/batch-worker-config.interface';
 import { ShutdownConfig } from '../../../config/interfaces/shutdown-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { EnrichedEvent } from '../../../event/services/interfaces/enriched-event.interface';
 import { EVENT_BUFFER_SERVICE_TOKEN } from '../../../event/services/interfaces/event-buffer-service.token';
 import { EVENT_SERVICE_TOKEN } from '../../../event/services/interfaces/event-service.token';
@@ -211,4 +211,3 @@ describe('BatchWorkerService', () => {
     expect(mockEventBufferService.enqueue).toHaveBeenCalled();
   });
 });
-

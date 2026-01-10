@@ -1,7 +1,7 @@
 /**
  * Type augmentation for Express Request
  * Adds correlationId property to Request interface
- * 
+ *
  * This file must be included in tsconfig.json and imported/referenced
  * in files that use correlationId on Request objects.
  */

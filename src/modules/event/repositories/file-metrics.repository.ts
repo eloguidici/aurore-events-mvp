@@ -60,9 +60,14 @@ export class FileMetricsRepository implements IMetricsRepository {
       await fs.appendFile(this.metricsFile, line, 'utf-8');
       this.logger.debug('Metrics snapshot saved to file');
     } catch (error) {
-      this.errorLogger.logError(this.logger, 'Failed to save metrics snapshot', error, {
-        metricsFile: this.metricsFile,
-      });
+      this.errorLogger.logError(
+        this.logger,
+        'Failed to save metrics snapshot',
+        error,
+        {
+          metricsFile: this.metricsFile,
+        },
+      );
       throw error;
     }
   }
@@ -103,4 +108,3 @@ export class FileMetricsRepository implements IMetricsRepository {
     }
   }
 }
-

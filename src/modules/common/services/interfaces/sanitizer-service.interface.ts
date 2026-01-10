@@ -20,10 +20,5 @@ export interface ISanitizerService {
    * @param keyCount - Current key count (default: 0)
    * @returns Sanitized object
    */
-  sanitizeObject(
-    obj: any,
-    depth?: number,
-    keyCount?: number,
-  ): any;
+  sanitizeObject(obj: any, depth?: number, keyCount?: number): any;
 }
-

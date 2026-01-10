@@ -6,4 +6,3 @@
  * so NestJS needs a string token to identify the dependency.
  */
 export const METRICS_REPOSITORY_TOKEN = 'IMetricsRepository';
-

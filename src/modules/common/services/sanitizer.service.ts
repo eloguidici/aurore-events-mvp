@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as sanitizeHtml from 'sanitize-html';
 
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { ValidationConfig } from '../../config/interfaces/validation-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { ISanitizerService } from './interfaces/sanitizer-service.interface';
 
 /**
@@ -61,11 +61,7 @@ export class SanitizerService implements ISanitizerService {
    * @param keyCount - Current key count (default: 0)
    * @returns Sanitized object
    */
-  sanitizeObject(
-    obj: any,
-    depth: number = 0,
-    keyCount: number = 0,
-  ): any {
+  sanitizeObject(obj: any, depth: number = 0, keyCount: number = 0): any {
     if (!obj || typeof obj !== 'object') {
       return obj;
     }
@@ -127,4 +123,3 @@ export class SanitizerService implements ISanitizerService {
     return sanitized;
   }
 }
-

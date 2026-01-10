@@ -1,12 +1,17 @@
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 
 import { ICircuitBreakerService } from '../../common/services/interfaces/circuit-breaker-service.interface';
 import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../common/services/interfaces/circuit-breaker-service.token';
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { MetricsConfig } from '../../config/interfaces/metrics-config.interface';
-import { IMetricsPersistenceService } from './interfaces/metrics-persistence-service.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import {
   IMetricsRepository,
   MetricsSnapshot,
@@ -14,6 +19,7 @@ import {
 import { METRICS_REPOSITORY_TOKEN } from '../repositories/interfaces/metrics.repository.token';
 import { IEventBufferService } from './interfaces/event-buffer-service.interface';
 import { EVENT_BUFFER_SERVICE_TOKEN } from './interfaces/event-buffer-service.token';
+import { IMetricsPersistenceService } from './interfaces/metrics-persistence-service.interface';
 
 /**
  * Service for persisting metrics to disk
@@ -42,7 +48,10 @@ export class MetricsPersistenceService
   async onModuleInit() {
     // Initialize repository (creates directory if needed)
     try {
-      if ('initialize' in this.metricsRepository && typeof this.metricsRepository.initialize === 'function') {
+      if (
+        'initialize' in this.metricsRepository &&
+        typeof this.metricsRepository.initialize === 'function'
+      ) {
         await (this.metricsRepository as any).initialize();
       }
     } catch (error) {

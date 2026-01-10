@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 
-import { CONFIG_TOKENS } from './tokens/config.tokens';
 import {
   createBatchWorkerConfig,
   createBufferConfig,
@@ -16,15 +15,16 @@ import {
   createShutdownConfig,
   createValidationConfig,
 } from './config-factory';
+import { CONFIG_TOKENS } from './tokens/config.tokens';
 
 /**
  * Configuration Module
- * 
+ *
  * Provides typed configuration objects for dependency injection.
  * All configuration is derived from environment variables (validated in envs.ts).
- * 
+ *
  * This module is GLOBAL, meaning it's available to all modules without explicit import.
- * 
+ *
  * Usage in services:
  * ```typescript
  * constructor(
@@ -119,4 +119,3 @@ import {
   ],
 })
 export class ConfigModule {}
-

@@ -3,8 +3,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { MetricsConfig } from '../../../config/interfaces/metrics-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { Event } from '../../entities/event.entity';
 import { MetricsSnapshot } from '../../repositories/interfaces/metrics.repository.interface';
 import { METRICS_REPOSITORY_TOKEN } from '../../repositories/interfaces/metrics.repository.token';
@@ -172,4 +172,3 @@ describe('MetricsPersistenceService', () => {
     });
   });
 });
-

@@ -37,4 +37,3 @@ export interface IEventBufferService {
    */
   getMetrics(): MetricsDto;
 }
-

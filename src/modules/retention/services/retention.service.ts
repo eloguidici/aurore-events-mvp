@@ -4,8 +4,8 @@ import { CronJob } from 'cron';
 
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { RetentionConfig } from '../../config/interfaces/retention-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { IEventService } from '../../event/services/interfaces/event-service.interface';
 import { EVENT_SERVICE_TOKEN } from '../../event/services/interfaces/event-service.token';
 import { IRetentionService } from './interfaces/retention-service.interface';
@@ -63,9 +63,14 @@ export class RetentionService implements IRetentionService, OnModuleInit {
         `Retention cleanup completed: ${deletedCount} events deleted`,
       );
     } catch (error) {
-      this.errorLogger.logError(this.logger, 'Retention cleanup failed', error, {
-        retentionDays: this.retentionDays,
-      });
+      this.errorLogger.logError(
+        this.logger,
+        'Retention cleanup failed',
+        error,
+        {
+          retentionDays: this.retentionDays,
+        },
+      );
       // Continue - next day's run will catch remaining old events
     }
   }

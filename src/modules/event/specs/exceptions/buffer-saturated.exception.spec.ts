@@ -22,7 +22,9 @@ describe('BufferSaturatedException', () => {
     const response = exception.getResponse() as any;
 
     expect(response.status).toBe('rate_limited');
-    expect(response.message).toBe('Buffer is full. Please retry in a few seconds.');
+    expect(response.message).toBe(
+      'Buffer is full. Please retry in a few seconds.',
+    );
     expect(response.errorCode).toBe('BUFFER_SATURATED');
     expect(response.retry_after).toBe(5);
   });
@@ -38,4 +40,3 @@ describe('BufferSaturatedException', () => {
     expect(response2.retry_after).toBe(60);
   });
 });
-

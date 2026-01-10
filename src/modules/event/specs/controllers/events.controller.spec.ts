@@ -2,19 +2,17 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { RateLimitingConfig } from '../../../config/interfaces/rate-limiting-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { EventController } from '../../controllers/events.controller';
 import { CreateEventDto } from '../../dtos/create-event.dto';
 import { QueryDto } from '../../dtos/query-events.dto';
 import { BufferSaturatedException } from '../../exceptions';
 import { EVENT_BUFFER_SERVICE_TOKEN } from '../../services/interfaces/event-buffer-service.token';
 import { EVENT_SERVICE_TOKEN } from '../../services/interfaces/event-service.token';
-import { EventController } from '../../controllers/events.controller';
 
 describe('EventController', () => {
   let controller: EventController;
-  let eventService: any;
-  let eventBufferService: any;
 
   const mockEventService = {
     ingest: jest.fn(),
@@ -65,8 +63,6 @@ describe('EventController', () => {
     }).compile();
 
     controller = module.get<EventController>(EventController);
-    eventService = module.get(EVENT_SERVICE_TOKEN);
-    eventBufferService = module.get(EVENT_BUFFER_SERVICE_TOKEN);
 
     jest.clearAllMocks();
   });
@@ -115,9 +111,9 @@ describe('EventController', () => {
         correlationId: 'test-correlation-id',
       } as any;
 
-      await expect(
-        controller.ingestEvent(createEventDto, req),
-      ).rejects.toThrow(BufferSaturatedException);
+      await expect(controller.ingestEvent(createEventDto, req)).rejects.toThrow(
+        BufferSaturatedException,
+      );
     });
 
     it('should convert unexpected errors to HttpException', async () => {
@@ -134,9 +130,9 @@ describe('EventController', () => {
         correlationId: 'test-correlation-id',
       } as any;
 
-      await expect(
-        controller.ingestEvent(createEventDto, req),
-      ).rejects.toThrow(HttpException);
+      await expect(controller.ingestEvent(createEventDto, req)).rejects.toThrow(
+        HttpException,
+      );
 
       try {
         await controller.ingestEvent(createEventDto, req);
@@ -327,4 +323,3 @@ describe('EventController', () => {
     });
   });
 });
-

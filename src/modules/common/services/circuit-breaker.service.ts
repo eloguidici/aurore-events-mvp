@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { CircuitBreakerConfig } from '../../config/interfaces/circuit-breaker-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { ICircuitBreakerService } from './interfaces/circuit-breaker-service.interface';
 import { IErrorLoggerService } from './interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from './interfaces/error-logger-service.token';

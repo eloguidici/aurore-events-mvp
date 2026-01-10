@@ -94,4 +94,3 @@ describe('MetricsDto', () => {
     expect(dto.status).toBe('critical');
   });
 });
-

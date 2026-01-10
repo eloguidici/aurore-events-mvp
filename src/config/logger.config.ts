@@ -45,7 +45,8 @@ export class StructuredLogger implements LoggerService {
       ...extra,
     };
 
-    // Output as JSON for structured logging
-    console.log(JSON.stringify(logEntry));
+    // Output as JSON for structured logging using process.stdout.write
+    // This is preferred over console.log for better control and performance
+    process.stdout.write(JSON.stringify(logEntry) + '\n');
   }
 }

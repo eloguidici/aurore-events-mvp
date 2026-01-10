@@ -3,13 +3,12 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { QueryConfig } from '../../../config/interfaces/query-config.interface';
 import { ValidationConfig } from '../../../config/interfaces/validation-config.interface';
-import { CreateEventDto } from '../../dtos/create-event.dto';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { Event } from '../../entities/event.entity';
-import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
 import { TypeOrmEventRepository } from '../../repositories/typeorm-event.repository';
+import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
 
 describe('TypeOrmEventRepository', () => {
   let repository: TypeOrmEventRepository;
@@ -182,4 +181,3 @@ describe('TypeOrmEventRepository', () => {
     });
   });
 });
-

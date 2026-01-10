@@ -2,10 +2,9 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { MetricsConfig } from '../../config/interfaces/metrics-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import {
-  HourlyCountRow,
   IBusinessMetricsRepository,
   ServiceCountRow,
 } from '../repositories/interfaces/business-metrics.repository.interface';
@@ -76,7 +75,10 @@ export class BusinessMetricsService implements OnModuleInit {
    * @returns Object with counts for last 24 hours and last hour
    * @private
    */
-  private async getTimeRangeCounts(last24Hours: Date, lastHour: Date): Promise<{
+  private async getTimeRangeCounts(
+    last24Hours: Date,
+    lastHour: Date,
+  ): Promise<{
     eventsLast24Hours: number;
     eventsLastHour: number;
   }> {
@@ -149,20 +151,17 @@ export class BusinessMetricsService implements OnModuleInit {
       const lastHour = new Date(now.getTime() - 60 * 60 * 1000);
 
       // Execute queries in parallel for better performance
-      const [
-        totalEvents,
-        serviceCountRows,
-        timeRangeCounts,
-        eventsByHour,
-      ] = await Promise.all([
-        this.businessMetricsRepository.getTotalEventsCount(),
-        this.businessMetricsRepository.getEventsByService(),
-        this.getTimeRangeCounts(last24Hours, lastHour),
-        this.getEventsByHour(last24Hours),
-      ]);
+      const [totalEvents, serviceCountRows, timeRangeCounts, eventsByHour] =
+        await Promise.all([
+          this.businessMetricsRepository.getTotalEventsCount(),
+          this.businessMetricsRepository.getEventsByService(),
+          this.getTimeRangeCounts(last24Hours, lastHour),
+          this.getEventsByHour(last24Hours),
+        ]);
 
       // Process service data
-      const eventsByService = this.convertServiceCountsToRecord(serviceCountRows);
+      const eventsByService =
+        this.convertServiceCountsToRecord(serviceCountRows);
       const topServices = this.getTopServices(serviceCountRows);
 
       // Calculate average events per minute (last 24 hours)

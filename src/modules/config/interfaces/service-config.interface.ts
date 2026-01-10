@@ -5,4 +5,3 @@ export interface ServiceConfig {
   nameMaxLength: number;
   retryAfterSeconds: number;
 }
-

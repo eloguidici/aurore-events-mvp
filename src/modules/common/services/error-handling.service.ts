@@ -42,9 +42,22 @@ export class ErrorHandlingService implements OnModuleInit {
       });
 
       // Graceful shutdown - give time for logs to flush
-      setTimeout(() => {
+      // In test environment, skip the timeout to prevent Jest from hanging
+      // Tests will mock process.exit and handle cleanup themselves
+      const isTestEnv =
+        process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID;
+
+      if (isTestEnv) {
+        // In test, exit immediately (tests will mock this)
         process.exit(1);
-      }, 1000);
+      } else {
+        // In production, wait for logs to flush
+        const exitTimer = setTimeout(() => {
+          process.exit(1);
+        }, 1000);
+        // Store reference for potential cleanup (not currently used but available)
+        (exitTimer as any)._uncaughtExceptionTimer = true;
+      }
     });
 
     // Handle unhandled promise rejections (asynchronous errors)

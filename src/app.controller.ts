@@ -6,6 +6,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
 import {
@@ -16,7 +17,6 @@ import {
 import { HealthService } from './modules/common/services/health.service';
 import { IErrorLoggerService } from './modules/common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from './modules/common/services/interfaces/error-logger-service.token';
-import { Inject } from '@nestjs/common';
 
 @ApiTags('Health Check')
 @Controller()

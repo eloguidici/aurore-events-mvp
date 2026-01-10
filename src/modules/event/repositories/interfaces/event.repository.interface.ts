@@ -1,6 +1,6 @@
 import { Event } from '../../entities/event.entity';
-import { BatchInsertResult } from './batch-insert-result.interface';
 import { EnrichedEvent } from '../../services/interfaces/enriched-event.interface';
+import { BatchInsertResult } from './batch-insert-result.interface';
 
 /**
  * Interface for event repository

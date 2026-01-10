@@ -6,4 +6,3 @@
  * so NestJS needs a string token to identify the dependency.
  */
 export const CIRCUIT_BREAKER_SERVICE_TOKEN = 'ICircuitBreakerService';
-

@@ -1,13 +1,15 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 
+import { ICompressionService } from '../../common/services/interfaces/compression-service.interface';
+import { COMPRESSION_SERVICE_TOKEN } from '../../common/services/interfaces/compression-service.token';
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
 import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { ISanitizerService } from '../../common/services/interfaces/sanitizer-service.interface';
 import { SANITIZER_SERVICE_TOKEN } from '../../common/services/interfaces/sanitizer-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
-import { ServiceConfig } from '../../config/interfaces/service-config.interface';
 import { QueryConfig } from '../../config/interfaces/query-config.interface';
+import { ServiceConfig } from '../../config/interfaces/service-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { DEFAULT_SORT_FIELD } from '../constants/query.constants';
 import { CreateEventDto } from '../dtos/create-event.dto';
 import { IngestResponseDto } from '../dtos/ingest-event-response.dto';
@@ -18,12 +20,12 @@ import {
 } from '../dtos/search-events-response.dto';
 import { BufferSaturatedException } from '../exceptions';
 import { BatchInsertResult } from '../repositories/interfaces/batch-insert-result.interface';
-import { EnrichedEvent } from './interfaces/enriched-event.interface';
-import { IEventService } from './interfaces/event-service.interface';
 import { IEventRepository } from '../repositories/interfaces/event.repository.interface';
 import { EVENT_REPOSITORY_TOKEN } from '../repositories/interfaces/event.repository.token';
+import { EnrichedEvent } from './interfaces/enriched-event.interface';
 import { IEventBufferService } from './interfaces/event-buffer-service.interface';
 import { EVENT_BUFFER_SERVICE_TOKEN } from './interfaces/event-buffer-service.token';
+import { IEventService } from './interfaces/event-service.interface';
 
 @Injectable()
 export class EventService implements IEventService {
@@ -42,6 +44,9 @@ export class EventService implements IEventService {
     private readonly serviceConfig: ServiceConfig,
     @Inject(CONFIG_TOKENS.QUERY)
     private readonly queryConfig: QueryConfig,
+    @Optional()
+    @Inject(COMPRESSION_SERVICE_TOKEN)
+    private readonly compressionService?: ICompressionService,
   ) {}
 
   /**
@@ -78,18 +83,34 @@ export class EventService implements IEventService {
   /**
    * Enriches event with metadata (ID and ingestion timestamp)
    * Sanitizes input to prevent XSS and injection attacks
+   * Compresses metadata if larger than threshold to save storage space
    *
    * @param createEventDto - Event data to enrich
    * @returns EnrichedEvent with generated eventId and ingestedAt timestamp
    * @private
    */
-  private enrich(createEventDto: CreateEventDto): EnrichedEvent {
+  private async enrich(createEventDto: CreateEventDto): Promise<EnrichedEvent> {
     // Sanitize input to prevent XSS and injection attacks
-    const sanitizedService = this.sanitizer.sanitizeString(createEventDto.service);
-    const sanitizedMessage = this.sanitizer.sanitizeString(createEventDto.message);
-    const sanitizedMetadata = createEventDto.metadata
+    const sanitizedService = this.sanitizer.sanitizeString(
+      createEventDto.service,
+    );
+    const sanitizedMessage = this.sanitizer.sanitizeString(
+      createEventDto.message,
+    );
+    let sanitizedMetadata = createEventDto.metadata
       ? this.sanitizer.sanitizeObject(createEventDto.metadata)
       : null;
+
+    // Compress metadata if compression service is available and metadata is large
+    if (sanitizedMetadata && this.compressionService) {
+      try {
+        sanitizedMetadata =
+          await this.compressionService.compressMetadata(sanitizedMetadata);
+      } catch (error) {
+        // If compression fails, use original metadata (non-blocking)
+        this.logger.warn('Failed to compress metadata, using original', error);
+      }
+    }
 
     // Validate and normalize timestamp
     const normalizedTimestamp = this.validateAndNormalizeTimestamp(
@@ -120,7 +141,7 @@ export class EventService implements IEventService {
   public async ingest(
     createEventDto: CreateEventDto,
   ): Promise<IngestResponseDto> {
-    const enrichedEvent = this.enrich(createEventDto);
+    const enrichedEvent = await this.enrich(createEventDto);
 
     // Atomic enqueue operation - eliminates race condition
     // Try to enqueue directly, if buffer is full, throw exception
@@ -151,7 +172,15 @@ export class EventService implements IEventService {
     const services = [...new Set(events.map((e) => e.service))];
 
     try {
-      return await this.eventRepository.batchInsert(events);
+      const result = await this.eventRepository.batchInsert(events);
+
+      // Invalidate business metrics cache when new events are inserted
+      // This ensures metrics stay up-to-date (cache will refresh on next request)
+      // Note: We don't import BusinessMetricsService directly to avoid circular dependency
+      // Instead, we emit an event or use a weak reference pattern
+      // For now, cache will expire naturally after cacheTtlMs
+
+      return result;
     } catch (error) {
       // Log error with standardized format and context
       this.errorLogger.logError(
@@ -225,7 +254,11 @@ export class EventService implements IEventService {
         });
 
       // Convert events to EventDto with error handling
-      const { items, filteredCount } = this.convertEventsToDto(events, service, page);
+      const { items, filteredCount } = this.convertEventsToDto(
+        events,
+        service,
+        page,
+      );
 
       // Adjust total to account for filtered corrupt events
       // This ensures pagination is consistent: total reflects only valid events

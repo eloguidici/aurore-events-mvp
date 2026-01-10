@@ -5,7 +5,7 @@ import { IMetricsCollectorService } from './interfaces/metrics-collector-service
 /**
  * Centralized metrics collection service
  * Separates metrics tracking from business logic
- * 
+ *
  * Services notify metric events instead of managing their own metrics state.
  * This service aggregates and exposes all metrics, keeping business logic clean.
  */
@@ -58,7 +58,7 @@ export class MetricsCollectorService implements IMetricsCollectorService {
   /**
    * Record batch processing completion
    * Tracks batch processing performance metrics
-   * 
+   *
    * @param batchSize - Number of events processed in this batch
    * @param processingTimeMs - Total time taken to process the batch (milliseconds)
    * @param insertTimeMs - Time taken to insert events to database (milliseconds)
@@ -95,7 +95,7 @@ export class MetricsCollectorService implements IMetricsCollectorService {
   /**
    * Get buffer metrics snapshot
    * Returns a copy of current buffer metrics
-   * 
+   *
    * @returns Snapshot of buffer metrics
    */
   getBufferMetrics() {
@@ -111,7 +111,7 @@ export class MetricsCollectorService implements IMetricsCollectorService {
   /**
    * Get batch worker metrics snapshot
    * Returns a copy of current batch worker metrics
-   * 
+   *
    * @returns Snapshot of batch worker metrics
    */
   getBatchWorkerMetrics() {
@@ -141,4 +141,3 @@ export class MetricsCollectorService implements IMetricsCollectorService {
     this.batchWorkerMetrics.averageBatchProcessingTimeMs = 0;
   }
 }
-

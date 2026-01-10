@@ -17,4 +17,3 @@ export const CONFIG_TOKENS = {
   METRICS: 'METRICS_CONFIG',
   RATE_LIMITING: 'RATE_LIMITING_CONFIG',
 } as const;
-

@@ -47,4 +47,3 @@ export interface IErrorLoggerService {
     additionalContext?: Record<string, any>,
   ): Record<string, any>;
 }
-

@@ -6,4 +6,3 @@
  * so NestJS needs a string token to identify the dependency.
  */
 export const EVENT_SERVICE_TOKEN = 'IEventService';
-

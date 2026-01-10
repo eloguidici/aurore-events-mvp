@@ -4,4 +4,3 @@
 export interface BufferConfig {
   maxSize: number;
 }
-

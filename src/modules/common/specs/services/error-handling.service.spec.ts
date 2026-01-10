@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { HEALTH_SERVICE_TOKEN } from '../../services/interfaces/health-service.token';
 import { ErrorHandlingService } from '../../services/error-handling.service';
+import { HEALTH_SERVICE_TOKEN } from '../../services/interfaces/health-service.token';
 
 describe('ErrorHandlingService', () => {
   let service: ErrorHandlingService;
-  let healthService: any;
-  let pendingTimeouts: NodeJS.Timeout[] = [];
 
   const mockHealthService = {
     signalNotReady: jest.fn(),
@@ -24,16 +22,11 @@ describe('ErrorHandlingService', () => {
     }).compile();
 
     service = module.get<ErrorHandlingService>(ErrorHandlingService);
-    healthService = module.get(HEALTH_SERVICE_TOKEN);
 
     // Clear all process listeners to avoid interference between tests
     process.removeAllListeners('uncaughtException');
     process.removeAllListeners('unhandledRejection');
     process.removeAllListeners('warning');
-
-    // Clear any pending timeouts
-    pendingTimeouts.forEach(clearTimeout);
-    pendingTimeouts = [];
 
     jest.clearAllMocks();
   });
@@ -43,13 +36,8 @@ describe('ErrorHandlingService', () => {
     process.removeAllListeners('uncaughtException');
     process.removeAllListeners('unhandledRejection');
     process.removeAllListeners('warning');
-    
-    // Clear any pending timeouts
-    pendingTimeouts.forEach(clearTimeout);
-    pendingTimeouts = [];
-    
+
     jest.clearAllMocks();
-    jest.useRealTimers();
   });
 
   it('should be defined', () => {
@@ -83,7 +71,6 @@ describe('ErrorHandlingService', () => {
 
   describe('uncaughtException handler', () => {
     it('should handle uncaught exceptions', (done) => {
-      jest.useFakeTimers();
       service.onModuleInit();
 
       // Mock process.exit to prevent actual exit
@@ -93,7 +80,6 @@ describe('ErrorHandlingService', () => {
           expect(code).toBe(1);
           expect(mockHealthService.signalNotReady).toHaveBeenCalled();
           exitSpy.mockRestore();
-          jest.useRealTimers();
           // Clean up listeners after test
           process.removeAllListeners('uncaughtException');
           done();
@@ -102,37 +88,27 @@ describe('ErrorHandlingService', () => {
 
       const error = new Error('Test uncaught exception');
       process.emit('uncaughtException' as any, error);
-
-      // Fast-forward the timeout
-      jest.advanceTimersByTime(1000);
     });
 
     it('should log error details on uncaught exception', (done) => {
-      jest.useFakeTimers();
       const loggerSpy = jest.spyOn(service['logger'], 'error');
       service.onModuleInit();
 
-      const exitSpy = jest
-        .spyOn(process, 'exit')
-        .mockImplementation(() => {
-          expect(loggerSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Uncaught Exception'),
-            expect.any(String),
-            'UncaughtException',
-          );
-          exitSpy.mockRestore();
-          jest.useRealTimers();
-          // Clean up listeners after test
-          process.removeAllListeners('uncaughtException');
-          done();
-          return undefined as never;
-        });
+      const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+        expect(loggerSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Uncaught Exception'),
+          expect.any(String),
+          'UncaughtException',
+        );
+        exitSpy.mockRestore();
+        // Clean up listeners after test
+        process.removeAllListeners('uncaughtException');
+        done();
+        return undefined as never;
+      });
 
       const error = new Error('Test error');
       process.emit('uncaughtException' as any, error);
-
-      // Fast-forward the timeout
-      jest.advanceTimersByTime(1000);
     });
   });
 
@@ -143,15 +119,17 @@ describe('ErrorHandlingService', () => {
 
       const error = new Error('Test rejection');
       const promise = Promise.reject(error);
-      
+
       // Suppress the actual unhandled rejection warning
       promise.catch(() => {});
-      
+
       process.emit('unhandledRejection' as any, error, promise);
 
       // Wait for async handling - use setImmediate for better async handling
       setImmediate(() => {
         expect(loggerSpy).toHaveBeenCalled();
+        // Clean up listeners after test
+        process.removeAllListeners('unhandledRejection');
         done();
       });
     });
@@ -161,14 +139,16 @@ describe('ErrorHandlingService', () => {
 
       const error = new Error('ECONNREFUSED: Connection refused');
       const promise = Promise.reject(error);
-      
+
       // Suppress the actual unhandled rejection warning
       promise.catch(() => {});
-      
+
       process.emit('unhandledRejection' as any, error, promise);
 
       setImmediate(() => {
         expect(mockHealthService.signalNotReady).toHaveBeenCalled();
+        // Clean up listeners after test
+        process.removeAllListeners('unhandledRejection');
         done();
       });
     });
@@ -178,14 +158,16 @@ describe('ErrorHandlingService', () => {
 
       const error = new Error('Validation failed: invalid input');
       const promise = Promise.reject(error);
-      
+
       // Suppress the actual unhandled rejection warning
       promise.catch(() => {});
-      
+
       process.emit('unhandledRejection' as any, error, promise);
 
       setImmediate(() => {
         expect(mockHealthService.signalNotReady).not.toHaveBeenCalled();
+        // Clean up listeners after test
+        process.removeAllListeners('unhandledRejection');
         done();
       });
     });
@@ -196,14 +178,16 @@ describe('ErrorHandlingService', () => {
 
       const reason = 'String rejection';
       const promise = Promise.reject(reason);
-      
+
       // Suppress the actual unhandled rejection warning
       promise.catch(() => {});
-      
+
       process.emit('unhandledRejection' as any, reason, promise);
 
       setImmediate(() => {
         expect(loggerSpy).toHaveBeenCalled();
+        // Clean up listeners after test
+        process.removeAllListeners('unhandledRejection');
         done();
       });
     });
@@ -222,6 +206,9 @@ describe('ErrorHandlingService', () => {
         expect.stringContaining('Node.js Warning'),
         expect.any(String),
       );
+
+      // Clean up listeners after test
+      process.removeAllListeners('warning');
     });
   });
 
@@ -229,13 +216,15 @@ describe('ErrorHandlingService', () => {
     it('should identify database connection errors as critical', () => {
       const isCriticalError = (service as any).isCriticalError.bind(service);
 
-      expect(isCriticalError(new Error('ECONNREFUSED: Connection refused'))).toBe(
+      expect(
+        isCriticalError(new Error('ECONNREFUSED: Connection refused')),
+      ).toBe(true);
+      expect(
+        isCriticalError(new Error('ETIMEDOUT: Connection timed out')),
+      ).toBe(true);
+      expect(isCriticalError(new Error('ENOTFOUND: Host not found'))).toBe(
         true,
       );
-      expect(isCriticalError(new Error('ETIMEDOUT: Connection timed out'))).toBe(
-        true,
-      );
-      expect(isCriticalError(new Error('ENOTFOUND: Host not found'))).toBe(true);
     });
 
     it('should identify memory errors as critical', () => {
@@ -248,10 +237,12 @@ describe('ErrorHandlingService', () => {
     it('should identify TypeError as critical', () => {
       const isCriticalError = (service as any).isCriticalError.bind(service);
 
-      expect(isCriticalError(new Error('cannot read property of undefined'))).toBe(
+      expect(
+        isCriticalError(new Error('cannot read property of undefined')),
+      ).toBe(true);
+      expect(isCriticalError(new TypeError('TypeError: invalid type'))).toBe(
         true,
       );
-      expect(isCriticalError(new TypeError('TypeError: invalid type'))).toBe(true);
     });
 
     it('should not identify validation errors as critical', () => {
@@ -273,4 +264,3 @@ describe('ErrorHandlingService', () => {
     });
   });
 });
-

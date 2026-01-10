@@ -30,12 +30,15 @@ See [Installation](#installation) section for detailed steps.
 - **Automatic Retention**: 30-day automatic data cleanup
 - **Resilient**: Graceful error handling, never breaks on bad events
 - **Simple & Maintainable**: Built for junior developers
-- **Security**: Input sanitization to prevent XSS attacks
+- **Security**: Input sanitization to prevent XSS attacks, comprehensive security tests
 - **Rate Limiting**: Per-IP rate limiting to prevent abuse
 - **Observability**: Prometheus metrics, Grafana dashboards, correlation IDs for request tracking, business metrics
 - **Circuit Breaker**: Automatic protection against database failures
 - **100% Decoupled Architecture**: All services use interfaces for complete decoupling
-- **Comprehensive Testing**: 37 test files with 200+ test cases covering all components
+- **Comprehensive Testing**: 37 test files with 200+ test cases covering all components, including security tests
+- **Dead Letter Queue (DLQ)**: Events that permanently fail are stored for manual review/reprocessing
+- **Metadata Compression**: Automatic compression of large metadata (>1KB) to save storage space
+- **Enhanced Health Checks**: Detailed health information including memory, database latency, and connection pool status
 
 ## Architecture
 
@@ -210,6 +213,7 @@ The API will be available at `http://localhost:3000`
 ```bash
 POST /events
 Content-Type: application/json
+X-API-KEY: your-api-key  # (Required when authentication is enabled)
 
 {
   "timestamp": "2024-01-15T10:30:00.000Z",
@@ -221,6 +225,8 @@ Content-Type: application/json
   }
 }
 ```
+
+**Note:** Metadata larger than 1KB is automatically compressed to save storage space.
 
 **Response (202):**
 ```json
@@ -303,6 +309,60 @@ GET /health/business
 
 **Note:** Metrics are cached for 1 minute to reduce database load.
 
+### Dead Letter Queue (DLQ)
+
+```bash
+# List events in Dead Letter Queue
+GET /dlq?service=auth-service&reprocessed=false&limit=100&offset=0
+
+# Get DLQ statistics
+GET /dlq/statistics
+
+# Get specific DLQ event
+GET /dlq/:id
+
+# Reprocess a DLQ event (re-enqueue to buffer)
+PATCH /dlq/:id/reprocess
+
+# Delete DLQ event permanently
+DELETE /dlq/:id
+```
+
+**Response (list):**
+```json
+{
+  "events": [
+    {
+      "id": "uuid-123",
+      "eventId": "evt_abc123",
+      "service": "auth-service",
+      "failureReason": "Max retries (3) exceeded",
+      "retryCount": 3,
+      "lastAttemptAt": "2024-01-15T10:35:00.000Z",
+      "reprocessed": false,
+      "createdAt": "2024-01-15T10:35:00.000Z"
+    }
+  ],
+  "total": 125,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Response (statistics):**
+```json
+{
+  "total": 125,
+  "byService": {
+    "auth-service": 50,
+    "payment-service": 75
+  },
+  "reprocessed": 10,
+  "pending": 115,
+  "oldestEvent": "2024-01-14T10:00:00.000Z"
+}
+```
+
 ### Health Check
 
 ```bash
@@ -318,9 +378,17 @@ GET /health
 
 Additional health endpoints:
 - `GET /health/buffer` - Buffer status and metrics
-- `GET /health/database` - Database connectivity and circuit breaker status
-- `GET /health/detailed` - Complete system status (includes business metrics)
+- `GET /health/database` - Database connectivity, latency, and circuit breaker status
+- `GET /health/detailed` - Complete system status (includes memory, database, buffer, circuit breaker, business metrics, uptime, environment info)
 - `GET /health/business` - Business metrics and insights (event patterns, service usage, trends)
+
+**Enhanced Health Check (`/health/detailed`) includes:**
+- Memory usage (heap, RSS, external, usage percentage)
+- Database query latency
+- Connection pool information
+- Overall system status (healthy/warning/critical/error)
+- Uptime and response time
+- Environment information (Node.js version, platform, PID)
 
 ## Project Structure
 
@@ -485,6 +553,24 @@ The application exposes the following Prometheus metrics:
 
 **📖 For detailed Docker setup and troubleshooting**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
 
+## Recent Improvements (January 2024)
+
+The following improvements have been implemented:
+
+- ✅ **Dead Letter Queue (DLQ)** - Events that permanently fail after all retries are now stored in DLQ for manual review/reprocessing
+- ✅ **Improved Retry Handling** - System now identifies specific events that fail instead of retrying entire batches
+- ✅ **Metadata Compression** - Large metadata (>1KB) is automatically compressed to save storage space (50-70% reduction)
+- ✅ **Enhanced Health Checks** - Health endpoints now include memory usage, database latency, connection pool info, and overall system status
+- ✅ **Security Tests** - Comprehensive E2E security tests covering XSS, SQL injection, rate limiting, input validation, and more
+- ✅ **Deployment Documentation** - Complete deployment guide with Docker, PM2, systemd configurations, backup procedures, and disaster recovery plan
+- ✅ **Logger Improvements** - Replaced console.log with process.stdout.write for better control and performance
+
+See `docs/MEJORAS_IDENTIFICADAS.md` for complete analysis and `docs/MEJORAS_CRITICAS_DETALLADAS.md` for critical improvements guide.
+
+## Recent Improvements
+
+✅ **9 major improvements implemented** including Dead Letter Queue, metadata compression, enhanced health checks, security tests, and comprehensive deployment documentation. See `docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md` for details.
+
 ## Documentation
 
 The project includes comprehensive documentation in the `docs/` folder:
@@ -499,6 +585,12 @@ The project includes comprehensive documentation in the `docs/` folder:
 - **`docs/DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
 - **`docs/TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
 - **`docs/OBSERVABILITY_ANALYSIS.md`** - Prometheus and Grafana observability setup and analysis
+- **`docs/DEPLOYMENT.md`** - Complete deployment guide for production environments
+- **`docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md`** - Summary of all improvements implemented
+
+### Improvements & Analysis Documentation
+- **`docs/MEJORAS_IDENTIFICADAS.md`** - Complete analysis of improvements identified across all areas (security, performance, code quality, etc.)
+- **`docs/MEJORAS_CRITICAS_DETALLADAS.md`** - Detailed implementation guide for critical improvements (API Keys, Migrations, Backup)
 
 ### Exercise Documentation (Aurore Labs Assignment)
 - **`docs/part-a/`** - Part A: Design and MVP system architecture (7 documents)

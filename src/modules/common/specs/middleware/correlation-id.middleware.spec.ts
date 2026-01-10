@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 
 import { CorrelationIdMiddleware } from '../../middleware/correlation-id.middleware';
 
-
 describe('CorrelationIdMiddleware', () => {
   let middleware: CorrelationIdMiddleware;
 
@@ -39,7 +38,10 @@ describe('CorrelationIdMiddleware', () => {
       middleware.use(req, res, next);
 
       expect((req as any).correlationId).toBe(correlationId);
-      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', correlationId);
+      expect((res as any).setHeader).toHaveBeenCalledWith(
+        'X-Correlation-Id',
+        correlationId,
+      );
       expect(next).toHaveBeenCalled();
     });
 
@@ -59,8 +61,13 @@ describe('CorrelationIdMiddleware', () => {
       middleware.use(req, res, next);
 
       expect((req as any).correlationId).toBeDefined();
-      expect((req as any).correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', (req as any).correlationId);
+      expect((req as any).correlationId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+      expect((res as any).setHeader).toHaveBeenCalledWith(
+        'X-Correlation-Id',
+        (req as any).correlationId,
+      );
       expect(next).toHaveBeenCalled();
     });
 
@@ -82,8 +89,13 @@ describe('CorrelationIdMiddleware', () => {
       middleware.use(req, res, next);
 
       expect((req as any).correlationId).toBeDefined();
-      expect((req as any).correlationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', (req as any).correlationId);
+      expect((req as any).correlationId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+      expect((res as any).setHeader).toHaveBeenCalledWith(
+        'X-Correlation-Id',
+        (req as any).correlationId,
+      );
       expect(next).toHaveBeenCalled();
     });
 
@@ -124,7 +136,10 @@ describe('CorrelationIdMiddleware', () => {
 
       middleware.use(req, res, next);
 
-      expect((res as any).setHeader).toHaveBeenCalledWith('X-Correlation-Id', correlationId);
+      expect((res as any).setHeader).toHaveBeenCalledWith(
+        'X-Correlation-Id',
+        correlationId,
+      );
       expect((res as any).setHeader).toHaveBeenCalledTimes(1);
     });
 
@@ -232,4 +247,3 @@ describe('CorrelationIdMiddleware', () => {
     });
   });
 });
-

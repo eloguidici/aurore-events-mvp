@@ -39,6 +39,15 @@ lerna-debug.log*
 *.sqlite
 *.sqlite3
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+
 # Checkpoints
 /checkpoints
 checkpoints/

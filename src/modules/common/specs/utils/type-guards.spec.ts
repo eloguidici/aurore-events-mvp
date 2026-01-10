@@ -76,7 +76,7 @@ describe('Type Guards', () => {
       // Note: JavaScript's Date constructor can parse various string formats as valid dates
       // The function first tries ISO 8601 format, then tries Unix epoch (checking if > 0)
       // Some edge cases might be parsed as valid dates by JavaScript even if they look invalid
-      
+
       // Test with clearly invalid formats that won't parse as dates
       // 'xyz' won't parse as ISO or epoch
       expect(isValidDateString('xyz')).toBe(false);
@@ -84,7 +84,7 @@ describe('Type Guards', () => {
       expect(isValidDateString('not-a-date-string')).toBe(false);
       // String with special characters
       expect(isValidDateString('@#$%')).toBe(false);
-      
+
       // The function checks epoch > 0, so we verify positive epochs work
       // What matters is that clearly invalid strings that can't be parsed return false
     });
@@ -275,4 +275,3 @@ describe('Type Guards', () => {
     });
   });
 });
-

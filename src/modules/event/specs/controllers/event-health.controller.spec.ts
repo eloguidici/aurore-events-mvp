@@ -1,23 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 import { CIRCUIT_BREAKER_SERVICE_TOKEN } from '../../../common/services/interfaces/circuit-breaker-service.token';
 import { HEALTH_SERVICE_TOKEN } from '../../../common/services/interfaces/health-service.token';
-import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
 import { RateLimitingConfig } from '../../../config/interfaces/rate-limiting-config.interface';
+import { CONFIG_TOKENS } from '../../../config/tokens/config.tokens';
+import { EventHealthController } from '../../controllers/event-health.controller';
 import { Event } from '../../entities/event.entity';
 import { BusinessMetricsService } from '../../services/business-metrics.service';
 import { EVENT_BUFFER_SERVICE_TOKEN } from '../../services/interfaces/event-buffer-service.token';
-import { EventHealthController } from '../../controllers/event-health.controller';
 
 describe('EventHealthController', () => {
   let controller: EventHealthController;
-  let eventRepository: Repository<Event>;
-  let healthService: any;
-  let circuitBreaker: any;
-  let eventBufferService: any;
-  let businessMetricsService: BusinessMetricsService;
 
   const mockEventRepository = {
     query: jest.fn(),
@@ -80,13 +74,6 @@ describe('EventHealthController', () => {
     }).compile();
 
     controller = module.get<EventHealthController>(EventHealthController);
-    eventRepository = module.get<Repository<Event>>(getRepositoryToken(Event));
-    healthService = module.get(HEALTH_SERVICE_TOKEN);
-    circuitBreaker = module.get(CIRCUIT_BREAKER_SERVICE_TOKEN);
-    eventBufferService = module.get(EVENT_BUFFER_SERVICE_TOKEN);
-    businessMetricsService = module.get<BusinessMetricsService>(
-      BusinessMetricsService,
-    );
 
     jest.clearAllMocks();
   });
@@ -97,7 +84,11 @@ describe('EventHealthController', () => {
 
   describe('checkDatabase', () => {
     it('should return healthy status when database is connected', async () => {
-      mockEventRepository.query.mockResolvedValue([{ '?column?': 1 }]);
+      // Mock the health check query
+      mockEventRepository.query
+        .mockResolvedValueOnce([{ '?column?': 1 }]) // First call for health check
+        .mockResolvedValueOnce([{ active_connections: '0' }]); // Second call for connection pool info
+
       mockCircuitBreaker.getState.mockReturnValue('CLOSED');
       mockCircuitBreaker.getMetrics.mockReturnValue({
         failureCount: 0,
@@ -106,14 +97,22 @@ describe('EventHealthController', () => {
 
       const result = await controller.checkDatabase();
 
-      expect(result).toEqual({
-        status: 'healthy',
+      expect(result).toMatchObject({
+        status: expect.stringMatching(/healthy|warning/),
         database: 'connected',
         circuitBreaker: {
           state: 'CLOSED',
           failureCount: 0,
           successCount: 10,
         },
+      });
+      expect(result).toHaveProperty('queryLatencyMs');
+      expect(result).toHaveProperty('timestamp');
+      expect(result).toHaveProperty('connectionPool');
+      expect(result.connectionPool).toMatchObject({
+        active: expect.any(Number),
+        idle: expect.any(Number),
+        waiting: expect.any(Number),
       });
       expect(mockEventRepository.query).toHaveBeenCalledWith('SELECT 1');
     });
@@ -129,7 +128,7 @@ describe('EventHealthController', () => {
 
       const result = await controller.checkDatabase();
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         status: 'unhealthy',
         database: 'disconnected',
         error: 'Database connection failed',
@@ -139,6 +138,8 @@ describe('EventHealthController', () => {
           successCount: 0,
         },
       });
+      expect(result).toHaveProperty('queryLatencyMs');
+      expect(result).toHaveProperty('timestamp');
     });
 
     it('should sanitize error message when error message is not a string', async () => {
@@ -266,7 +267,9 @@ describe('EventHealthController', () => {
       expect(result.database.status).toBe('unhealthy');
       expect(result.business).toHaveProperty('status');
       expect((result.business as any).status).toBe('error');
-      expect((result.business as any).error).toBe('Business metrics unavailable');
+      expect((result.business as any).error).toBe(
+        'Business metrics unavailable',
+      );
     });
   });
 
@@ -301,4 +304,3 @@ describe('EventHealthController', () => {
     });
   });
 });
-

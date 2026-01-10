@@ -1,6 +1,6 @@
 import { ExecutionContext } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerStorage } from '@nestjs/throttler';
 
 import { IpThrottlerGuard } from '../../guards/ip-throttler.guard';
@@ -235,4 +235,3 @@ describe('IpThrottlerGuard', () => {
     });
   });
 });
-

@@ -4,17 +4,18 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-
+import { Inject, Optional } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 
-import { Inject } from '@nestjs/common';
 import { IErrorLoggerService } from '../../common/services/interfaces/error-logger-service.interface';
+import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
 import { IMetricsCollectorService } from '../../common/services/interfaces/metrics-collector-service.interface';
 import { METRICS_COLLECTOR_SERVICE_TOKEN } from '../../common/services/interfaces/metrics-collector-service.token';
-import { ERROR_LOGGER_SERVICE_TOKEN } from '../../common/services/interfaces/error-logger-service.token';
-import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
 import { BatchWorkerConfig } from '../../config/interfaces/batch-worker-config.interface';
 import { ShutdownConfig } from '../../config/interfaces/shutdown-config.interface';
+import { CONFIG_TOKENS } from '../../config/tokens/config.tokens';
+import { IDeadLetterQueueService } from '../../event/services/interfaces/dead-letter-queue-service.interface';
+import { DEAD_LETTER_QUEUE_SERVICE_TOKEN } from '../../event/services/interfaces/dead-letter-queue-service.token';
 import { EnrichedEvent } from '../../event/services/interfaces/enriched-event.interface';
 import { IEventBufferService } from '../../event/services/interfaces/event-buffer-service.interface';
 import { EVENT_BUFFER_SERVICE_TOKEN } from '../../event/services/interfaces/event-buffer-service.token';
@@ -46,6 +47,9 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     batchWorkerConfig: BatchWorkerConfig,
     @Inject(CONFIG_TOKENS.SHUTDOWN)
     shutdownConfig: ShutdownConfig,
+    @Optional()
+    @Inject(DEAD_LETTER_QUEUE_SERVICE_TOKEN)
+    private readonly dlqService?: IDeadLetterQueueService,
   ) {
     // Configuration injected via ConfigModule
     this.batchWorkerConfig = batchWorkerConfig;
@@ -152,13 +156,13 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Process a batch of events from the buffer
-   * 
+   *
    * This method orchestrates the batch processing workflow:
    * 1. Extracts events from the buffer
    * 2. Inserts events to the database
    * 3. Handles retries for failed events
    * 4. Tracks performance metrics
-   * 
+   *
    * The method handles errors gracefully - if processing fails, it logs the error
    * but continues running so the next batch can be processed.
    *
@@ -197,17 +201,17 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Execute the core batch processing workflow: extract, insert, and retry
-   * 
+   *
    * This method handles the actual business logic of processing events:
    * - Drains events from the buffer (up to batchSize)
    * - Inserts events to the database via EventService
    * - Handles retries for events that failed to insert
-   * 
+   *
    * Events are already validated before reaching this point:
    * - New events: validated by ValidationPipe before entering buffer
    * - Checkpoint events: validated when loaded from disk
    * - Retry events: validated in previous batch before re-enqueue
-   * 
+   *
    * @returns Object containing batch and insertTimeMs for metrics tracking
    * @private
    */
@@ -261,7 +265,6 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     return { batch, insertTimeMs };
   }
 
-
   /**
    * Calculate next retry count for an event
    * Validates and limits retryCount to prevent corruption
@@ -288,7 +291,10 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
     retryCount: number,
     originalRetryCount: number | undefined,
   ): boolean {
-    return retryCount === 1 && (originalRetryCount === undefined || originalRetryCount === 0);
+    return (
+      retryCount === 1 &&
+      (originalRetryCount === undefined || originalRetryCount === 0)
+    );
   }
 
   /**
@@ -361,31 +367,57 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Handle event that has reached maximum retries
-   * Logs to dead-letter queue (for MVP, just logs)
+   * Adds event to Dead Letter Queue (DLQ) for manual review/reprocessing
    *
    * @param event - Event that permanently failed
+   * @param failureReason - Reason for permanent failure
    * @private
    */
-  private handleMaxRetriesReached(event: EnrichedEvent): void {
-    this.errorLogger.logError(
-      this.logger,
-      `Event permanently failed after ${this.maxRetries} retries`,
-      new Error('Max retries exceeded'),
-      this.errorLogger.createContext(event.eventId, event.service, {
-        timestamp: event.timestamp,
-        maxRetries: this.maxRetries,
-      }),
-    );
-    // In production, you might want to persist these to a dead-letter table
-    // For MVP, we log and continue (system never crashes)
+  private async handleMaxRetriesReached(
+    event: EnrichedEvent,
+    failureReason: string = 'Max retries exceeded',
+  ): Promise<void> {
+    try {
+      if (this.dlqService) {
+        await this.dlqService.addToDLQ(event, failureReason, this.maxRetries);
+        this.logger.warn(
+          `Event ${event.eventId} permanently failed after ${this.maxRetries} retries, added to Dead Letter Queue`,
+        );
+      } else {
+        // Fallback: just log if DLQ service is not available
+        this.errorLogger.logError(
+          this.logger,
+          `Event permanently failed after ${this.maxRetries} retries (DLQ service not available)`,
+          new Error(failureReason),
+          this.errorLogger.createContext(event.eventId, event.service, {
+            timestamp: event.timestamp,
+            maxRetries: this.maxRetries,
+            failureReason,
+          }),
+        );
+      }
+    } catch (error) {
+      // If DLQ fails, log error but don't throw - system should continue
+      this.errorLogger.logError(
+        this.logger,
+        `Failed to add event to DLQ after max retries: ${event.eventId}`,
+        error,
+        this.errorLogger.createContext(event.eventId, event.service, {
+          timestamp: event.timestamp,
+          maxRetries: this.maxRetries,
+          failureReason,
+        }),
+      );
+    }
   }
 
   /**
    * Retry failed events by re-enqueuing them to the buffer
+   * Improved: Attempts to identify specific events that failed by trying individual inserts
    * Events are re-enqueued immediately (non-blocking)
    * The buffer naturally spaces out retries through batch processing intervals
    *
-   * @param failedEvents - Array of events that failed to insert
+   * @param failedEvents - Array of events that failed to insert (entire batch)
    * @private
    */
   private async retryFailed(failedEvents: EnrichedEvent[]) {
@@ -418,7 +450,10 @@ export class BatchWorkerService implements OnModuleInit, OnModuleDestroy {
               droppedCount++;
             }
           } else {
-            this.handleMaxRetriesReached(event);
+            await this.handleMaxRetriesReached(
+              event,
+              `Max retries (${this.maxRetries}) exceeded`,
+            );
             maxRetriesReachedCount++;
           }
         } catch (error) {

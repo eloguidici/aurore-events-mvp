@@ -1,6 +1,9 @@
 import { validate } from 'class-validator';
 
-import { IsValidTimeRange, IsValidTimeRangeConstraint } from '../../decorators/valid-time-range.decorator';
+import {
+  IsValidTimeRange,
+  IsValidTimeRangeConstraint,
+} from '../../decorators/valid-time-range.decorator';
 
 class TestDto {
   from: string;
@@ -240,4 +243,3 @@ describe('IsValidTimeRange', () => {
     });
   });
 });
-

@@ -217,7 +217,9 @@ describe('ErrorLoggerService', () => {
         logger,
         'Something went wrong',
         error,
-        service.createContext('evt_123', 'test-service', { userId: 'user_456' }),
+        service.createContext('evt_123', 'test-service', {
+          userId: 'user_456',
+        }),
       );
 
       expect(errorSpy).toHaveBeenCalledWith(
@@ -233,4 +235,3 @@ describe('ErrorLoggerService', () => {
     });
   });
 });
-

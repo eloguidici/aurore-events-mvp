@@ -1,22 +1,24 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
-import { CIRCUIT_BREAKER_SERVICE_TOKEN } from './services/interfaces/circuit-breaker-service.token';
+import { EventModule } from '../event/event.module';
+import { PrometheusController } from './controllers/prometheus.controller';
 import { CircuitBreakerService } from './services/circuit-breaker.service';
-import { ERROR_LOGGER_SERVICE_TOKEN } from './services/interfaces/error-logger-service.token';
-import { ErrorLoggerService } from './services/error-logger.service';
+import { CompressionService } from './services/compression.service';
 import { ErrorHandlingService } from './services/error-handling.service';
-import { HEALTH_SERVICE_TOKEN } from './services/interfaces/health-service.token';
+import { ErrorLoggerService } from './services/error-logger.service';
 import { HealthService } from './services/health.service';
-import { MetricsCollectorService } from './services/metrics-collector.service';
+import { CIRCUIT_BREAKER_SERVICE_TOKEN } from './services/interfaces/circuit-breaker-service.token';
+import { COMPRESSION_SERVICE_TOKEN } from './services/interfaces/compression-service.token';
+import { ERROR_LOGGER_SERVICE_TOKEN } from './services/interfaces/error-logger-service.token';
+import { HEALTH_SERVICE_TOKEN } from './services/interfaces/health-service.token';
 import { METRICS_COLLECTOR_SERVICE_TOKEN } from './services/interfaces/metrics-collector-service.token';
 import { SANITIZER_SERVICE_TOKEN } from './services/interfaces/sanitizer-service.token';
-import { SanitizerService } from './services/sanitizer.service';
-import { PrometheusController } from './controllers/prometheus.controller';
+import { MetricsCollectorService } from './services/metrics-collector.service';
 import { PrometheusService } from './services/prometheus.service';
-import { EventModule } from '../event/event.module';
+import { SanitizerService } from './services/sanitizer.service';
 
 @Module({
-  imports: [EventModule], // Required for BusinessMetricsService
+  imports: [forwardRef(() => EventModule)], // Required for BusinessMetricsService - using forwardRef to resolve circular dependency
   controllers: [PrometheusController],
   providers: [
     HealthService,
@@ -45,6 +47,11 @@ import { EventModule } from '../event/event.module';
       provide: SANITIZER_SERVICE_TOKEN,
       useClass: SanitizerService,
     },
+    CompressionService,
+    {
+      provide: COMPRESSION_SERVICE_TOKEN,
+      useClass: CompressionService,
+    },
     PrometheusService,
   ],
   exports: [
@@ -58,6 +65,8 @@ import { EventModule } from '../event/event.module';
     ERROR_LOGGER_SERVICE_TOKEN,
     SanitizerService,
     SANITIZER_SERVICE_TOKEN,
+    CompressionService,
+    COMPRESSION_SERVICE_TOKEN,
     PrometheusService,
   ],
 })

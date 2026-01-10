@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { ERROR_LOGGER_SERVICE_TOKEN } from './modules/common/services/interfaces/error-logger-service.token';
-import { HealthService } from './modules/common/services/health.service';
-import { MESSAGES } from './modules/common/constants/constants';
 import { AppController } from './app.controller';
+import { MESSAGES } from './modules/common/constants/constants';
+import { HealthService } from './modules/common/services/health.service';
+import { ERROR_LOGGER_SERVICE_TOKEN } from './modules/common/services/interfaces/error-logger-service.token';
 
 describe('AppController', () => {
   let controller: AppController;
@@ -282,4 +282,3 @@ describe('AppController', () => {
     });
   });
 });
-

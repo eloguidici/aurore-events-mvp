@@ -55,4 +55,3 @@ describe('BusinessMetricsDto', () => {
     expect(dto.eventsByHour).toEqual([]);
   });
 });
-

@@ -8,4 +8,3 @@ export interface RateLimitingConfig {
   queryLimit: number;
   healthLimit: number;
 }
-
