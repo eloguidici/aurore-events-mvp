@@ -13,6 +13,7 @@ import {
 import { Inject } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import 'express'; // Ensure type augmentation is loaded
 /// <reference path="../../types/express.d.ts" />
 import { Request } from 'express';
 

@@ -814,27 +814,33 @@ export class EventBufferService
    */
   private isValid(event: unknown): event is EnrichedEvent {
     // Early return: check basic structure
+    if (!event || typeof event !== 'object') {
+      return false;
+    }
+
+    // Type guard: cast to Record<string, unknown> to access properties safely
+    const eventRecord = event as Record<string, unknown>;
+
+    // Check required properties exist and are strings
     if (
-      !event ||
-      typeof event !== 'object' ||
-      typeof event.eventId !== 'string' ||
-      typeof event.timestamp !== 'string' ||
-      typeof event.service !== 'string' ||
-      typeof event.message !== 'string' ||
-      typeof event.ingestedAt !== 'string'
+      typeof eventRecord.eventId !== 'string' ||
+      typeof eventRecord.timestamp !== 'string' ||
+      typeof eventRecord.service !== 'string' ||
+      typeof eventRecord.message !== 'string' ||
+      typeof eventRecord.ingestedAt !== 'string'
     ) {
       return false;
     }
 
     // Validate eventId format: must start with 'evt_' and have 12 hex characters
     const eventIdPattern = /^evt_[0-9a-f]{12}$/i;
-    if (!eventIdPattern.test(event.eventId)) {
+    if (!eventIdPattern.test(eventRecord.eventId)) {
       return false;
     }
 
     // Validate timestamps are parseable
-    const timestampDate = new Date(event.timestamp);
-    const ingestedDate = new Date(event.ingestedAt);
+    const timestampDate = new Date(eventRecord.timestamp);
+    const ingestedDate = new Date(eventRecord.ingestedAt);
     if (isNaN(timestampDate.getTime()) || isNaN(ingestedDate.getTime())) {
       return false;
     }

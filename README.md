@@ -669,7 +669,10 @@ The application includes **Prometheus** and **Grafana** for observability:
   - Dashboard automatically loaded via provisioning: `grafana/dashboards/aurore-dashboard.json`
   - Pre-configured Prometheus datasource
 
+
   ![Grafana Dashboard](docs/images/grafana-dashboard.png)
+
+  
 
 **All services start automatically** when you run `docker-compose up -d`.
 
