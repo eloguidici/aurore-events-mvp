@@ -747,6 +747,7 @@ The project includes comprehensive documentation in the `docs/` folder:
 - **`docs/ARCHITECTURE.md`** - Complete architecture documentation, class responsibilities, design patterns, and data flow diagrams
 - **`docs/TESTING.md`** - Testing strategy, unit test coverage, E2E tests, and testing best practices
 - **`docs/HOW_IT_WORKS.md`** - Detailed explanation of system operation and data flow
+- **`docs/DIAGRAMAS_UML.md`** - UML diagrams (Mermaid): architecture, sequence diagrams, state diagrams, and system flows
 
 ### Quick Start & Setup
 - **`docs/QUICK_START.md`** - Quick start guide (2-3 commands to get started)
