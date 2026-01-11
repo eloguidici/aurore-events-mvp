@@ -19,12 +19,14 @@
 1. **Clic en el menú (☰) → Dashboards**
 2. **Busca**: "Aurore Events - Complete Dashboard"
 3. **Clic en el dashboard** para abrirlo
-4. **Verás 16 paneles** con todas las métricas organizadas:
+4. **Verás 21 paneles** con todas las métricas organizadas:
    - Buffer Metrics (6 paneles)
    - Batch Worker Metrics (2 paneles)
    - Business Metrics (2 paneles)
    - Health Metrics (4 paneles)
    - Infrastructure Metrics (2 paneles)
+   - Logs (4 paneles)
+   - PostgreSQL Queries (1 panel) - Top queries by execution time
 
 **El dashboard se carga automáticamente** cuando Grafana inicia gracias a la configuración de provisioning.
 

@@ -1,8 +1,49 @@
-# Scripts de Testing
+# Scripts de Testing y Carga
 
-Scripts para probar el sistema de eventos bajo diferentes condiciones de carga.
+Scripts para probar el sistema de eventos bajo diferentes condiciones de carga y realizar pruebas manuales.
 
-## 🚀 Load Test (Script Principal)
+---
+
+## 📋 Índice
+
+- [🚀 Inicio Rápido](#-inicio-rápido)
+- [📊 Load Test (Principal)](#-load-test-script-principal)
+- [⚡ Load Test Paralelo](#-load-test-paralelo)
+- [🗑️ Limpiar Base de Datos](#-script-de-limpieza-de-base-de-datos)
+- [🧪 Test Simple de Ingesta](#-script-de-prueba-simple)
+- [📈 Entendiendo los Resultados](#-entendiendo-los-resultados)
+- [🔧 Configuración](#-configuración-del-sistema)
+
+---
+
+## 🚀 Inicio Rápido
+
+### Prueba rápida de ingesta
+```bash
+# Probar ingesta de un evento simple
+./scripts/test-ingestion.sh
+```
+
+### Test de carga básico
+```bash
+# 5000 eventos por minuto durante 60 segundos
+npm run load-test 5000
+```
+
+### Test de carga paralelo (alta carga)
+```bash
+# 10 clientes, cada uno enviando 20,000 eventos/minuto = 3,333 eventos/seg
+npm run load-test:parallel 10 20000 60
+```
+
+### Limpiar base de datos antes de un test
+```bash
+npm run clear-db
+```
+
+---
+
+## 📊 Load Test (Script Principal)
 
 Script unificado para realizar pruebas de carga con configuración simple.
 
@@ -118,7 +159,26 @@ BATCH_MAX_SIZE=10000       # Límite máximo del batch para prevenir problemas d
 - El script usa `pageSize: 1000` para las consultas (respeta el límite `MAX_QUERY_LIMIT`)
 - Todos los valores de configuración son ahora dinámicos a través de variables de entorno
 
-## 🗑️ Script de limpieza de base de datos
+## ⚡ Load Test Paralelo
+
+Para alcanzar tasas altas de carga (hasta 5000 eventos/segundo), usa el script paralelo.
+
+**📖 Ver documentación completa:** [`README_PARALLEL.md`](README_PARALLEL.md)
+
+### Uso rápido:
+```bash
+npm run load-test:parallel [num_clientes] [eventos_por_minuto_por_cliente] [duracion_segundos]
+```
+
+### Ejemplo:
+```bash
+# 15 clientes, cada uno enviando 20,000 eventos/min = 5,000 eventos/seg
+npm run load-test:parallel 15 20000 60
+```
+
+---
+
+## 🗑️ Script de Limpieza de Base de Datos
 
 Para limpiar todos los eventos de la base de datos antes de un test:
 
@@ -126,13 +186,15 @@ Para limpiar todos los eventos de la base de datos antes de un test:
 npm run clear-db
 ```
 
-Este script:
+**Qué hace:**
 - Conecta a la base de datos usando la configuración de NestJS
 - Cuenta los eventos existentes
 - Elimina todos los eventos
 - Verifica que la eliminación fue exitosa
 
-## 🧪 Script de prueba simple
+---
+
+## 🧪 Script de Prueba Simple
 
 Para pruebas rápidas sin carga, puedes usar el script bash:
 
@@ -141,7 +203,9 @@ Para pruebas rápidas sin carga, puedes usar el script bash:
 ./scripts/test-ingestion.sh
 ```
 
-Este script:
+**Qué hace:**
 - Envía un evento de prueba
-- Verifica el estado del buffer
-- Consulta eventos recientes
+- Verifica el estado del buffer (`/metrics`)
+- Consulta eventos recientes (`GET /events`)
+
+**Nota:** Requiere que el servidor esté corriendo en `http://localhost:3000`

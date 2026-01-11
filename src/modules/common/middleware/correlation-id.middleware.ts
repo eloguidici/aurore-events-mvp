@@ -1,6 +1,6 @@
 import 'express'; // Ensure type augmentation is loaded
 
-import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,8 +10,6 @@ import { v4 as uuidv4 } from 'uuid';
  */
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
-  private readonly logger = new Logger(CorrelationIdMiddleware.name);
-
   use(req: Request, res: Response, next: NextFunction) {
     // Get correlation ID from header or generate a new one
     const headerCorrelationId = req.headers['x-correlation-id'];
@@ -25,13 +23,6 @@ export class CorrelationIdMiddleware implements NestMiddleware {
 
     // Add to response header for client tracking
     res.setHeader('X-Correlation-Id', correlationId);
-
-    // Add to logger context (if using structured logging)
-    this.logger.debug(`Request with correlation ID: ${correlationId}`, {
-      correlationId,
-      method: req.method,
-      path: req.path,
-    });
 
     next();
   }

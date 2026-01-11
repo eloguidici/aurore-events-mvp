@@ -32,7 +32,7 @@ See [Installation](#installation) section for detailed steps.
 - **Simple & Maintainable**: Built for junior developers
 - **Security**: Input sanitization to prevent XSS attacks, comprehensive security tests
 - **Rate Limiting**: Per-IP rate limiting to prevent abuse
-- **Observability**: Prometheus metrics, Grafana dashboards, correlation IDs for request tracking, business metrics
+- **Observability**: Prometheus metrics, Loki logs aggregation, Grafana dashboards, correlation IDs for request tracking, business metrics
 - **Circuit Breaker**: Automatic protection against database failures
 - **100% Decoupled Architecture**: All services use interfaces for complete decoupling
 - **Comprehensive Testing**: 37 test files with 200+ test cases covering all components, including security tests
@@ -604,7 +604,7 @@ npm run format
 
 **Linux/Mac/bash:**
 ```bash
-# Start all services (PostgreSQL, Prometheus, Grafana)
+# Start all services (PostgreSQL, Postgres Exporter, Prometheus, Loki, Promtail, Grafana)
 docker-compose up -d
 
 # Stop all services
@@ -612,6 +612,9 @@ docker-compose down
 
 # View PostgreSQL logs
 docker-compose logs postgres
+
+# View Postgres Exporter logs
+docker-compose logs postgres_exporter
 
 # View Prometheus logs
 docker-compose logs prometheus
@@ -628,7 +631,7 @@ docker-compose ps
 
 **Windows PowerShell:**
 ```powershell
-# Start all services (PostgreSQL, Prometheus, Grafana)
+# Start all services (PostgreSQL, Postgres Exporter, Prometheus, Loki, Promtail, Grafana)
 docker-compose up -d
 
 # Stop all services
@@ -636,6 +639,9 @@ docker-compose down
 
 # View PostgreSQL logs
 docker-compose logs postgres
+
+# View Postgres Exporter logs
+docker-compose logs postgres_exporter
 
 # View Prometheus logs
 docker-compose logs prometheus
@@ -654,18 +660,41 @@ docker-compose ps
 
 ## Observability
 
-The application includes **Prometheus** and **Grafana** for observability:
+The application includes **Prometheus**, **Postgres Exporter**, **Loki**, and **Grafana** for complete observability:
 
 - **Prometheus**: Available at http://localhost:9090
   - Scrapes metrics from the application every 15 seconds
+  - Scrapes PostgreSQL metrics from postgres_exporter every 15 seconds
   - Stores metrics for 30 days
   - Metrics endpoint: `GET /metrics/prometheus`
 
+- **Postgres Exporter**: Available at http://localhost:9187
+  - Exposes PostgreSQL metrics and query statistics
+  - Collects data from `pg_stat_statements` extension
+  - Exposes custom queries for detailed query performance analysis
+  - Metrics endpoint: `GET /metrics`
+
+- **Loki**: Available at http://localhost:3100
+  - Aggregates structured logs from all containers
+  - Logs stored for 30 days
+  - Logs are automatically collected by Promtail from Docker containers
+
 - **Grafana**: Available at http://localhost:3001
   - Default credentials: `admin` / `admin`
-  - **Complete Dashboard**: "Aurore Events - Complete Dashboard" with 16 panels covering all metrics
+  - **Complete Dashboard**: "Aurore Events - Complete Dashboard" with 21 panels covering metrics, logs, and SQL queries
   - Dashboard automatically loaded via provisioning: `grafana/dashboards/aurore-dashboard.json`
-  - Pre-configured Prometheus datasource
+  - Pre-configured datasources:
+    - **Prometheus** (metrics) - Application and PostgreSQL metrics
+    - **Loki** (logs) - Query logs using LogQL, filter by container, level, context, etc.
+    - **PostgreSQL** (direct SQL queries) - Execute SQL queries directly to view query performance, slow queries, and database statistics
+  - **View logs in dashboard**: The dashboard now includes 4 log panels:
+    - Application Logs (All Levels) - All logs from Aurore containers
+    - Error Logs Count - Count of error logs in the last 5 minutes
+    - Error Logs - Detailed error logs
+    - Logs by Level - Logs grouped by level (error, warn, info, etc.)
+  - **View SQL queries in dashboard**: The dashboard includes a panel showing top SQL queries by execution time using the PostgreSQL datasource
+  - **View logs in Explore**: Go to "Explore" → Select "Loki" datasource → Query logs with filters like `{container_name=~"aurore.*", level="error"}`
+  - **View SQL queries in Explore**: Go to "Explore" → Select "PostgreSQL" datasource → Execute SQL queries directly to analyze query performance
     
 
 
@@ -676,7 +705,10 @@ The application includes **Prometheus** and **Grafana** for observability:
 
 **All services start automatically** when you run `docker-compose up -d`.
 
-**Note**: Prometheus metrics are exposed via `PrometheusService` and `PrometheusController` in the `CommonModule` (located at `src/modules/common/services/prometheus.service.ts` and `src/modules/common/controllers/prometheus.controller.ts`).
+**Note**: 
+- Prometheus metrics are exposed via `PrometheusService` and `PrometheusController` in the `CommonModule` (located at `src/modules/common/services/prometheus.service.ts` and `src/modules/common/controllers/prometheus.controller.ts`).
+- PostgreSQL metrics are collected by `postgres_exporter` using the `pg_stat_statements` extension (enabled in `scripts/init-postgres.sql`).
+- Custom PostgreSQL queries are defined in `postgres-exporter/queries.yaml`.
 
 ### Accessing Metrics
 
@@ -717,13 +749,29 @@ Start-Process "http://localhost:3001"
 
 The application exposes the following Prometheus metrics:
 
+**Application Metrics** (from NestJS application):
 - **Buffer Metrics**: `buffer_size`, `buffer_capacity`, `buffer_utilization_percent`, `events_enqueued_total`, `events_dropped_total`, `events_drop_rate_percent`, `events_throughput_per_second`, `buffer_health_status`
 - **Batch Worker Metrics**: `batches_processed_total`, `events_processed_total`, `batch_processing_time_ms`, `batch_insert_time_ms`
 - **Business Metrics**: `business_events_total`, `business_events_last_24h`, `business_events_last_hour`, `business_events_by_service`
 - **Health Metrics**: `health_status`, `database_connection_status`, `circuit_breaker_state`
 - **Infrastructure Metrics**: `process_cpu_user_seconds_total`, `process_resident_memory_bytes`, `nodejs_heap_size_total_bytes`
 
+**PostgreSQL Metrics** (from postgres_exporter):
+- **Database Stats**: `pg_stat_database_numbackends`, `pg_stat_database_xact_commit`, `pg_stat_database_xact_rollback`, `pg_stat_database_blks_hit`, `pg_stat_database_blks_read`
+- **Query Performance**: `pg_stat_statements_calls`, `pg_stat_statements_mean_exec_time_seconds`, `pg_stat_statements_max_exec_time_seconds`, `pg_stat_statements_total_exec_time_seconds`, `pg_stat_statements_rows`
+- **Custom Query Metrics**: Additional metrics from `postgres-exporter/queries.yaml` for detailed query analysis
+
+**Viewing SQL Queries in Grafana**:
+- Use the PostgreSQL datasource to execute SQL queries directly
+- View top queries by execution time, most executed queries, and slow queries
+- Pre-configured views available: `slow_queries`, `top_queries_by_calls`
+- See [`docs/POSTGRES_QUERIES_IN_GRAFANA.md`](docs/POSTGRES_QUERIES_IN_GRAFANA.md) for detailed guide
+
 **📖 For detailed Docker setup and troubleshooting**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
+
+**📖 For information about metrics architecture**, see [`docs/ARQUITECTURA_METRICAS.md`](docs/ARQUITECTURA_METRICAS.md) and [`docs/DIFERENCIAS_METRICAS.md`](docs/DIFERENCIAS_METRICAS.md).
+
+**📖 For Grafana troubleshooting**, see [`docs/GRAFANA_METRICS_TROUBLESHOOTING.md`](docs/GRAFANA_METRICS_TROUBLESHOOTING.md) and [`docs/GRAFANA_QUICK_FIX.md`](docs/GRAFANA_QUICK_FIX.md).
 
 ## Recent Improvements (January 2024)
 
@@ -754,6 +802,15 @@ The project includes comprehensive documentation in the `docs/` folder:
 - **`docs/DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
 - **`docs/TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
 - **`docs/DEPLOYMENT.md`** - Complete deployment guide for production environments
+
+### Observability & Monitoring
+- **`docs/GRAFANA_GUIDE.md`** - Complete guide for viewing metrics in Grafana
+- **`docs/GRAFANA_METRICS_TROUBLESHOOTING.md`** - Detailed troubleshooting for metrics issues
+- **`docs/GRAFANA_QUICK_FIX.md`** - Quick fixes for common Grafana problems
+- **`docs/POSTGRES_QUERIES_IN_GRAFANA.md`** - Complete guide for viewing PostgreSQL queries in Grafana (includes how to add panels)
+- **`docs/ARQUITECTURA_METRICAS.md`** - Architecture documentation for the metrics system
+- **`docs/DIFERENCIAS_METRICAS.md`** - Explanation of differences between application and database metrics
+- **`docs/VERIFICACION_COMPLETA.md`** - Complete verification checklist for metrics system
 
 ### Improvements Documentation
 - **`docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md`** - Summary of all improvements implemented

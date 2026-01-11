@@ -33,3 +33,14 @@ scrape_configs:
           service: 'aurore-events'
           environment: 'development'
           instance: 'aurore-events-1'
+
+  # Scrape PostgreSQL metrics from postgres_exporter
+  - job_name: 'postgres'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+        labels:
+          service: 'postgres'
+          environment: 'development'
+          instance: 'postgres-1'

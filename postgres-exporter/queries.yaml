@@ -1,0 +1,81 @@
+# Custom queries for postgres_exporter
+# These queries expose additional PostgreSQL metrics
+
+pg_stat_statements:
+  query: |
+    SELECT
+      d.datname,
+      pss.query,
+      pss.calls,
+      pss.total_exec_time / 1000 as total_exec_time_seconds,
+      pss.mean_exec_time / 1000 as mean_exec_time_seconds,
+      pss.max_exec_time / 1000 as max_exec_time_seconds,
+      pss.min_exec_time / 1000 as min_exec_time_seconds,
+      pss.stddev_exec_time / 1000 as stddev_exec_time_seconds,
+      pss.rows,
+      pss.shared_blks_hit,
+      pss.shared_blks_read,
+      pss.shared_blks_dirtied,
+      pss.shared_blks_written,
+      pss.temp_blks_read,
+      pss.temp_blks_written,
+      pss.blk_read_time / 1000 as blk_read_time_seconds,
+      pss.blk_write_time / 1000 as blk_write_time_seconds
+    FROM pg_stat_statements pss
+    JOIN pg_database d ON pss.dbid = d.oid
+    WHERE pss.query NOT LIKE '%pg_stat_statements%'
+    ORDER BY pss.mean_exec_time DESC
+    LIMIT 100
+  master: true
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - query:
+        usage: "LABEL"
+        description: "Query text (first 200 chars)"
+    - calls:
+        usage: "COUNTER"
+        description: "Number of times executed"
+    - total_exec_time_seconds:
+        usage: "COUNTER"
+        description: "Total execution time in seconds"
+    - mean_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Mean execution time in seconds"
+    - max_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Max execution time in seconds"
+    - min_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Min execution time in seconds"
+    - stddev_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Standard deviation of execution time in seconds"
+    - rows:
+        usage: "COUNTER"
+        description: "Total rows retrieved or affected"
+    - shared_blks_hit:
+        usage: "COUNTER"
+        description: "Shared block cache hits"
+    - shared_blks_read:
+        usage: "COUNTER"
+        description: "Shared blocks read from disk"
+    - shared_blks_dirtied:
+        usage: "COUNTER"
+        description: "Shared blocks dirtied"
+    - shared_blks_written:
+        usage: "COUNTER"
+        description: "Shared blocks written"
+    - temp_blks_read:
+        usage: "COUNTER"
+        description: "Temporary blocks read"
+    - temp_blks_written:
+        usage: "COUNTER"
+        description: "Temporary blocks written"
+    - blk_read_time_seconds:
+        usage: "COUNTER"
+        description: "Time spent reading blocks in seconds"
+    - blk_write_time_seconds:
+        usage: "COUNTER"
+        description: "Time spent writing blocks in seconds"

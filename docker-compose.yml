@@ -16,6 +16,21 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "pg_stat_statements.track=all"
+      - "-c"
+      - "pg_stat_statements.max=10000"
+      - "-c"
+      - "track_activity_query_size=2048"
+      - "-c"
+      - "log_min_duration_statement=1000"
+      - "-c"
+      - "log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d aurore_events"]
       interval: 10s
@@ -24,6 +39,22 @@ services:
       start_period: 10s
     networks:
       - aurore-network
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: aurore-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://admin:admin@postgres:5432/aurore_events?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: /queries.yaml
+    volumes:
+      - ./postgres-exporter/queries.yaml:/queries.yaml:ro
+    networks:
+      - aurore-network
+    depends_on:
+      - postgres
 
   prometheus:
     image: prom/prometheus:latest
@@ -45,6 +76,33 @@ services:
     depends_on:
       - postgres
 
+  loki:
+    image: grafana/loki:latest
+    container_name: aurore-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - aurore-network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: aurore-promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - aurore-network
+    depends_on:
+      - loki
+
   grafana:
     image: grafana/grafana:latest
     container_name: aurore-grafana
@@ -64,6 +122,7 @@ services:
       - aurore-network
     depends_on:
       - prometheus
+      - loki
 
 networks:
   aurore-network:
@@ -75,5 +134,7 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  loki_data:
     driver: local
 

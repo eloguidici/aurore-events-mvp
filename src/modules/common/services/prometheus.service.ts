@@ -47,6 +47,13 @@ export class PrometheusService implements OnModuleInit {
   private readonly databaseConnectionStatus: promClient.Gauge;
   private readonly circuitBreakerState: promClient.Gauge;
 
+  // Database query metrics
+  private readonly dbQueryDuration: promClient.Histogram;
+  private readonly dbQueryTotal: promClient.Counter;
+  private readonly dbSlowQueriesTotal: promClient.Counter;
+  private readonly dbConnectionPoolActive: promClient.Gauge;
+  private readonly dbConnectionPoolIdle: promClient.Gauge;
+
   constructor(
     @Inject(METRICS_COLLECTOR_SERVICE_TOKEN)
     private readonly metricsCollector: IMetricsCollectorService,
@@ -182,6 +189,41 @@ export class PrometheusService implements OnModuleInit {
       help: 'Circuit breaker state (0=closed, 1=open, 2=half-open)',
       registers: [this.register],
     });
+
+    // Initialize database query metrics
+    this.dbQueryDuration = new promClient.Histogram({
+      name: 'db_query_duration_ms',
+      help: 'Database query execution time in milliseconds',
+      labelNames: ['query_type', 'operation'],
+      buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000],
+      registers: [this.register],
+    });
+
+    this.dbQueryTotal = new promClient.Counter({
+      name: 'db_query_total',
+      help: 'Total number of database queries',
+      labelNames: ['query_type', 'operation'],
+      registers: [this.register],
+    });
+
+    this.dbSlowQueriesTotal = new promClient.Counter({
+      name: 'db_slow_queries_total',
+      help: 'Total number of slow database queries (>1000ms)',
+      labelNames: ['query_type', 'operation'],
+      registers: [this.register],
+    });
+
+    this.dbConnectionPoolActive = new promClient.Gauge({
+      name: 'db_connection_pool_active',
+      help: 'Active database connections in pool',
+      registers: [this.register],
+    });
+
+    this.dbConnectionPoolIdle = new promClient.Gauge({
+      name: 'db_connection_pool_idle',
+      help: 'Idle database connections in pool',
+      registers: [this.register],
+    });
   }
 
   async onModuleInit() {
@@ -314,6 +356,42 @@ export class PrometheusService implements OnModuleInit {
   ): void {
     this.batchProcessingTimeMs.observe(processingTimeMs);
     this.batchInsertTimeMs.observe(insertTimeMs);
+  }
+
+  /**
+   * Record database query metrics
+   * Called from query logger/interceptor when queries are executed
+   */
+  recordQueryMetrics(params: {
+    queryType: string;
+    operation: string;
+    duration: number;
+    isSlowQuery?: boolean;
+  }): void {
+    const { queryType, operation, duration, isSlowQuery } = params;
+
+    // Record query duration
+    this.dbQueryDuration.observe(
+      { query_type: queryType, operation },
+      duration,
+    );
+
+    // Increment query counter
+    this.dbQueryTotal.inc({ query_type: queryType, operation });
+
+    // Increment slow queries counter if applicable
+    if (isSlowQuery || duration > 1000) {
+      this.dbSlowQueriesTotal.inc({ query_type: queryType, operation });
+    }
+  }
+
+  /**
+   * Update database connection pool metrics
+   * Should be called periodically to track pool status
+   */
+  updateConnectionPoolMetrics(active: number, idle: number): void {
+    this.dbConnectionPoolActive.set(active);
+    this.dbConnectionPoolIdle.set(idle);
   }
 
   /**
