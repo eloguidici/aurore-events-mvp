@@ -2207,7 +2207,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Promedio (ms)"
+            "displayName": "Average (ms)"
           }
         ]
       },
@@ -2221,7 +2221,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n    LEFT(query, 150) as \"Consulta SQL\",\n    calls as \"Ejecuciones\",\n    ROUND(mean_exec_time::numeric, 2) as \"Promedio (ms)\",\n    ROUND(max_exec_time::numeric, 2) as \"Máximo (ms)\",\n    ROUND((total_exec_time / 1000)::numeric, 2) as \"Total (s)\",\n    rows as \"Filas Procesadas\"\nFROM pg_stat_statements\nWHERE query NOT LIKE '%pg_stat_statements%'\n  AND query NOT LIKE '%pg_stat%'\nORDER BY mean_exec_time DESC\nLIMIT 20;",
+          "rawSql": "SELECT\n    LEFT(query, 150) as \"SQL Query\",\n    calls as \"Executions\",\n    ROUND(mean_exec_time::numeric, 2) as \"Average (ms)\",\n    ROUND(max_exec_time::numeric, 2) as \"Max (ms)\",\n    ROUND((total_exec_time / 1000)::numeric, 2) as \"Total (s)\",\n    rows as \"Rows Processed\"\nFROM pg_stat_statements\nWHERE query NOT LIKE '%pg_stat_statements%'\n  AND query NOT LIKE '%pg_stat%'\nORDER BY mean_exec_time DESC\nLIMIT 20;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2242,7 +2242,7 @@
           }
         }
       ],
-      "title": "Top Queries por Tiempo de Ejecución",
+      "title": "Top Queries by Execution Time",
       "transformations": [],
       "type": "table"
     }
