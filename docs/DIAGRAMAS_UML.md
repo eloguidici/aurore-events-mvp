@@ -312,3 +312,58 @@ sequenceDiagram
 
 - Los diagramas usan [Mermaid](https://mermaid.js.org/), que GitHub renderiza automáticamente
 - Para ver los diagramas localmente, usar extensión de VS Code o [Mermaid Live Editor](https://mermaid.live/)
+
+---
+
+## 🖼️ Cómo Ver los Diagramas Visualmente
+
+### Opción 1: En GitHub (Más Fácil) ✅
+1. Sube los archivos a GitHub
+2. Abre `docs/DIAGRAMAS_UML.md` en GitHub
+3. Los diagramas se renderizan automáticamente como gráficos
+
+### Opción 2: Mermaid Live Editor (En el Navegador) 🌐
+1. Ve a: **https://mermaid.live/**
+2. Copia el código de un diagrama (por ejemplo, desde la línea 9 hasta la línea 72 del primer diagrama)
+3. Pega el código en el editor
+4. Verás el diagrama renderizado instantáneamente
+
+**Ejemplo para el primer diagrama:**
+- Copiar desde ````mermaid` hasta ```` (líneas 9-72)
+- Pegar en https://mermaid.live/
+- Ver el gráfico renderizado
+
+### Opción 3: Extensión de VS Code 🔌
+Instala una de estas extensiones en VS Code:
+
+**Recomendada: "Markdown Preview Mermaid Support"**
+1. Abre VS Code
+2. Ve a Extensiones (Ctrl+Shift+X)
+3. Busca: `Markdown Preview Mermaid Support`
+4. Instala la extensión
+5. Abre `docs/DIAGRAMAS_UML.md`
+6. Presiona `Ctrl+Shift+V` (o `Cmd+Shift+V` en Mac) para ver el preview
+7. Los diagramas Mermaid se renderizarán como gráficos
+
+**Otras opciones:**
+- `Mermaid Preview` - Preview dedicado para Mermaid
+- `Markdown Preview Enhanced` - Preview avanzado con soporte Mermaid
+
+### Opción 4: Visor de Markdown Online 📄
+1. Ve a: **https://dillinger.io/** o **https://stackedit.io/**
+2. Copia el contenido de `docs/DIAGRAMAS_UML.md`
+3. Pega en el editor
+4. Verás los diagramas renderizados
+
+---
+
+## 💡 Recomendación Rápida
+
+**Para ver rápido sin instalar nada:**
+1. Ve a **https://mermaid.live/**
+2. Copia y pega el código de cualquier diagrama
+3. Verás el gráfico al instante
+
+**Para uso diario:**
+- Instala la extensión `Markdown Preview Mermaid Support` en VS Code
+- Presiona `Ctrl+Shift+V` cuando estés editando el archivo
