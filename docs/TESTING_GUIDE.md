@@ -1,5 +1,9 @@
 # 🧪 Guía de Pruebas - Equipo Aurore
 
+> 📖 **Para documentación técnica detallada** (estrategia, cobertura, mejores prácticas), ver [`TESTING.md`](./TESTING.md)
+> 
+> Esta guía se enfoca en **ejecución práctica paso a paso**.
+
 ## 📋 Requisitos Previos
 
 - Node.js instalado (v18 o superior)

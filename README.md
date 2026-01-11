@@ -96,7 +96,7 @@ npm run build
 - The `.env` file is **REQUIRED** - the application will fail without it
 - All environment variables in `.env` are **REQUIRED** - no defaults are provided
 
-**📖 Need help?** See [`docs/QUICK_START.md`](docs/QUICK_START.md) for a simplified 2-3 command setup, or [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) for detailed Docker and PostgreSQL configuration.
+**📖 Need help?** See [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md) for detailed Docker and PostgreSQL configuration.
 
 ## Configuration
 
@@ -681,17 +681,18 @@ The application includes **Prometheus**, **Postgres Exporter**, **Loki**, and **
 
 - **Grafana**: Available at http://localhost:3001
   - Default credentials: `admin` / `admin`
-  - **Complete Dashboard**: "Aurore Events - Complete Dashboard" with 21 panels covering metrics, logs, and SQL queries
+  - **Complete Dashboard**: "Aurore Events - Complete Dashboard" with 28 panels covering metrics, logs, and SQL queries
   - Dashboard automatically loaded via provisioning: `grafana/dashboards/aurore-dashboard.json`
   - Pre-configured datasources:
     - **Prometheus** (metrics) - Application and PostgreSQL metrics
     - **Loki** (logs) - Query logs using LogQL, filter by container, level, context, etc.
     - **PostgreSQL** (direct SQL queries) - Execute SQL queries directly to view query performance, slow queries, and database statistics
-  - **View logs in dashboard**: The dashboard now includes 4 log panels:
+  - **View logs in dashboard**: The dashboard now includes 5 log panels:
     - Application Logs (All Levels) - All logs from Aurore containers
-    - Error Logs Count - Count of error logs in the last 5 minutes
+    - Error Logs Count (Last 5m) - Count of error logs in the last 5 minutes
     - Error Logs - Detailed error logs
-    - Logs by Level - Logs grouped by level (error, warn, info, etc.)
+    - Error & Warning Logs - Combined error and warning logs
+    - Logs by Level (per minute) - Logs grouped by level with rate metrics (error, warn, info, debug)
   - **View SQL queries in dashboard**: The dashboard includes a panel showing top SQL queries by execution time using the PostgreSQL datasource
   - **View logs in Explore**: Go to "Explore" → Select "Loki" datasource → Query logs with filters like `{container_name=~"aurore.*", level="error"}`
   - **View SQL queries in Explore**: Go to "Explore" → Select "PostgreSQL" datasource → Execute SQL queries directly to analyze query performance
@@ -769,9 +770,9 @@ The application exposes the following Prometheus metrics:
 
 **📖 For detailed Docker setup and troubleshooting**, see [`docs/DOCKER_SETUP.md`](docs/DOCKER_SETUP.md).
 
-**📖 For information about metrics architecture**, see [`docs/ARQUITECTURA_METRICAS.md`](docs/ARQUITECTURA_METRICAS.md) and [`docs/DIFERENCIAS_METRICAS.md`](docs/DIFERENCIAS_METRICAS.md).
+**📖 For information about metrics architecture**, see [`docs/ARQUITECTURA_METRICAS.md`](docs/ARQUITECTURA_METRICAS.md) and [`docs/METRICS_COMPLETE.md`](docs/METRICS_COMPLETE.md).
 
-**📖 For Grafana troubleshooting**, see [`docs/GRAFANA_METRICS_TROUBLESHOOTING.md`](docs/GRAFANA_METRICS_TROUBLESHOOTING.md) and [`docs/GRAFANA_QUICK_FIX.md`](docs/GRAFANA_QUICK_FIX.md).
+**📖 For Grafana troubleshooting**, see [`docs/GRAFANA_METRICS_TROUBLESHOOTING.md`](docs/GRAFANA_METRICS_TROUBLESHOOTING.md).
 
 ## Recent Improvements (January 2024)
 
@@ -798,19 +799,16 @@ The project includes comprehensive documentation in the `docs/` folder:
 - **`docs/DIAGRAMAS_UML.md`** - UML diagrams (Mermaid): architecture, sequence diagrams, state diagrams, and system flows
 
 ### Quick Start & Setup
-- **`docs/QUICK_START.md`** - Quick start guide (2-3 commands to get started)
 - **`docs/DOCKER_SETUP.md`** - Docker setup and PostgreSQL configuration guide
 - **`docs/TESTING_GUIDE.md`** - Complete step-by-step testing guide with examples
 - **`docs/DEPLOYMENT.md`** - Complete deployment guide for production environments
 
 ### Observability & Monitoring
 - **`docs/GRAFANA_GUIDE.md`** - Complete guide for viewing metrics in Grafana
-- **`docs/GRAFANA_METRICS_TROUBLESHOOTING.md`** - Detailed troubleshooting for metrics issues
-- **`docs/GRAFANA_QUICK_FIX.md`** - Quick fixes for common Grafana problems
+- **`docs/GRAFANA_METRICS_TROUBLESHOOTING.md`** - Complete troubleshooting guide (includes quick fixes and verification checklist)
 - **`docs/POSTGRES_QUERIES_IN_GRAFANA.md`** - Complete guide for viewing PostgreSQL queries in Grafana (includes how to add panels)
 - **`docs/ARQUITECTURA_METRICAS.md`** - Architecture documentation for the metrics system
-- **`docs/DIFERENCIAS_METRICAS.md`** - Explanation of differences between application and database metrics
-- **`docs/VERIFICACION_COMPLETA.md`** - Complete verification checklist for metrics system
+- **`docs/METRICS_COMPLETE.md`** - Complete guide to metrics (what they are, what we measure, differences between app and DB metrics)
 
 ### Improvements Documentation
 - **`docs/RESUMEN_MEJORAS_IMPLEMENTADAS.md`** - Summary of all improvements implemented

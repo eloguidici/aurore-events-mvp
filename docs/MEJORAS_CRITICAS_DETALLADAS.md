@@ -1,12 +1,16 @@
 # 🔴 Mejoras Críticas de Alta Prioridad - Guía de Implementación Detallada
 
-Este documento proporciona una guía completa y detallada para implementar las 3 mejoras críticas identificadas en el proyecto **aurore-events-mvp**.
+> ⚠️ **PRODUCTION ONLY** - Este documento describe mejoras críticas para **PRODUCCIÓN**, **NO para POC**.
+> 
+> Estas mejoras (Autenticación, Migraciones, Backups) **NO se deben implementar para un POC** porque agregan complejidad innecesaria y ralentizan el desarrollo. El objetivo del POC es demostrar el concepto, no ser producción-ready.
+> 
+> **Para evaluación de mejoras para POC, ver:** [`docs/RESUMEN_POC.md`](./RESUMEN_POC.md)
+> 
+> **Mantener esta documentación como referencia futura** para cuando el POC se convierta en producto real.
 
 ---
 
-## ⚠️ NOTA IMPORTANTE: CONTEXTO POC
-
-**Este documento describe mejoras críticas para PRODUCCIÓN, NO para POC.**
+Este documento proporciona una guía completa y detallada para implementar las 3 mejoras críticas identificadas en el proyecto **aurore-events-mvp**.
 
 **Contexto del Proyecto:** Este es un **POC (Proof of Concept)** basado en el Practical Test de Aurore Labs. Las mejoras críticas descritas en este documento (Autenticación, Migraciones, Backups) **NO se deben implementar para un POC** porque:
 

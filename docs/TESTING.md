@@ -1,5 +1,9 @@
 # Documentación de Testing - Aurore Events MVP
 
+> 📖 **Para una guía práctica paso a paso**, ver [`TESTING_GUIDE.md`](./TESTING_GUIDE.md)
+> 
+> Este documento se enfoca en la **estrategia técnica**, **cobertura de tests** y **mejores prácticas**.
+
 Este documento describe la estrategia de testing del proyecto, los tests unitarios implementados y cómo ejecutarlos.
 
 ## Tabla de Contenidos

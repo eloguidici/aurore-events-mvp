@@ -2,7 +2,120 @@
 
 Este documento explica por qué muchos reportes en Grafana están en cero y cómo resolverlo.
 
-## Problemas Identificados
+---
+
+## 🚀 Quick Fix - Soluciones Rápidas
+
+Si necesitas resolver el problema rápidamente, sigue estos pasos en orden:
+
+### 1. Verificar que todos los servicios están corriendo
+
+```powershell
+# Verificar contenedores Docker
+docker ps
+
+# Deberías ver todos estos contenedores corriendo:
+# - aurore-postgres
+# - aurore-postgres-exporter
+# - aurore-prometheus
+# - aurore-loki
+# - aurore-promtail
+# - aurore-grafana
+```
+
+Si falta alguno, iniciarlo:
+```powershell
+docker-compose up -d
+```
+
+### 2. Verificar que la aplicación NestJS está corriendo
+
+La aplicación NestJS debe estar corriendo en el puerto 3000 para que Prometheus pueda scrapear las métricas.
+
+```powershell
+# Verificar que el puerto 3000 está en uso
+Test-NetConnection -ComputerName localhost -Port 3000
+
+# Si no está corriendo, iniciarla:
+npm run start:dev
+```
+
+### 3. Verificar targets en Prometheus
+
+1. Abrir Prometheus: http://localhost:9090
+2. Ir a **Status** > **Targets**
+3. Verificar que todos los targets están en estado **UP**:
+   - `prometheus` (debe estar UP - siempre está UP)
+   - `aurore-events` (debe estar UP si la aplicación está corriendo)
+   - `postgres` (debe estar UP)
+
+**Si `aurore-events` está DOWN:**
+- Verificar que la aplicación está corriendo
+- Verificar que responde en http://localhost:3000/metrics/prometheus
+- Verificar logs: `docker logs aurore-prometheus`
+
+**Si `postgres` está DOWN:**
+- Verificar que postgres_exporter está corriendo: `docker ps | Select-String postgres-exporter`
+- Reiniciar postgres_exporter: `docker restart aurore-postgres-exporter`
+- Verificar logs: `docker logs aurore-postgres-exporter`
+
+### 4. Reiniciar postgres_exporter (después de cambios en queries.yaml)
+
+Si has actualizado `postgres-exporter/queries.yaml`, necesitas reiniciar postgres_exporter:
+
+```powershell
+docker restart aurore-postgres-exporter
+```
+
+Luego esperar unos segundos y verificar que el target en Prometheus está UP.
+
+### 5. Verificar métricas disponibles en Prometheus
+
+1. Abrir Prometheus: http://localhost:9090
+2. Ir a **Graph**
+3. Buscar métricas:
+
+**Métricas de la aplicación:**
+```
+buffer_size
+buffer_capacity
+events_throughput_per_second
+business_events_total
+```
+
+**Métricas de PostgreSQL:**
+```
+pg_stat_database_numbackends
+pg_stat_statements_calls
+pg_stat_statements_mean_exec_time_seconds
+pg_stat_statements_max_exec_time_seconds
+```
+
+Si alguna métrica no aparece en la lista, significa que no está siendo scrapeada correctamente.
+
+### 6. Reiniciar todos los servicios de monitoreo
+
+Si nada funciona, reiniciar todos los servicios:
+
+```powershell
+docker-compose restart prometheus postgres_exporter grafana
+```
+
+Luego esperar 1-2 minutos y verificar nuevamente en Grafana.
+
+### Checklist de Verificación Rápida
+
+- [ ] Todos los contenedores Docker están corriendo
+- [ ] La aplicación NestJS está corriendo en el puerto 3000
+- [ ] Prometheus puede acceder a http://localhost:9090
+- [ ] Todos los targets en Prometheus están UP
+- [ ] Grafana puede acceder a http://localhost:3001
+- [ ] Las métricas aparecen en Prometheus (Graph)
+- [ ] postgres_exporter fue reiniciado después de cambios en queries.yaml
+
+---
+
+## Problemas Identificados (Solución Detallada)
 
 ### 1. Prometheus no puede scrapear la aplicación
 
@@ -332,6 +445,149 @@ curl http://localhost:9090/api/v1/label/__name__/values | ConvertFrom-Json | Sel
 # Query una métrica específica
 curl "http://localhost:9090/api/v1/query?query=buffer_size" | ConvertFrom-Json
 ```
+
+## 📋 Checklist Completo de Verificación del Sistema de Métricas
+
+### 1. Configuración de Prometheus
+
+**Archivo**: `prometheus/prometheus.yml`
+
+**Targets configurados**:
+- ✅ `prometheus` (localhost:9090) - Prometheus mismo
+- ✅ `aurore-events` (host.docker.internal:3000) - Aplicación NestJS
+- ✅ `postgres` (postgres_exporter:9187) - PostgreSQL metrics
+
+**Estado**: ✅ Correcto
+
+### 2. Configuración de Docker Compose
+
+**Archivo**: `docker-compose.yml`
+
+**Servicios configurados**:
+- ✅ `postgres` - PostgreSQL con pg_stat_statements habilitado
+- ✅ `postgres_exporter` - Exportador de métricas de PostgreSQL
+- ✅ `prometheus` - Sistema de métricas
+- ✅ `grafana` - Visualización de métricas
+- ✅ `loki` - Sistema de logs
+- ✅ `promtail` - Recolector de logs
+
+**Estado**: ✅ Correcto
+
+### 3. Métricas de la Aplicación
+
+**Archivo**: `src/modules/common/services/prometheus.service.ts`
+
+**Métricas expuestas** (verificadas que coinciden con el dashboard):
+
+**Buffer Metrics**:
+- ✅ `buffer_size`
+- ✅ `buffer_capacity`
+- ✅ `buffer_utilization_percent`
+- ✅ `events_enqueued_total`
+- ✅ `events_dropped_total`
+- ✅ `events_drop_rate_percent`
+- ✅ `events_throughput_per_second`
+- ✅ `buffer_health_status`
+
+**Batch Worker Metrics**:
+- ✅ `batches_processed_total`
+- ✅ `events_processed_total`
+- ✅ `batch_processing_time_ms_bucket` (Histogram)
+- ✅ `batch_insert_time_ms_bucket` (Histogram)
+
+**Business Metrics**:
+- ✅ `business_events_total`
+- ✅ `business_events_last_24h`
+- ✅ `business_events_last_hour`
+- ✅ `business_events_by_service`
+
+**Health Metrics**:
+- ✅ `health_status`
+- ✅ `database_connection_status`
+- ✅ `circuit_breaker_state`
+
+**Estado**: ✅ Todas las métricas están definidas correctamente
+
+### 4. Dashboard de Grafana
+
+**Archivo**: `grafana/dashboards/aurore-dashboard.json`
+
+**Métricas usadas en el dashboard** (verificadas que existen):
+
+**Métricas de la aplicación**:
+- ✅ `buffer_utilization_percent`
+- ✅ `buffer_size`
+- ✅ `buffer_capacity`
+- ✅ `events_throughput_per_second`
+- ✅ `events_drop_rate_percent`
+- ✅ `events_enqueued_total`
+- ✅ `events_dropped_total`
+- ✅ `batches_processed_total`
+- ✅ `events_processed_total`
+- ✅ `business_events_total`
+- ✅ `business_events_last_24h`
+- ✅ `business_events_last_hour`
+- ✅ `business_events_by_service`
+- ✅ `circuit_breaker_state`
+- ✅ `health_status`
+- ✅ `database_connection_status`
+- ✅ `buffer_health_status`
+
+**Métricas de PostgreSQL estándar** (expuestas por postgres_exporter):
+- ✅ `pg_stat_database_numbackends{datname="aurore_events"}`
+- ✅ `pg_stat_database_xact_commit{datname="aurore_events"}`
+- ✅ `pg_stat_database_xact_rollback{datname="aurore_events"}`
+- ✅ `pg_stat_database_blks_hit{datname="aurore_events"}`
+- ✅ `pg_stat_database_blks_read{datname="aurore_events"}`
+
+**Métricas personalizadas de PostgreSQL** (expuestas por queries.yaml):
+- ✅ `pg_stat_statements_max_exec_time_seconds{datname="aurore_events"}` - Incluye datname como label
+- ✅ `pg_stat_statements_mean_exec_time_seconds{datname="aurore_events"}` - Incluye datname como label
+- ✅ `pg_stat_statements_calls{datname="aurore_events"}` - Incluye datname como label
+
+**Estado**: ✅ Todas las métricas están correctamente configuradas
+
+### 5. Configuración de Grafana
+
+**Archivos**: 
+- `grafana/provisioning/datasources/prometheus.yml` - Prometheus y Loki datasources
+- `grafana/provisioning/datasources/postgres.yml` - PostgreSQL datasource
+
+**Datasources configurados**:
+- ✅ Prometheus (http://prometheus:9090) - Métricas de aplicación y PostgreSQL
+- ✅ Loki (http://loki:3100) - Logs agregados
+- ✅ PostgreSQL (postgres:5432) - Queries SQL directas para análisis de queries
+
+**Estado**: ✅ Correcto
+
+### Pasos Necesarios para Aplicar los Cambios
+
+1. **Reiniciar postgres_exporter** (después de cambios en queries.yaml)
+   ```powershell
+   docker restart aurore-postgres-exporter
+   ```
+
+2. **Verificar que postgres_exporter está corriendo**
+   ```powershell
+   docker ps | Select-String "postgres-exporter"
+   ```
+
+3. **Verificar targets en Prometheus**
+   - Abrir http://localhost:9090
+   - Ir a **Status** > **Targets**
+   - Verificar que todos los targets están **UP**
+
+4. **Verificar métricas en Prometheus**
+   - Abrir http://localhost:9090
+   - Ir a **Graph**
+   - Buscar métricas personalizadas: `pg_stat_statements_max_exec_time_seconds{datname="aurore_events"}`
+
+5. **Verificar dashboard en Grafana**
+   - Abrir http://localhost:3001
+   - Ir al dashboard "Aurore Events - Complete Dashboard"
+   - Verificar que los paneles de métricas de PostgreSQL muestran datos
+
+---
 
 ## Referencias
 

@@ -81,51 +81,56 @@ Para agregar un panel que muestre las top queries, puedes:
 
 ```sql
 SELECT 
-    LEFT(query, 150) as query_preview,
-    calls as "Execuciones",
-    ROUND(mean_exec_time::numeric, 2) as "Tiempo Promedio (ms)",
-    ROUND(max_exec_time::numeric, 2) as "Tiempo Máximo (ms)",
-    ROUND(total_exec_time::numeric, 2) as "Tiempo Total (ms)",
-    rows as "Filas"
-FROM pg_stat_statements
-WHERE query NOT LIKE '%pg_stat_statements%'
-ORDER BY mean_exec_time DESC
-LIMIT 20;
-```
-
-## Paneles Recomendados
-
-### Panel 1: Top Queries por Tiempo de Ejecución
-
-**Tipo**: Table
-**Query**:
-```sql
-SELECT 
-    LEFT(query, 200) as "Consulta",
-    calls as "Ejecuciones",
-    ROUND(mean_exec_time::numeric, 2) as "Promedio (ms)",
-    ROUND(max_exec_time::numeric, 2) as "Máximo (ms)",
+    LEFT(query, 150) as "SQL Query",
+    calls as "Executions",
+    ROUND(mean_exec_time::numeric, 2) as "Average (ms)",
+    ROUND(max_exec_time::numeric, 2) as "Max (ms)",
     ROUND((total_exec_time / 1000)::numeric, 2) as "Total (s)",
-    rows as "Filas"
+    rows as "Rows Processed"
 FROM pg_stat_statements
 WHERE query NOT LIKE '%pg_stat_statements%'
   AND query NOT LIKE '%pg_stat%'
 ORDER BY mean_exec_time DESC
-LIMIT 15;
+LIMIT 20;
 ```
 
-### Panel 2: Top Queries por Cantidad de Ejecuciones
+**Nota**: El panel del dashboard ya está configurado con los nombres de columnas en inglés para mejor claridad.
 
-**Tipo**: Table
+## Paneles Recomendados
+
+### Panel 1: Top Queries by Execution Time
+
+**Tipo**: Table  
+**Nota**: Este panel ya está incluido en el dashboard "Aurore Events - Complete Dashboard".
+
 **Query**:
 ```sql
 SELECT 
-    LEFT(query, 200) as "Consulta",
-    calls as "Ejecuciones",
-    ROUND(mean_exec_time::numeric, 2) as "Promedio (ms)",
+    LEFT(query, 150) as "SQL Query",
+    calls as "Executions",
+    ROUND(mean_exec_time::numeric, 2) as "Average (ms)",
+    ROUND(max_exec_time::numeric, 2) as "Max (ms)",
     ROUND((total_exec_time / 1000)::numeric, 2) as "Total (s)",
-    rows as "Filas",
-    ROUND((rows::numeric / NULLIF(calls, 0))::numeric, 2) as "Filas/Ejecución"
+    rows as "Rows Processed"
+FROM pg_stat_statements
+WHERE query NOT LIKE '%pg_stat_statements%'
+  AND query NOT LIKE '%pg_stat%'
+ORDER BY mean_exec_time DESC
+LIMIT 20;
+```
+
+### Panel 2: Top Queries by Number of Executions
+
+**Tipo**: Table  
+**Query**:
+```sql
+SELECT 
+    LEFT(query, 150) as "SQL Query",
+    calls as "Executions",
+    ROUND(mean_exec_time::numeric, 2) as "Average (ms)",
+    ROUND((total_exec_time / 1000)::numeric, 2) as "Total (s)",
+    rows as "Rows Processed",
+    ROUND((rows::numeric / NULLIF(calls, 0))::numeric, 2) as "Rows/Execution"
 FROM pg_stat_statements
 WHERE query NOT LIKE '%pg_stat_statements%'
   AND query NOT LIKE '%pg_stat%'
@@ -133,17 +138,17 @@ ORDER BY calls DESC
 LIMIT 15;
 ```
 
-### Panel 3: Consultas Lentas (>1 segundo)
+### Panel 3: Slow Queries (>1 second)
 
-**Tipo**: Table
+**Tipo**: Table  
 **Query**:
 ```sql
 SELECT 
-    LEFT(query, 200) as "Consulta",
-    calls as "Ejecuciones",
-    ROUND(mean_exec_time::numeric, 2) as "Promedio (ms)",
-    ROUND(max_exec_time::numeric, 2) as "Máximo (ms)",
-    ROUND(stddev_exec_time::numeric, 2) as "Desv. Est. (ms)",
+    LEFT(query, 150) as "SQL Query",
+    calls as "Executions",
+    ROUND(mean_exec_time::numeric, 2) as "Average (ms)",
+    ROUND(max_exec_time::numeric, 2) as "Max (ms)",
+    ROUND(stddev_exec_time::numeric, 2) as "Std Dev (ms)",
     ROUND(hit_percent::numeric, 2) as "Cache Hit %"
 FROM slow_queries
 ORDER BY mean_exec_time DESC
